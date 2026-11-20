@@ -51,6 +51,7 @@ public sealed class IslandService : IFeatureService
 
     private NotchWindow? _window;
     private LyricsService? _lyrics;
+    private LiveEqualizerService? _equalizer;
     private bool _lyricsOpen, _modalOpen;
     private int? _lyricsActive = -1;
     private string _lyricsKey = "";
@@ -133,6 +134,7 @@ public sealed class IslandService : IFeatureService
         _media.Changed += OnMediaChanged;
         _media.TrackChanged += OnTrackChanged;
         _lyrics = new LyricsService(_settings);
+        _equalizer = new LiveEqualizerService(_settings, _dispatcher, () => _media?.Current);
         _lyrics.Changed += RenderLyrics;
         _ = _media.StartAsync();
         try
@@ -171,6 +173,7 @@ public sealed class IslandService : IFeatureService
         _foreground?.Dispose(); _foreground = null;
         _media?.Dispose(); _media = null;
         _lyrics?.Dispose(); _lyrics = null;
+        _equalizer?.Dispose(); _equalizer = null;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
         _strip?.Close(); _strip = null;
@@ -311,6 +314,7 @@ public sealed class IslandService : IFeatureService
         if (_hoverEmphasized && !_expanded && _notice is null) size = g.HoverEmphasis(size);
 
         ShowClosedContent(content, g);
+        SyncEqualizer();
         UpdateWarningTint();
         MoveTo(size, shift, animated && !hidden);
     }
@@ -371,6 +375,10 @@ public sealed class IslandService : IFeatureService
                 break;
         }
     }
+
+    /// <summary>The live equalizer reads only while the bars it moves are on screen.</summary>
+    private void SyncEqualizer() =>
+        _equalizer?.SetVisible(_shown == ClosedContent.Music && !_hiddenInFullscreen && !_expanded, _media?.Current);
 
     private static void ShowArt(NotchWindow w, ImageSource? art, double body)
     {
@@ -741,11 +749,15 @@ public sealed class IslandService : IFeatureService
         var max = Math.Max(6, Math.Min(16, (_geometry?.StripBodyHeight ?? 20) - NotchLayout.CompactEdgeGap * 2));
         var t = Now;
         var i = 0;
+        var count = _window.StripBars.Children.Count;
+        var levels = _equalizer?.Levels;
         foreach (Border bar in _window.StripBars.Children)
         {
-            // Synthetic motion until the live equalizer (M3) reads the player's real levels.
-            var wave = 0.5 + 0.25 * Math.Sin(t * (5.1 + i * 1.7) + i * 1.3) + 0.25 * Math.Sin(t * (2.3 + i * 0.9) + i * 2.1);
-            bar.Height = playing ? 3 + (max - 3) * Math.Clamp(wave, 0.08, 1) : 3;
+            // The player's real levels with the live equalizer, otherwise the usual synthetic motion.
+            var value = levels is { Length: > 0 }
+                ? Math.Max(0.06, levels[NotchAudioLevelSupport.BarIndex(i, count, levels.Length)])
+                : Math.Clamp(0.5 + 0.25 * Math.Sin(t * (5.1 + i * 1.7) + i * 1.3) + 0.25 * Math.Sin(t * (2.3 + i * 0.9) + i * 2.1), 0.08, 1);
+            bar.Height = playing ? 3 + (max - 3) * value : 3;
             i++;
         }
     }

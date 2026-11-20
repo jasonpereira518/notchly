@@ -2,7 +2,7 @@
 
 Generated from `src/Islet.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**4 ported**, 64 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**5 ported**, 63 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -105,7 +105,7 @@ Generated from `src/Islet.Core/Features/FeatureCatalog.cs`; regenerate whenever 
 | `notchAccessories` | Accessories | 🛠️ Planned | M3 |  |
 | `notchLyrics` | Lyrics | ✅ Ported | M3 | Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup. |
 | `notchQueue` | Play queue | ➖ Not on Windows | - | Windows media controls expose no system-wide queue. |
-| `notchLiveEqualizer` | Live equalizer | 🛠️ Planned | M3 |  |
+| `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Reads the playing app's own audio with Windows process loopback; off until you turn it on. |
 | `notchDownloads` | Downloads | 🛠️ Planned | M3 |  |
 | `notchAgents` | AI agents | 🛠️ Planned | M3 |  |
 | `notchWatch` | Watch | 🛠️ Planned | M3 |  |

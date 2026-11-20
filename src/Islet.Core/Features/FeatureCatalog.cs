@@ -245,7 +245,7 @@ public static class FeatureCatalog
         Add(AppFeature.NotchQueue, g, "Play queue", "The player's upcoming songs.", Glyph.List,
             [DefaultsKey.NotchQueueEnabled], true, D, "-", "Windows media controls expose no system-wide queue.");
         Add(AppFeature.NotchLiveEqualizer, g, "Live equalizer", "Bars that follow the music's real levels.", Glyph.Wave,
-            [DefaultsKey.NotchLiveEqualizer], true, P, "M3");
+            [DefaultsKey.NotchLiveEqualizer], true, WindowsStatus.Ported, "M3", "Reads the playing app's own audio with Windows process loopback; off until you turn it on.");
         Add(AppFeature.NotchDownloads, g, "Downloads", "Downloads in progress in the island.", Glyph.Download,
             [DefaultsKey.NotchDownloadsEnabled], true, P, "M3");
         Add(AppFeature.NotchAgents, g, "AI agents", "Claude, Codex, Copilot and OpenCode usage and limits.", Glyph.Robot,

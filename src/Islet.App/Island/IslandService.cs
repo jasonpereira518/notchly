@@ -11,6 +11,9 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using Islet.App.Island.Lyrics;
 using Islet.App.Platform.Audio;
 using Islet.App.Platform.Input;
 using Islet.App.Platform.Media;
@@ -20,6 +23,7 @@ using Islet.App.Platform.Windowing;
 using Islet.App.Shell;
 using Islet.Core.Features;
 using Islet.Core.Notch;
+using Islet.Core.Notch.Lyrics;
 using Islet.Core.Settings;
 using Microsoft.Win32;
 using Serilog;
@@ -46,6 +50,14 @@ public sealed class IslandService : IFeatureService
     private readonly NotchTimerSession _timer = new();
 
     private NotchWindow? _window;
+    private LyricsService? _lyrics;
+    private bool _lyricsOpen, _modalOpen;
+    private int? _lyricsActive = -1;
+    private string _lyricsKey = "";
+    private readonly List<TextBlock> _lyricLines = [];
+    private TextBlock? _lyricsWaiting;
+    private DispatcherTimer? _lyricsTimer, _scrollTimer;
+    private double _scrollFrom, _scrollTo, _scrollStart;
     private AppBarStrip? _strip;
     private MediaSessionService? _media;
     private VolumeService? _volume;
@@ -106,14 +118,22 @@ public sealed class IslandService : IFeatureService
         window.Surface.MouseLeftButtonUp += OnClick;
         window.Surface.PreviewMouseWheel += OnWheel;
         window.HorizontalWheel += OnHorizontalWheel;
-        window.Deactivated += (_, _) => { Log.Debug("Island deactivated (expanded {Expanded}, focus {Focus})", _expanded, _focusTaken); if (_expanded && _focusTaken) Collapse(); };
-        window.KeyDown += (_, e) => { if (e.Key == Key.Escape) Collapse(); };
+        window.Deactivated += (_, _) => { if (_modalOpen) return; Log.Debug("Island deactivated (expanded {Expanded}, focus {Focus})", _expanded, _focusTaken); if (_expanded && _focusTaken) Collapse(); };
+        // Escape closes lyrics before the island, as upstream.
+        window.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape) return;
+            if (_lyricsOpen && _page == NotchModule.Music) SetLyricsOpen(false);
+            else Collapse();
+        };
         WireControls(window);
         window.Show();
 
         _media = new MediaSessionService(_dispatcher);
         _media.Changed += OnMediaChanged;
         _media.TrackChanged += OnTrackChanged;
+        _lyrics = new LyricsService(_settings);
+        _lyrics.Changed += RenderLyrics;
         _ = _media.StartAsync();
         try
         {
@@ -135,6 +155,8 @@ public sealed class IslandService : IFeatureService
         _pollTimer = NewTimer(CheckFullscreen, TimeSpan.FromSeconds(1));
         _tickTimer = NewTimer(OnTick, TimeSpan.FromMilliseconds(250));
         _barsTimer = NewTimer(OnBars, TimeSpan.FromMilliseconds(33));
+        _lyricsTimer = NewTimer(OnLyricsTimer);
+        _scrollTimer = NewTimer(OnScrollFrame, TimeSpan.FromMilliseconds(15));
         _tickTimer.Start();
         Log.Information("Island started");
     }
@@ -143,11 +165,12 @@ public sealed class IslandService : IFeatureService
     {
         _running = false;
         StopFrames();
-        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer }) timer?.Stop();
+        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer }) timer?.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
         _volumeKeys?.Dispose(); _volumeKeys = null;
         _foreground?.Dispose(); _foreground = null;
         _media?.Dispose(); _media = null;
+        _lyrics?.Dispose(); _lyrics = null;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
         _strip?.Close(); _strip = null;
@@ -215,6 +238,7 @@ public sealed class IslandService : IFeatureService
         BuildTabs();
         BuildTimerPresets();
         UpdatePages();
+        SyncLyrics();
         Refresh(animated: _drawn != SizeD.Zero);
     }
 
@@ -232,11 +256,11 @@ public sealed class IslandService : IFeatureService
         if (_geometry is not { } g || _window is not { } w) return _geometry?.Expanded ?? SizeD.Zero;
         FrameworkElement page = _page switch
         {
-            NotchModule.Music => w.MusicPage,
+            NotchModule.Music => w.MusicPlayer,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
-        return g.ExpandedSize(w.MeasurePage(page, g.ContentWidth) + 4);
+        return g.ExpandedSize(w.MeasurePage(page, g.ContentWidth) + 4, LyricsShown ? g.MusicExtrasHeight : 0);
     }
 
     private NotchCompactActivity? CurrentActivity()
@@ -454,6 +478,7 @@ public sealed class IslandService : IFeatureService
             _hoverState.Open();
             ShowPage(_page);
             UpdatePages();
+            SyncLyrics();
             _window.ShowOpenLayer(true);
         }
         else if (!byHover) _openedByHover = false;
@@ -485,6 +510,7 @@ public sealed class IslandService : IFeatureService
         }
         _hoverState.Close(_inside);
         _window.ShowOpenLayer(false);
+        SyncLyrics();
         Refresh();
     }
 
@@ -528,6 +554,7 @@ public sealed class IslandService : IFeatureService
     private void OnCloseTimer()
     {
         _closeTimer?.Stop();
+        if (_modalOpen) return;
         if (!_inside && NotchSupport.ClosesOnPointerExit(_expanded, false, _openedByHover)) Collapse();
     }
 
@@ -563,6 +590,8 @@ public sealed class IslandService : IFeatureService
         if (e.OriginalSource is DependencyObject source && IsInsideControl(source)) return;
         var precise = e.Delta % 120 != 0;
         var inHeader = e.GetPosition(_window.Surface).Y <= _geometry.PageTopInset;
+        // Over the lyrics the wheel scrolls them instead of closing the island.
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject node && IsInside(node, _window.LyricsScroller)) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
             allowVertical: NotchGestureSupport.AllowsVertical(_expanded, inHeader, _page == NotchModule.Music, control: false, scroll: false),
@@ -699,7 +728,9 @@ public sealed class IslandService : IFeatureService
 
     private void OnMediaChanged()
     {
+        _lyrics?.PlaybackChanged(CurrentIdentity());
         UpdatePages();
+        SyncLyrics();
         Refresh();
     }
 
@@ -717,6 +748,199 @@ public sealed class IslandService : IFeatureService
             bar.Height = playing ? 3 + (max - 3) * Math.Clamp(wave, 0.08, 1) : 3;
             i++;
         }
+    }
+
+    // MARK: Lyrics (upstream NotchLyricsView and the music page's extras)
+
+    private const string OnlineHint = "While lyrics are open, send the song title, artist, album and duration to lrclib.net. " +
+        "Imported lyrics stay on this PC. Song titles, artist names and albums may also be checked with musicbrainz.org.";
+    private static readonly Brush DimVerse = Brush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF));
+
+    private bool LyricsAvailable => _lyrics?.IsEnabled == true && _media?.Current is not null;
+    private bool LyricsShown => _lyricsOpen && LyricsAvailable && _page == NotchModule.Music;
+
+    private NotchMusicIdentity? CurrentIdentity() => _media?.Current is { } playing
+        ? new NotchMusicIdentity(playing.Title, playing.Artist, playing.Album, playing.Duration.TotalSeconds, playing.SourceAppId)
+        : null;
+
+    private void SetLyricsOpen(bool open)
+    {
+        _lyricsOpen = open;
+        SyncLyrics();
+        Refresh();
+    }
+
+    /// <summary>Shows or hides the lyrics button and panel, and tells the service what is visible.</summary>
+    private void SyncLyrics()
+    {
+        if (_window is not { } w || _lyrics is null) return;
+        w.LyricsButton.Visibility = _page == NotchModule.Music && LyricsAvailable ? Visibility.Visible : Visibility.Collapsed;
+        w.LyricsButton.IsChecked = _lyricsOpen;
+        w.LyricsPanel.Visibility = LyricsShown ? Visibility.Visible : Visibility.Collapsed;
+        if (_geometry is { } g) w.LyricsPanel.Height = Math.Max(0, g.MusicExtrasHeight - 12);
+        _lyrics.Update(CurrentIdentity(), LyricsShown && _expanded);
+        RenderLyrics();
+    }
+
+    private void RenderLyrics()
+    {
+        if (_window is not { } w || _lyrics is null) return;
+        var lyrics = _lyrics.Lyrics;
+        var playing = _media?.Current;
+        var hasPosition = playing is { Duration.TotalSeconds: > 0 };
+        if (lyrics is { Instrumental: false } && (lyrics.Lines.Count > 0 || lyrics.Plain.Length > 0))
+        {
+            var synced = lyrics.Lines.Count > 0 && hasPosition;
+            w.LyricsMessage.Visibility = Visibility.Collapsed;
+            w.LyricsScroller.Visibility = Visibility.Visible;
+            w.LyricsTiming.Visibility = synced ? Visibility.Visible : Visibility.Collapsed;
+            w.LyricsOffset.Content = _lyrics.Offset.ToString("+0.00;-0.00;+0.00", CultureInfo.InvariantCulture);
+            var key = RuntimeHelpers.GetHashCode(lyrics) + (synced ? ":synced" : ":plain");
+            if (key != _lyricsKey)
+            {
+                _lyricsKey = key;
+                BuildLyricLines(lyrics, synced, hasPosition);
+            }
+            UpdateLyricsHighlight();
+            ArmLyricsTimer();
+            return;
+        }
+        _lyricsKey = "";
+        _lyricLines.Clear();
+        _lyricsWaiting = null;
+        w.LyricsLines.Children.Clear();
+        w.LyricsScroller.Visibility = Visibility.Collapsed;
+        w.LyricsTiming.Visibility = Visibility.Collapsed;
+        w.LyricsMessage.Visibility = Visibility.Visible;
+        _lyricsTimer?.Stop();
+        var online = _settings.GetBool(DefaultsKey.NotchLyricsOnline);
+        var (icon, message, primary) = lyrics is { Instrumental: true } ? ("", "Instrumental", (string?)null)
+            : _lyrics.State switch
+            {
+                LyricsState.Loading => ("", "Loading lyrics…", null),
+                LyricsState.Failed => ("", "Could not load the lyrics." + (online ? "" : "\n" + OnlineHint), online ? "Try again" : "Find lyrics online"),
+                LyricsState.Unavailable => ("", "No matching lyrics for this recording.", online ? "Try again" : "Find lyrics online"),
+                _ => ("", OnlineHint, online ? null : "Find lyrics online"),
+            };
+        w.LyricsMessageIcon.Text = icon;
+        w.LyricsMessageText.Text = message;
+        w.LyricsPrimary.Content = primary;
+        w.LyricsPrimary.Visibility = primary is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Every verse keeps one size, so lines never rewrap as the song moves; the sung one lights up.</summary>
+    private void BuildLyricLines(NotchLyrics lyrics, bool synced, bool hasPosition)
+    {
+        if (_window is not { } w) return;
+        _lyricLines.Clear();
+        w.LyricsLines.Children.Clear();
+        _lyricsActive = -1;
+        _lyricsWaiting = null;
+        w.LyricsScroller.ScrollToVerticalOffset(0);
+        if (!synced)
+        {
+            if (!hasPosition && lyrics.Lines.Count > 0)
+                w.LyricsLines.Children.Add(new TextBlock { Text = "The player does not share its position.", FontSize = 11, Foreground = DimVerse, Margin = new Thickness(0, 0, 0, 8) });
+            var text = lyrics.Plain.Length > 0 ? lyrics.Plain : string.Join("\n", lyrics.Lines.Select(l => l.Text));
+            w.LyricsLines.Children.Add(new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.None });
+            return;
+        }
+        _lyricsWaiting = new TextBlock { Text = "Waiting for the first verse", FontSize = 11, Foreground = DimVerse, Margin = new Thickness(0, 0, 0, 12) };
+        w.LyricsLines.Children.Add(_lyricsWaiting);
+        foreach (var line in lyrics.Lines)
+        {
+            var block = new TextBlock
+            {
+                Text = line.Text.Length == 0 ? "♪" : line.Text,
+                FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.None,
+                Foreground = DimVerse, Margin = new Thickness(0, 0, 0, 12),
+            };
+            _lyricLines.Add(block);
+            w.LyricsLines.Children.Add(block);
+        }
+    }
+
+    private void UpdateLyricsHighlight()
+    {
+        if (_window is not { } w || _lyrics?.Lyrics is not { } lyrics || _lyricLines.Count != lyrics.Lines.Count || _lyricLines.Count == 0
+            || _media?.Current is not { } playing || !LyricsShown) return;
+        var active = lyrics.ActiveIndex(playing.CurrentPosition.TotalSeconds, _lyrics.Offset);
+        if (active == _lyricsActive) return;
+        if (_lyricsActive is int previous && previous >= 0 && previous < _lyricLines.Count) _lyricLines[previous].Foreground = DimVerse;
+        _lyricsActive = active;
+        if (_lyricsWaiting is not null) _lyricsWaiting.Visibility = active is null ? Visibility.Visible : Visibility.Collapsed;
+        if (active is not int index) { ScrollLyricsTo(0); return; }
+        _lyricLines[index].Foreground = Brushes.White;
+        w.LyricsLines.UpdateLayout();
+        var top = _lyricLines[index].TransformToAncestor(w.LyricsLines).Transform(new Point(0, 0)).Y;
+        ScrollLyricsTo(Math.Max(0, top - w.LyricsScroller.ViewportHeight / 3));
+    }
+
+    /// <summary>The highlight changes only at verse boundaries: one timer for the next one, none while paused.</summary>
+    private void ArmLyricsTimer()
+    {
+        _lyricsTimer?.Stop();
+        if (_lyricsTimer is null || !LyricsShown || !_expanded || _lyrics?.Lyrics is not { Lines.Count: > 0 } lyrics
+            || _media?.Current is not { IsPlaying: true } playing || playing.Duration.TotalSeconds <= 0) return;
+        var position = playing.CurrentPosition.TotalSeconds;
+        var rate = playing.PlaybackRate > 0 ? playing.PlaybackRate : 1;
+        if (lyrics.NextChange(position, _lyrics.Offset, playing.Duration.TotalSeconds) is not { } next) return;
+        _lyricsTimer.Interval = TimeSpan.FromSeconds(Math.Max(0.01, (next - position) / rate + 0.005));
+        _lyricsTimer.Start();
+    }
+
+    private void OnLyricsTimer()
+    {
+        _lyricsTimer?.Stop();
+        UpdateLyricsHighlight();
+        ArmLyricsTimer();
+    }
+
+    private void ScrollLyricsTo(double offset)
+    {
+        if (_window is null || _scrollTimer is null) return;
+        _scrollFrom = _window.LyricsScroller.VerticalOffset;
+        _scrollTo = offset;
+        _scrollStart = Now;
+        _scrollTimer.Start();
+    }
+
+    private void OnScrollFrame()
+    {
+        if (_window is null) { _scrollTimer?.Stop(); return; }
+        var t = Math.Min(1, (Now - _scrollStart) / 0.3);
+        var eased = 1 - Math.Pow(1 - t, 3);
+        _window.LyricsScroller.ScrollToVerticalOffset(_scrollFrom + (_scrollTo - _scrollFrom) * eased);
+        if (t >= 1) _scrollTimer?.Stop();
+    }
+
+    private void OnLyricsPrimary()
+    {
+        if (!_settings.GetBool(DefaultsKey.NotchLyricsOnline)) _settings.Set(DefaultsKey.NotchLyricsOnline, true);
+        else _lyrics?.Retry();
+    }
+
+    private void ImportLyrics()
+    {
+        if (_lyrics is null || _window is null) return;
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose timed lyrics for the current recording",
+            Filter = "Lyrics (*.lrc;*.txt)|*.lrc;*.txt|All files (*.*)|*.*",
+        };
+        _modalOpen = true;
+        try
+        {
+            if (dialog.ShowDialog(_window) == true) _lyrics.Import(dialog.FileName);
+        }
+        finally { _modalOpen = false; }
+    }
+
+    private static bool IsInside(DependencyObject node, DependencyObject target)
+    {
+        for (var current = node; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (ReferenceEquals(current, target)) return true;
+        return false;
     }
 
     // MARK: Timer (upstream NotchTimerService)
@@ -795,6 +1019,13 @@ public sealed class IslandService : IFeatureService
             _media?.Seek(TimeSpan.FromSeconds(w.MusicTimeline.Value));
         };
         w.TimerPrimary.Click += (_, _) => OnTimerPrimary();
+        w.LyricsButton.Click += (_, _) => SetLyricsOpen(w.LyricsButton.IsChecked == true);
+        w.LyricsPrimary.Click += (_, _) => OnLyricsPrimary();
+        w.LyricsImport.Click += (_, _) => ImportLyrics();
+        w.LyricsImportIcon.Click += (_, _) => ImportLyrics();
+        w.LyricsEarlier.Click += (_, _) => _lyrics?.AdjustOffset(-0.25);
+        w.LyricsLater.Click += (_, _) => _lyrics?.AdjustOffset(0.25);
+        w.LyricsOffset.Click += (_, _) => _lyrics?.ResetOffset();
         w.TimerNext.Click += (_, _) => { _timer.StartNext(Now); UpdatePages(); Refresh(); };
         w.TimerReset.Click += (_, _) => { _timer.Cancel(); UpdatePages(); Refresh(); };
         w.ModeTimer.Checked += (_, _) => SelectTimerMode(NotchTimerMode.Timer);
@@ -851,6 +1082,7 @@ public sealed class IslandService : IFeatureService
         _window.HomePage.Visibility = module == NotchModule.Controls ? Visibility.Visible : Visibility.Collapsed;
         _window.MusicPage.Visibility = module == NotchModule.Music ? Visibility.Visible : Visibility.Collapsed;
         _window.TimerPage.Visibility = module == NotchModule.Timer ? Visibility.Visible : Visibility.Collapsed;
+        SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();
         if (_expanded) Refresh();
@@ -949,6 +1181,7 @@ public sealed class IslandService : IFeatureService
             : mode == NotchTimerMode.Pomodoro ? $"{PomodoroConfiguration().FocusMinutes} min focus, {PomodoroConfiguration().ShortBreakMinutes} min breaks" : "";
         w.HomeTimerText.Text = _timer.HasSession ? (_timer.Completed ? "Done" : NotchTimerSupport.ClockText(_timer, now)) : "Timer";
 
+        UpdateLyricsHighlight();
         if (_media?.Current is { } playing && !_seeking)
         {
             var duration = playing.Duration.TotalSeconds;

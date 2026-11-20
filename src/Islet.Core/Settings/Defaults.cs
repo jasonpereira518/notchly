@@ -31,6 +31,8 @@ public static class Defaults
         [DefaultsKey.NotchTimerEnabled] = true,
         [DefaultsKey.NotchAccessoriesEnabled] = true,
         [DefaultsKey.NotchLyricsEnabled] = true,
+        // Online lookup needs consent: off until the user turns it on (upstream default).
+        [DefaultsKey.NotchLyricsOnline] = false,
         [DefaultsKey.NotchQueueEnabled] = true,
         [DefaultsKey.NotchLiveEqualizer] = false,
         [DefaultsKey.NotchDownloadsEnabled] = true,

@@ -241,7 +241,7 @@ public static class FeatureCatalog
         Add(AppFeature.NotchAccessories, g, "Accessories", "Bluetooth device connections and batteries.", Glyph.Bluetooth,
             [DefaultsKey.NotchAccessoriesEnabled], true, P, "M3");
         Add(AppFeature.NotchLyrics, g, "Lyrics", "Synced lyrics for the playing song.", Glyph.Quote,
-            [DefaultsKey.NotchLyricsEnabled], true, P, "M3");
+            [DefaultsKey.NotchLyricsEnabled], true, WindowsStatus.Ported, "M3", "Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup.");
         Add(AppFeature.NotchQueue, g, "Play queue", "The player's upcoming songs.", Glyph.List,
             [DefaultsKey.NotchQueueEnabled], true, D, "-", "Windows media controls expose no system-wide queue.");
         Add(AppFeature.NotchLiveEqualizer, g, "Live equalizer", "Bars that follow the music's real levels.", Glyph.Wave,

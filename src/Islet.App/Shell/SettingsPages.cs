@@ -250,6 +250,12 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Show what's playing", "Spotify, browsers and other players that use Windows media controls.", DefaultsKey.NotchShowPlayingMusic, ""),
             Toggle("Announce track changes", null, DefaultsKey.NotchTrackChange, ""),
 
+            Section("Lyrics"),
+            Toggle("Show lyrics", "Follow the lyrics of the current song on the island's Music page.", DefaultsKey.NotchLyricsEnabled, ""),
+            Toggle("Find lyrics online", "While lyrics are open, send the song title, artist, album and duration to lrclib.net. " +
+                   "Song titles, artist names and albums may also be checked with musicbrainz.org. Imported lyrics stay on this PC.",
+                   DefaultsKey.NotchLyricsOnline, ""),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

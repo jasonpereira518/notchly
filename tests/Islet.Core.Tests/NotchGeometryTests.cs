@@ -107,6 +107,16 @@ public class NotchGeometryTests
     }
 
     [Fact]
+    public void LyricsGrowAPresetButStayWithinACustomHeight()
+    {
+        var spacious = new NotchGeometry(Omen);
+        Assert.Equal(64 + 120 + 216, spacious.ExpandedSize(120, spacious.MusicExtrasHeight).Height);
+        Assert.True(spacious.Envelope.Height >= spacious.ExpandedSize(extraHeight: spacious.MusicExtrasHeight).Height + NotchMotion.OvershootLimit);
+        var custom = new NotchGeometry(Omen, layout: NotchSize.Custom, customHeight: 300);
+        Assert.Equal(300, custom.ExpandedSize(120, custom.MusicExtrasHeight).Height);
+    }
+
+    [Fact]
     public void CustomSizeIsClampedAndHonoured()
     {
         var geometry = new NotchGeometry(Omen, layout: NotchSize.Custom, customWidth: 9999, customHeight: 300);

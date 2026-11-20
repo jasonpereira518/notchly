@@ -157,10 +157,19 @@ public sealed record NotchGeometry
         _ => Math.Max(0, CustomHeight - HeaderTopInset - HeaderChromeHeight),
     };
 
-    /// <summary>The open island around a page `contentHeight` tall (the budget when null).</summary>
-    public SizeD ExpandedSize(double? contentHeight = null)
+    /// <summary>
+    /// Lyrics and the queue open below the player. Presets grow the island for them; a custom
+    /// height keeps them within its limit (upstream musicExtrasHeight).
+    /// </summary>
+    public double MusicExtrasHeight => Layout == NotchSize.Custom ? Math.Min(216, ContentBudget) : 216;
+
+    /// <summary>
+    /// The open island around a page `contentHeight` tall (the budget when null), plus
+    /// `extraHeight` the page adds below itself past the preset's budget, as the player's lyrics do.
+    /// </summary>
+    public SizeD ExpandedSize(double? contentHeight = null, double extraHeight = 0)
     {
-        var content = Math.Min(ContentBudget, Math.Max(0, contentHeight ?? ContentBudget));
+        var content = Math.Min(ContentBudget, Math.Max(0, contentHeight ?? ContentBudget)) + Math.Max(0, extraHeight);
         var height = HeaderTopInset + HeaderChromeHeight + content;
         if (Layout == NotchSize.Custom) height = Math.Min(height, CustomHeight);
         return new SizeD(ExpandedWidth, Math.Min(height, Screen.Height - 48));
@@ -197,7 +206,7 @@ public sealed record NotchGeometry
     {
         get
         {
-            var open = ExpandedSize();
+            var open = ExpandedSize(extraHeight: MusicExtrasHeight);
             var width = Math.Max(open.Width, Math.Max(Peek.Width, NoticeSize(120, 120).Width)) + OvershootRoom * 2;
             var height = Math.Max(open.Height, Peek.Height) + OvershootRoom + FloatingDrop;
             return new SizeD(Math.Min(Screen.Width, Math.Ceiling(width)), Math.Min(Screen.Height, Math.Ceiling(height)));

@@ -4,8 +4,9 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core). See [docs/PARITY.md](docs/PARITY.md) for every upstream
-feature and where it stands, and the porting plan in the project notes.
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extension (lyrics). See
+[docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
+for the porting plan.
 
 ## What works now
 
@@ -17,6 +18,8 @@ feature and where it stands, and the porting plan in the project notes.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
     **Timer** (timer, Pomodoro, stopwatch).
+  - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
+    import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - Live activities in the closed island: music (cover + bars), timer countdown.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

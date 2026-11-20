@@ -72,6 +72,7 @@ public static class DefaultsKey
     public const string NotchTimerEnabled = "notchTimerEnabled";
     public const string NotchAccessoriesEnabled = "notchAccessoriesEnabled";
     public const string NotchLyricsEnabled = "notchLyricsEnabled";
+    public const string NotchLyricsOnline = "notchLyricsOnline";
     public const string NotchQueueEnabled = "notchQueueEnabled";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";

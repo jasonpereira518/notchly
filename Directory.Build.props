@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Product>Islet</Product>
+    <Version>0.1.0</Version>
+    <Copyright>Copyright (C) 2026 Islet contributors; port of vorssaint-utils, Copyright (C) 2026 Vorssaint. GPL-3.0-or-later.</Copyright>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+</Project>

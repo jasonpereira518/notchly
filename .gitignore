@@ -1,0 +1,15 @@
+# Upstream macOS source, cloned for reference only (pinned in docs/UPSTREAM.md)
+/upstream/
+
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/*
+!.vscode/extensions.json
+TestResults/
+artifacts/
+publish/
+*.binlog

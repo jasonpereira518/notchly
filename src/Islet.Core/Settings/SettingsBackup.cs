@@ -16,7 +16,7 @@ public static class SettingsBackup
     /// <summary>State about this machine that must not travel to another one.</summary>
     public static readonly IReadOnlySet<string> MachineStateKeys = new HashSet<string>(StringComparer.Ordinal)
     {
-        DefaultsKey.OnboardingStep, DefaultsKey.LaunchAtLogin,
+        DefaultsKey.OnboardingStep, DefaultsKey.LaunchAtLogin, DefaultsKey.PortedFeaturesSeen,
     };
 
     public static string Export(SettingsStore store)

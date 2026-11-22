@@ -117,6 +117,15 @@ public class NotchGeometryTests
     }
 
     [Fact]
+    public void DropPlaceholderMatchesUpstreamAndFitsTheEnvelope()
+    {
+        var geometry = new NotchGeometry(Omen);
+        Assert.Equal(new SizeD(340, 34 + 66), geometry.DropPlaceholder);
+        var small = new NotchGeometry(new RectD(0, 0, 640, 360), layout: NotchSize.Custom, customHeight: 260);
+        Assert.True(small.Envelope.Height >= small.DropPlaceholder.Height);
+    }
+
+    [Fact]
     public void CustomSizeIsClampedAndHonoured()
     {
         var geometry = new NotchGeometry(Omen, layout: NotchSize.Custom, customWidth: 9999, customHeight: 300);

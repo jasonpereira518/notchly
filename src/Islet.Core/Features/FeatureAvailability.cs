@@ -59,6 +59,34 @@ public static class FeatureAvailability
         foreach (var key in InitialEnableKeys(info)) store.Set(key, true);
     }
 
+    // MARK: Features reaching Windows
+
+    /// <summary>Ported before the record of ported features existed (M0–M3 lyrics and live equalizer).</summary>
+    private static readonly string[] PortedBaseline = ["notch", "notchGestures", "notchTimer", "notchLyrics", "notchLiveEqualizer"];
+
+    /// <summary>
+    /// A feature that becomes installable on Windows starts the way upstream installs it by default,
+    /// once: a choice saved while it could not be installed (a preset marking it unavailable) was no
+    /// real choice. Features already known keep whatever the user chose. Returns those adopted.
+    /// </summary>
+    public static IReadOnlyList<AppFeature> AdoptNewlyPorted(this SettingsStore store)
+    {
+        var seen = store.IsSaved(DefaultsKey.PortedFeaturesSeen)
+            ? store.GetList(DefaultsKey.PortedFeaturesSeen).ToHashSet()
+            : PortedBaseline.ToHashSet();
+        var adopted = new List<AppFeature>();
+        foreach (var info in FeatureCatalog.All.Where(i => i.CanInstall && !seen.Contains(i.Id)))
+        {
+            if (info.InstalledByDefault && !store.GetBool(info.AvailabilityKey))
+            {
+                store.SetAvailable(info.Feature, true);
+                adopted.Add(info.Feature);
+            }
+        }
+        store.SetList(DefaultsKey.PortedFeaturesSeen, FeatureCatalog.All.Where(i => i.CanInstall).Select(i => i.Id));
+        return adopted;
+    }
+
     // MARK: Presets
 
     public static IReadOnlySet<AppFeature> Features(this FeaturePreset preset) => preset switch
@@ -73,8 +101,8 @@ public static class FeatureAvailability
             AppFeature.Switcher, AppFeature.WindowLayout, AppFeature.DockPreview, AppFeature.DockClick, AppFeature.WindowMaximizer,
         },
         FeaturePreset.Battery => new HashSet<AppFeature> { AppFeature.MonitorCPU, AppFeature.MonitorMemory, AppFeature.MonitorPower },
-        // Windows-only: the island and the extensions it installs with.
-        FeaturePreset.Island => InitialInstallGroup(AppFeature.Notch).ToHashSet(),
+        // Windows-only: the island, the extensions it installs with, and the shelf behind its Files page.
+        FeaturePreset.Island => InitialInstallGroup(AppFeature.Notch).Append(AppFeature.Shelf).ToHashSet(),
         _ => new HashSet<AppFeature>(),
     };
 

@@ -46,31 +46,40 @@ public partial class NotchWindow : Window
 
     /// <summary>
     /// WPF-UI restyles every window in the app when the theme is applied (opening Settings
-    /// triggers it): it sets the themed window background and a Mica backdrop, which paints this
-    /// window's whole envelope as an opaque rectangle behind the Settings window. The island must
-    /// stay fully transparent, so undo that whenever it happens.
+    /// triggers it): it sets the themed window background and a Mica backdrop, which painted this
+    /// window's whole envelope as an opaque grey rectangle that also swallowed clicks. The island
+    /// must stay fully transparent, so its Background is coerced to Transparent whoever sets it
+    /// (no change handler, so nothing can loop), and any backdrop is removed when the theme moves.
     /// </summary>
+    static NotchWindow()
+    {
+        BackgroundProperty.OverrideMetadata(typeof(NotchWindow),
+            new FrameworkPropertyMetadata(Brushes.Transparent, null, (_, _) => Brushes.Transparent));
+    }
+
     private void KeepTransparent()
     {
-        var descriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(BackgroundProperty, typeof(Window));
-        EventHandler onBackground = (_, _) => ResetBackground();
-        descriptor.AddValueChanged(this, onBackground);
         Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
-        Closed += (_, _) =>
-        {
-            descriptor.RemoveValueChanged(this, onBackground);
-            Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
-        };
-        SourceInitialized += (_, _) => ResetBackground();
+        Closed += (_, _) => Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
+        SourceInitialized += (_, _) => RemoveBackdrop();
     }
 
     private void OnThemeChanged(Wpf.Ui.Appearance.ApplicationTheme theme, Color accent) =>
-        Dispatcher.BeginInvoke(ResetBackground);
+        Dispatcher.BeginInvoke(RemoveBackdrop);
 
-    private void ResetBackground()
+    private bool _removingBackdrop;
+
+    private void RemoveBackdrop()
     {
-        if (!ReferenceEquals(Background, Brushes.Transparent)) Background = Brushes.Transparent;
-        if (_handle != IntPtr.Zero) Wpf.Ui.Controls.WindowBackdrop.RemoveBackdrop(this);
+        if (_removingBackdrop || _handle == IntPtr.Zero) return;
+        _removingBackdrop = true;
+        try
+        {
+            Wpf.Ui.Controls.WindowBackdrop.RemoveBackdrop(this);
+            // The layered window's own surface must stay clear, whatever the backdrop code left.
+            if (HwndSource.FromHwnd(_handle)?.CompositionTarget is { } target) target.BackgroundColor = Colors.Transparent;
+        }
+        finally { _removingBackdrop = false; }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

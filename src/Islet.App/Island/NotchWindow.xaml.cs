@@ -30,6 +30,7 @@ public partial class NotchWindow : Window
             AddExStyle(_handle, WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_EX_APPWINDOW);
             HwndSource.FromHwnd(_handle)?.AddHook(WndProc);
         };
+        KeepTransparent();
         // Bars of the closed music strip.
         for (var i = 0; i < NotchLayout.CompactMusicBarCount; i++)
         {
@@ -42,6 +43,35 @@ public partial class NotchWindow : Window
     }
 
     public IntPtr Handle => _handle;
+
+    /// <summary>
+    /// WPF-UI restyles every window in the app when the theme is applied (opening Settings
+    /// triggers it): it sets the themed window background and a Mica backdrop, which paints this
+    /// window's whole envelope as an opaque rectangle behind the Settings window. The island must
+    /// stay fully transparent, so undo that whenever it happens.
+    /// </summary>
+    private void KeepTransparent()
+    {
+        var descriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(BackgroundProperty, typeof(Window));
+        EventHandler onBackground = (_, _) => ResetBackground();
+        descriptor.AddValueChanged(this, onBackground);
+        Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
+        Closed += (_, _) =>
+        {
+            descriptor.RemoveValueChanged(this, onBackground);
+            Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
+        };
+        SourceInitialized += (_, _) => ResetBackground();
+    }
+
+    private void OnThemeChanged(Wpf.Ui.Appearance.ApplicationTheme theme, Color accent) =>
+        Dispatcher.BeginInvoke(ResetBackground);
+
+    private void ResetBackground()
+    {
+        if (!ReferenceEquals(Background, Brushes.Transparent)) Background = Brushes.Transparent;
+        if (_handle != IntPtr.Zero) Wpf.Ui.Controls.WindowBackdrop.RemoveBackdrop(this);
+    }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {

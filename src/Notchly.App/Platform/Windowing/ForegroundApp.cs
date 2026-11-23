@@ -11,7 +11,7 @@ using static Notchly.App.Platform.Native;
 namespace Notchly.App.Platform.Windowing;
 
 public sealed record ForegroundApp(IntPtr Window, uint ProcessId, string ProcessName, string ClassName, string Name,
-                                   bool Elevated, bool Maximized);
+                                   bool Elevated, bool Maximized, string? ImagePath = null);
 
 public static class ForegroundApps
 {
@@ -30,7 +30,7 @@ public static class ForegroundApps
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
         });
         var name = ForegroundRules.DisplayName(description, processName, WindowText(window));
-        return new ForegroundApp(window, pid, processName, className, name, IsElevated(pid), IsZoomed(window));
+        return new ForegroundApp(window, pid, processName, className, name, IsElevated(pid), IsZoomed(window), path);
     }
 
     private static string? ImagePath(uint pid)

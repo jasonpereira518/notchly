@@ -183,6 +183,8 @@ public sealed class MenuBarController : IDisposable
     {
         _bar = bar;
         _titles.Children.Clear();
+        // The app's own icon before its name, as the Mac shows the app menu's name beside the Apple menu.
+        var icon = _app is { } front && bar.Count > 0 && bar[0].Bold ? AppIcons.For(front) : null;
         foreach (var title in bar)
         {
             var text = new TextBlock
@@ -190,7 +192,14 @@ public sealed class MenuBarController : IDisposable
                 Text = title.Title, FontWeight = title.Bold ? FontWeights.Bold : FontWeights.Normal,
                 TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center,
             };
-            var button = new Button { Style = TitleStyle, Content = text, Tag = title };
+            object content = text;
+            if (icon is not null && ReferenceEquals(title, bar[0]))
+            {
+                var image = new Image { Source = icon, Width = 16, Height = 16, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center };
+                RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
+                content = new StackPanel { Orientation = Orientation.Horizontal, Children = { image, text } };
+            }
+            var button = new Button { Style = TitleStyle, Content = content, Tag = title };
             button.Click += (_, _) => OpenTitle(title, button);
             _titles.Children.Add(button);
         }

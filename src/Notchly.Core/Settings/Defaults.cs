@@ -45,6 +45,7 @@ public static class Defaults
         [DefaultsKey.NotchDownloadsEnabled] = true,
         [DefaultsKey.NotchStripMenus] = true,
         [DefaultsKey.NotchStripClock] = true,
+        [DefaultsKey.NotchStripMatchesApp] = true,
         [DefaultsKey.NotchDownloadsFolderPath] = "",
         [DefaultsKey.NotchNotificationsEnabled] = true,
         [DefaultsKey.NotchCalendarEnabled] = true,

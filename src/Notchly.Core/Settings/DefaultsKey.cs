@@ -85,6 +85,8 @@ public static class DefaultsKey
     public const string NotchStripMenus = "notchStripMenus";
     /// <summary>Windows-only: the top strip shows the clock and date at its right end.</summary>
     public const string NotchStripClock = "notchStripClock";
+    /// <summary>Windows-only: the top strip takes the colour along the top of the app in front.</summary>
+    public const string NotchStripMatchesApp = "notchStripMatchesApp";
     /// <summary>The folder Downloads watches; empty for Windows' Downloads folder (upstream keeps a bookmark).</summary>
     public const string NotchDownloadsFolderPath = "notchDownloadsFolderPath";
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";

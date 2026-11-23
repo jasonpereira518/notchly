@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Notchly.App.Platform.Input;
 using Notchly.App.Platform.Shell;
@@ -26,7 +27,7 @@ public sealed class MenuBarController : IDisposable
 {
     private const string TitleStyleXaml = """
         <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Button">
-          <Setter Property="Foreground" Value="White" />
+          <Setter Property="Foreground" Value="{DynamicResource MenuBarText}" />
           <Setter Property="FontSize" Value="13" />
           <Setter Property="Padding" Value="9,0" />
           <Setter Property="Focusable" Value="False" />
@@ -39,8 +40,8 @@ public sealed class MenuBarController : IDisposable
                   <ContentPresenter VerticalAlignment="Center" />
                 </Border>
                 <ControlTemplate.Triggers>
-                  <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Back" Property="Background" Value="#33FFFFFF" /></Trigger>
-                  <Trigger Property="IsPressed" Value="True"><Setter TargetName="Back" Property="Background" Value="#4DFFFFFF" /></Trigger>
+                  <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Back" Property="Background" Value="{DynamicResource MenuBarHover}" /></Trigger>
+                  <Trigger Property="IsPressed" Value="True"><Setter TargetName="Back" Property="Background" Value="{DynamicResource MenuBarPressed}" /></Trigger>
                 </ControlTemplate.Triggers>
               </ControlTemplate>
             </Setter.Value>
@@ -51,6 +52,10 @@ public sealed class MenuBarController : IDisposable
     private static readonly Style TitleStyle = (Style)XamlReader.Parse(TitleStyleXaml);
 
     private readonly SettingsStore _settings;
+    private readonly Grid _root;
+    /// <summary>The bar's colour, animated between apps; black until the first app is read.</summary>
+    private readonly SolidColorBrush _background = new(Colors.Black);
+    private Rgb _tint = Rgb.Black;
     private readonly AppMenus _menus = new();
     private readonly StackPanel _titles;
     private readonly Button _clock;
@@ -70,15 +75,45 @@ public sealed class MenuBarController : IDisposable
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(MenuBarLayout.LeftInset - 4, 0, 0, 0), ClipToBounds = true,
         };
-        _clockText = new TextBlock { FontSize = 13, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
+        _clockText = new TextBlock { FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
         _clock = new Button { Style = TitleStyle, Content = _clockText, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 6, 0) };
         _clock.ToolTip = "Notifications and calendar";
         // Windows 11's notification centre with the calendar (Win+N), like the Mac's Notification Center.
         _clock.Click += async (_, _) => await KeySender.SendAsync(IntPtr.Zero, new Shortcut('N', ShortcutModifiers.Win));
-        strip.Content = new Grid { Background = Brushes.Black, Children = { _titles, _clock } };
+        _root = new Grid { Background = _background, Children = { _titles, _clock } };
+        ApplyText(Rgb.Black);
+        strip.Content = _root;
         _clockTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher);
         _clockTimer.Tick += (_, _) => TickClock();
         OnForeground(GetForegroundWindow());
+    }
+
+    /// <summary>The colour along the top of the app in front; the text follows so it stays readable.</summary>
+    public void SetTint(Rgb tint)
+    {
+        if (tint == _tint) return;
+        _tint = tint;
+        var target = Color.FromRgb(tint.R, tint.G, tint.B);
+        _background.BeginAnimation(SolidColorBrush.ColorProperty,
+            new ColorAnimation(target, TimeSpan.FromMilliseconds(150)) { FillBehavior = FillBehavior.HoldEnd });
+        ApplyText(tint);
+    }
+
+    private void ApplyText(Rgb bar)
+    {
+        var text = MenuBarTint.Text(bar);
+        var color = Color.FromRgb(text.R, text.G, text.B);
+        _root.Resources["MenuBarText"] = Frozen(color);
+        _root.Resources["MenuBarHover"] = Frozen(Color.FromArgb(0x33, color.R, color.G, color.B));
+        _root.Resources["MenuBarPressed"] = Frozen(Color.FromArgb(0x4D, color.R, color.G, color.B));
+        _clockText.Foreground = (Brush)_root.Resources["MenuBarText"];
+    }
+
+    private static SolidColorBrush Frozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 
     public void Dispose()

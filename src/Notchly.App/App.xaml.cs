@@ -77,6 +77,8 @@ public partial class App : Application
 
         foreach (var feature in Settings.AdoptNewlyPorted())
             Log.Information("Feature {Feature} is now available on Windows and was installed", FeatureCatalog.Id(feature));
+        foreach (var feature in Settings.InstallSwitchedOnExtensions())
+            Log.Information("Feature {Feature} was switched on in the island's settings and was installed", FeatureCatalog.Id(feature));
         Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
         Features.SyncAll();
         Tray = new TrayIconService(this);

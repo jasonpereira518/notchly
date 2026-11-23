@@ -64,6 +64,16 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
         return Card(title, description, glyph, toggle);
     }
 
+    /// <summary>An island extension's main switch: turning it on installs the extension too.</summary>
+    private CardControl IslandSwitch(string title, string? description, string key, string glyph)
+    {
+        var card = Toggle(title, description, key, glyph);
+        // Click, not Checked: only the person turning it on installs it, never the page loading a switch already on.
+        var toggle = (ToggleSwitch)card.Content;
+        toggle.Click += (_, _) => { if (toggle.IsChecked == true) app.Settings.InstallForSwitch(key); };
+        return card;
+    }
+
     private CardControl SliderRow(string title, string? description, string key, double min, double max, double step,
                                   string format, string glyph = "", double scale = 1)
     {
@@ -272,13 +282,13 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Close the island after dragging out", null, DefaultsKey.ShelfCloseAfterDrop, ""),
 
             Section("Downloads"),
-            Toggle("Downloads in the island", "Files arriving in the watched folder show beside the camera, then wait on the island's Downloads page. " +
+            IslandSwitch("Downloads in the island", "Files arriving in the watched folder show beside the camera, then wait on the island's Downloads page. " +
                    "Browsers on Windows don't share download progress, so most downloads show the size received instead of a percentage.",
                    DefaultsKey.NotchDownloadsEnabled, "\uE896"),
             DownloadsFolderCard(),
 
             Section("Calendar"),
-            Toggle("Calendar on the island", "Upcoming appointments from your Google, Outlook, Canvas or iCloud calendars, added below by their private iCal link.", DefaultsKey.NotchCalendarEnabled, "\uE787"),
+            IslandSwitch("Calendar on the island", "Upcoming appointments from your Google, Outlook, Canvas or iCloud calendars, added below by their private iCal link.", DefaultsKey.NotchCalendarEnabled, "\uE787"),
             CalendarSettings.CalendarList(app.Settings),
             Toggle("Event countdown", "Show every timed event in the closed island before it starts. To count down to only some, turn this off and right-click them on the island's Calendar page. Titles may appear in screen captures.", DefaultsKey.NotchCalendarCountdown, "\uE916"),
             Card("Time before event", null, "\uE823", CalendarSettings.LeadChoice(app.Settings)),
@@ -286,7 +296,7 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Week numbers", "The month grid numbers its weeks.", DefaultsKey.NotchCalendarWeekNumbers, "\uE8C0"),
 
             Section("AI agents"),
-            Toggle("AI agents on the island", AgentSettings.Description, DefaultsKey.NotchAgentsEnabled, "\uE99A"),
+            IslandSwitch("AI agents on the island", AgentSettings.Description, DefaultsKey.NotchAgentsEnabled, "\uE99A"),
             .. AgentSettings.ProviderRows(settings),
             Toggle("Show it in the closed island", "While an agent works, its mark beside the camera and the reading below.", DefaultsKey.NotchAgentsLiveActivity, "\uE7F4"),
             Choice("Beside the camera", null, DefaultsKey.NotchAgentsReadout,

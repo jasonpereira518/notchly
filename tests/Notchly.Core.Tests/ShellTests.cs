@@ -85,6 +85,48 @@ public class ShellTests
     }
 
     [Fact]
+    public void TurningOnTheAgentsSwitchInstallsTheAgents()
+    {
+        var store = NewStore();
+        Assert.False(store.IsAvailable(AppFeature.NotchAgents));
+        store.Set(DefaultsKey.NotchAgentsEnabled, true);
+        Assert.True(store.InstallForSwitch(DefaultsKey.NotchAgentsEnabled));
+        Assert.True(store.IsAvailable(AppFeature.NotchAgents));
+        Assert.True(store.GetBool(DefaultsKey.NotchAgentsEnabled));
+        Assert.False(store.InstallForSwitch(DefaultsKey.NotchAgentsEnabled));
+    }
+
+    [Fact]
+    public void ASwitchThatIsOffOrNotAnIslandSwitchInstallsNothing()
+    {
+        var store = NewStore();
+        Assert.False(store.InstallForSwitch(DefaultsKey.NotchAgentsEnabled));
+        store.Set(DefaultsKey.NotchVolume, true);
+        Assert.False(store.InstallForSwitch(DefaultsKey.NotchVolume));
+        Assert.False(store.IsAvailable(AppFeature.NotchAgents));
+    }
+
+    [Fact]
+    public void AgentsSwitchedOnWithoutBeingInstalledAreInstalledOnceAndAnUninstallThenSticks()
+    {
+        var store = NewStore();
+        store.Set(DefaultsKey.NotchAgentsEnabled, true);
+        Assert.Equal(new[] { AppFeature.NotchAgents }, store.InstallSwitchedOnExtensions());
+        Assert.True(store.IsAvailable(AppFeature.NotchAgents));
+        store.SetAvailable(AppFeature.NotchAgents, false);
+        Assert.Empty(store.InstallSwitchedOnExtensions());
+        Assert.False(store.IsAvailable(AppFeature.NotchAgents));
+    }
+
+    [Fact]
+    public void AnAgentsSwitchNeverTurnedOnInstallsNothingOnLaunch()
+    {
+        var store = NewStore();
+        Assert.Empty(store.InstallSwitchedOnExtensions());
+        Assert.False(store.IsAvailable(AppFeature.NotchAgents));
+    }
+
+    [Fact]
     public void StoreReadsDefaultsUntilAValueIsSavedAndReportsChanges()
     {
         var store = NewStore();

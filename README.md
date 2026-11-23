@@ -1,4 +1,4 @@
-# Islet (working name)
+# Notchly
 
 A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-utils), the free macOS menu-bar
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
@@ -26,20 +26,20 @@ for the porting plan.
   - Gestures: scroll down on it to open, up to close; touchpad sideways swipe changes track.
   - Hides during full-screen games, videos and presentations; optional reserved top strip (AppBar) so maximized
     windows start below it.
-  - `Islet.exe --toggle-island` opens/closes it (bind it to a key with any launcher).
+  - `Notchly.exe --toggle-island` opens/closes it (bind it to a key with any launcher).
 
 ## Build and run
 
 Requires the .NET 10 SDK (`winget install Microsoft.DotNet.SDK.10`).
 
 ```powershell
-dotnet build Islet.sln
-dotnet test tests/Islet.Core.Tests
-dotnet run --project src/Islet.App
+dotnet build Notchly.sln
+dotnet test tests/Notchly.Core.Tests
+dotnet run --project src/Notchly.App
 ```
 
-Settings: `%APPDATA%\Islet\settings.json` · Logs: `%LOCALAPPDATA%\Islet\logs` ·
-Dotfile applied at launch: `%USERPROFILE%\.config\islet\settings.json`.
+Settings: `%APPDATA%\Notchly\settings.json` · Logs: `%LOCALAPPDATA%\Notchly\logs` ·
+Dotfile applied at launch: `%USERPROFILE%\.config\notchly\settings.json`.
 
 Regenerate the parity table after changing a feature's status:
 
@@ -50,9 +50,9 @@ dotnet run --project tools/ParityGen -- docs/PARITY.md
 ## Layout
 
 ```
-src/Islet.Core/      pure logic, no Windows APIs (settings store, feature catalog, shortcuts,
+src/Notchly.Core/      pure logic, no Windows APIs (settings store, feature catalog, shortcuts,
                      island geometry / springs / gestures / timer) — ported from upstream Swift
-src/Islet.App/       WPF app: Shell/ (tray, panel, settings), Platform/ (Win32/WinRT wrappers),
+src/Notchly.App/       WPF app: Shell/ (tray, panel, settings), Platform/ (Win32/WinRT wrappers),
                      Island/ (window + controller)
 tests/               xUnit, including ports of upstream tests
 docs/UPSTREAM.md     pinned upstream commit and porting conventions

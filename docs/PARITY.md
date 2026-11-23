@@ -1,6 +1,6 @@
-# Feature parity: vorssaint-utils → Islet (Windows)
+# Feature parity: vorssaint-utils → Notchly (Windows)
 
-Generated from `src/Islet.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
+Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
 **4 ported**, 64 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 

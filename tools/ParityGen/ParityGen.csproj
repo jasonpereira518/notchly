@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Islet.Core\Islet.Core.csproj" />
+    <ProjectReference Include="..\..\src\Notchly.Core\Notchly.Core.csproj" />
   </ItemGroup>
 
 </Project>

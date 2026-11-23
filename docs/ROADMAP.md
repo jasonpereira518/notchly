@@ -1,4 +1,4 @@
-# Islet roadmap
+# Notchly roadmap
 
 The master porting plan, approved 2026-11-19. Feature status lives in [PARITY.md](PARITY.md); each milestone or feature request gets its own plan before work starts.
 
@@ -13,7 +13,7 @@ The master porting plan, approved 2026-11-19. Feature status lives in [PARITY.md
 - **Decisions (from you).**
   - C# / .NET 10 + WPF.
   - The island is a floating click-through pill by default, with an optional reserved top strip.
-  - Working name "Islet", kept in one place so it's easy to rename.
+  - Named Notchly (formerly the working name "Islet"); the name lives in `AppIdentity`.
   - **Island first**, after the base shell.
 - **Constraints.**
   - The port is a derivative work, so it stays **GPL-3.0-or-later**. Keep the LICENSE, attribution and SPDX headers.
@@ -72,26 +72,26 @@ Added later by the milestone that needs them:
 **Repo layout** (git repo at `C:\JASON\College\Projects\vorssaint`)
 ```
 upstream/                  git clone of vorssaint-utils, pinned SHA in docs/UPSTREAM.md (gitignored, read-only reference)
-Islet.sln
-src/Islet.Core/            net10.0, NO Windows APIs: settings store, feature catalog, shortcut model,
+Notchly.sln
+src/Notchly.Core/            net10.0, NO Windows APIs: settings store, feature catalog, shortcut model,
                            ported pure logic (notch geometry/motion/state, LRC, agent parsers, math, units, URL cleaning…)
-src/Islet.App/             WPF exe
+src/Notchly.App/             WPF exe
   Shell/                   App.xaml, tray, panel window, settings window, features hub, onboarding
   Platform/                interop wrappers: Input/ (hooks, hotkeys, SendInput), Audio/, Display/, Power/,
                            Windowing/ (EnumWindows, DWM, foreground, fullscreen), Media/ (GSMTC), Shell/ (AppBar)
   Island/                  NotchWindow, NotchShape, animator, Modules/<Module>/
   Features/<Group>/<Feature>/  XService.cs (Sync/Start/Stop), XPanelSection.xaml, XSettingsPage.xaml, XViewModel.cs
-src/Islet.Helper/          (later, M12) elevated Windows Service over a named pipe: temperatures, fan control
-tests/Islet.Core.Tests/    xUnit; ports of upstream Tests/*.swift for each pure module
+src/Notchly.Helper/          (later, M12) elevated Windows Service over a named pipe: temperatures, fan control
+tests/Notchly.Core.Tests/    xUnit; ports of upstream Tests/*.swift for each pure module
 docs/PARITY.md             one row per upstream AppFeature with status/milestone
 docs/UPSTREAM.md           pinned commit + porting conventions
 ```
 
 **Shared services** (built in M1, used everywhere)
-- **`SettingsStore`.** A flat key→JSON-value store with typed `Get<T>`/`Set`, a `Changed` event, debounced atomic save to `%APPDATA%\Islet\settings.json`, schema version and migrations.
+- **`SettingsStore`.** A flat key→JSON-value store with typed `Get<T>`/`Set`, a `Changed` event, debounced atomic save to `%APPDATA%\Notchly\settings.json`, schema version and migrations.
   - **Upstream key names and default values are kept verbatim** as each feature is ported, so every Swift line maps 1:1.
   - Export and import use JSON, porting the validation rules from `SettingsBackupSupport.swift`.
-  - The dotfile `%USERPROFILE%\.config\islet\settings.json` is applied at launch.
+  - The dotfile `%USERPROFILE%\.config\notchly\settings.json` is applied at launch.
 - **`FeatureCatalog` + `FeatureRuntime`.**
   - A port of `FeatureCatalog.swift` with the same ids (`switcher`, `notchLyrics`…), groups, `enabledKeys`, first-install enables and presets.
   - New field `WindowsStatus`: `Ported | NativeToggle | Native | Dropped | Planned`. Native/Dropped features appear in the hub greyed out with the reason and an "Open Windows setting" link (`ms-settings:` URI).
@@ -116,7 +116,7 @@ docs/UPSTREAM.md           pinned commit + porting conventions
   - Optional "run elevated at login" via a scheduled task with highest privileges (M6), so hooks also work over admin windows.
 
 **Porting rules**
-- Port pure Swift logic file-for-file into `Islet.Core`, together with its upstream tests.
+- Port pure Swift logic file-for-file into `Notchly.Core`, together with its upstream tests.
 - Rewrite platform glue against the Windows API listed per feature.
 - Use upstream user-facing strings (English) through `.resx`. The 15 upstream languages can be converted mechanically later.
 - UI uses Windows 11 Fluent (Mica, Segoe Fluent Icons), not the Mac look.
@@ -328,7 +328,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 - **M9 Tools.** Command bar, quick launcher, radial menu, scratchpad, cleaning mode, color picker, OCR/QR, camera preview window, wallpaper.
 - **M10 Capture & media.** Screenshot + editor, recorder + editor, media tools.
 - **M11 App management.** winget manager, app updates, uninstaller, cleaner + schedule.
-- **M12 Elevated helper.** `Islet.Helper` service (named pipe locked to the user): LibreHardwareMonitor temperatures, OMEN fan curves (port the policy in `FanControlSupport.swift`), per-process network via ETW.
+- **M12 Elevated helper.** `Notchly.Helper` service (named pipe locked to the user): LibreHardwareMonitor temperatures, OMEN fan curves (port the policy in `FanControlSupport.swift`), per-process network via ETW.
 
 ## Execution after approval
 - I'll do M0 → M1 → M2 in this session, with a runnable build and a short demo checklist after each milestone.
@@ -351,8 +351,8 @@ Each request gets a plan with these sections:
 6. `UserNotificationListener` events with a sparse package; fall back to polling.
 
 ## Verification (per milestone)
-- `dotnet build Islet.sln -c Debug` and `dotnet test` are green, with ported upstream specs passing.
-- Run `src/Islet.App` and check:
+- `dotnet build Notchly.sln -c Debug` and `dotnet test` are green, with ported upstream specs passing.
+- Run `src/Notchly.App` and check:
   - **M1:** tray icon; panel opens above the clock; feature install/uninstall persists across restarts; settings export → import round-trips.
   - **M2:**
     - The island sits centered under the webcam (x≈786 DIP, 135×24).

@@ -1,9 +1,9 @@
 using System.Text;
-using Islet.Core.Features;
+using Notchly.Core.Features;
 var sb = new StringBuilder();
-sb.AppendLine("# Feature parity: vorssaint-utils → Islet (Windows)");
+sb.AppendLine("# Feature parity: vorssaint-utils → Notchly (Windows)");
 sb.AppendLine();
-sb.AppendLine("Generated from `src/Islet.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.");
+sb.AppendLine("Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.");
 sb.AppendLine();
 string Status(FeatureInfo i) => i.Status switch
 {

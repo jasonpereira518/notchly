@@ -3,9 +3,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <Product>Islet</Product>
+    <Product>Notchly</Product>
     <Version>0.1.0</Version>
-    <Copyright>Copyright (C) 2026 Islet contributors; port of vorssaint-utils, Copyright (C) 2026 Vorssaint. GPL-3.0-or-later.</Copyright>
+    <Copyright>Copyright (C) 2026 Notchly contributors; port of vorssaint-utils, Copyright (C) 2026 Vorssaint. GPL-3.0-or-later.</Copyright>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>

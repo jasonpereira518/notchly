@@ -16,7 +16,7 @@ for the porting plan.
 - **Dynamic Island**
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
-  - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
+  - Pages: **Home** (now playing + transport; volume and built-in screen brightness side by side; a speaker menu to switch the output for every app; a battery chip that opens its watts in or out, time left, charge and health), **Music** (art, seekable timeline),
     **Files**, **Downloads**, **Calendar**, **AI agents**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).

@@ -33,6 +33,7 @@ using Notchly.Core.Downloads;
 using Notchly.Core.Features;
 using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
+using Notchly.Core.Power;
 using Notchly.Core.Notch.Lyrics;
 using Notchly.Core.Settings;
 using Microsoft.Win32;
@@ -99,6 +100,12 @@ public sealed class IslandService : IFeatureService
     private MediaSessionService? _media;
     private VolumeService? _volume;
     private PowerService? _power;
+    /// <summary>The built-in panel's brightness, 0–100; null where Windows cannot set it.</summary>
+    private int? _brightness;
+    /// <summary>The battery's watts and capacities, read while the home page shows them.</summary>
+    private BatteryReading? _batteryReading;
+    private bool _batteryPanelOpen;
+    private DispatcherTimer? _batteryTimer;
     private ForegroundWatcher? _foreground;
     private IDisposable? _volumeKeys;
     private DispatcherTimer? _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer;
@@ -200,11 +207,15 @@ public sealed class IslandService : IFeatureService
             _volume = new VolumeService(_dispatcher);
             _volume.VolumeChanged += OnVolumeChanged;
             _volume.MicrophoneMuteChanged += OnMicrophoneChanged;
+            _volume.OutputsChanged += UpdateVolumeControls;
         }
         catch (Exception e) { Log.Warning(e, "Audio endpoints unavailable"); }
         _power = new PowerService(_dispatcher);
         _power.BatteryChanged += OnBatteryChanged;
         _power.BrightnessChanged += OnBrightnessChanged;
+        _brightness = PowerService.CurrentBrightness();
+        // The battery's flow changes by the second: read it again while the home page is open.
+        _batteryTimer = NewTimer(UpdateBatteryReading, TimeSpan.FromSeconds(3));
         _foreground = new ForegroundWatcher();
         _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); TintSoon(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
@@ -754,6 +765,7 @@ public sealed class IslandService : IFeatureService
         {
             _expanded = true;
             UpdateTint();
+            UpdateBatteryReading();
             _openedByHover = byHover;
             _hoverEmphasized = false;
             _hoverState.Open();
@@ -785,6 +797,9 @@ public sealed class IslandService : IFeatureService
         if (!_expanded || _window is null || _geometry is null) return;
         _expanded = false;
         UpdateTint();
+        _batteryTimer?.Stop();
+        _batteryPanelOpen = false;
+        _window.HomeBatteryPanel.Visibility = Visibility.Collapsed;
         _openedByHover = false;
         if (_focusTaken)
         {
@@ -973,6 +988,8 @@ public sealed class IslandService : IFeatureService
 
     private void OnBrightnessChanged(int level)
     {
+        _brightness = level;
+        UpdateBrightnessControl();
         if (!_settings.GetBool(DefaultsKey.NotchBrightness) || Starting) return;
         ShowNotice(new Notice(NoticeKind.Brightness, "", level / 100.0, null, null, 44, 108, 1.6));
     }
@@ -1655,6 +1672,15 @@ public sealed class IslandService : IFeatureService
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
+        w.HomeBrightness.ValueChanged += (_, e) =>
+        {
+            if (_updatingControls || _power is null) return;
+            _brightness = (int)Math.Round(e.NewValue);
+            _power.SetBrightness(_brightness.Value);
+        };
+        w.HomeOutputMenu.Click += (_, _) => ShowOutputMenu(w.HomeOutputMenu);
+        w.HomeOutputChip.Click += (_, _) => ShowOutputMenu(w.HomeOutputChip);
+        w.HomeBatteryChip.Click += (_, _) => SetBatteryPanelOpen(!_batteryPanelOpen);
         w.MusicTimeline.PreviewMouseLeftButtonDown += (_, _) => { if (w.MusicTimeline.IsEnabled) _seeking = true; };
         w.MusicTimeline.PreviewMouseLeftButtonUp += (_, _) =>
         {
@@ -1737,6 +1763,7 @@ public sealed class IslandService : IFeatureService
         if (_window is null) return;
         if (!Pages().Contains(module)) module = NotchModule.Controls;
         _page = module;
+        UpdateBatteryReading();
         _window.HomePage.Visibility = module == NotchModule.Controls ? Visibility.Visible : Visibility.Collapsed;
         _window.MusicPage.Visibility = module == NotchModule.Music ? Visibility.Visible : Visibility.Collapsed;
         _window.TimerPage.Visibility = module == NotchModule.Timer ? Visibility.Visible : Visibility.Collapsed;
@@ -1776,8 +1803,8 @@ public sealed class IslandService : IFeatureService
         _updatingControls = true;
         var level = _volume.Volume;
         _window.HomeVolume.Value = level * 100;
-        _window.HomeVolumeText.Text = _volume.Muted ? "Muted" : $"{Math.Round(level * 100)}%";
         _window.HomeMute.Content = _volume.Muted ? "" : "";
+        _window.HomeMute.ToolTip = _volume.Muted ? "Unmute" : "Mute";
         _window.HomeOutput.Text = _volume.OutputName;
         _updatingControls = false;
     }
@@ -1808,9 +1835,8 @@ public sealed class IslandService : IFeatureService
         w.MusicPrevious.IsEnabled = playing?.CanGoPrevious == true;
         w.MusicTimeline.IsEnabled = playing?.CanSeek == true;
 
-        var battery = _power?.Battery ?? default;
-        w.HomeBattery.Text = !battery.HasBattery ? "No battery" : $"{battery.Percent}%{(battery.Charging ? " · charging" : battery.PluggedIn ? " · plugged in" : "")}";
-        w.HomeBatteryIcon.Text = BatteryGlyph(battery);
+        UpdateBatteryControls();
+        UpdateBrightnessControl();
 
         var mode = _timer.HasSession ? _timer.Mode : SelectedTimerMode;
         w.ModeTimer.IsChecked = mode == NotchTimerMode.Timer;
@@ -1826,6 +1852,120 @@ public sealed class IslandService : IFeatureService
         _updatingControls = false;
         UpdateVolumeControls();
         UpdateLivePages();
+    }
+
+    // MARK: Home page levels, speakers and battery (Windows-only battery panel)
+
+    /// <summary>The brightness slider follows the keys, except while it is being dragged.</summary>
+    private void UpdateBrightnessControl()
+    {
+        if (_window is not { } w) return;
+        var available = _brightness is not null;
+        w.HomeBrightnessHalf.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+        Grid.SetColumnSpan(w.HomeVolumeHalf, available ? 1 : 2);
+        if (_brightness is not { } level || w.HomeBrightness.IsMouseCaptureWithin) return;
+        var updating = _updatingControls;
+        _updatingControls = true;
+        w.HomeBrightness.Value = level;
+        _updatingControls = updating;
+    }
+
+    /// <summary>The speakers to choose from, as upstream's output chooser: a tick on the one in use.</summary>
+    private void ShowOutputMenu(FrameworkElement anchor)
+    {
+        if (_volume is null) return;
+        var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Bottom };
+        var outputs = _volume.Outputs();
+        foreach (var output in outputs)
+        {
+            var item = new MenuItem { Header = output.Name, IsCheckable = true, IsChecked = output.Current, StaysOpenOnClick = false };
+            var id = output.Id;
+            item.Click += (_, _) =>
+            {
+                if (output.Current) return;
+                if (!VolumeService.UseOutput(id)) ShowOutputError($"Couldn't switch to {output.Name}");
+            };
+            menu.Items.Add(item);
+        }
+        if (outputs.Count == 0) menu.Items.Add(new MenuItem { Header = "No speakers found", IsEnabled = false });
+        menu.Items.Add(new Separator());
+        var settings = new MenuItem { Header = "Sound settings…" };
+        settings.Click += (_, _) => { Collapse(); ShellActions.Open("ms-settings:sound"); };
+        menu.Items.Add(settings);
+        // The menu sits outside the island: keep the island open while it is up.
+        _modalOpen = true;
+        menu.Closed += (_, _) =>
+        {
+            _modalOpen = false;
+            if (_window is { } w && !w.Surface.IsMouseOver) OnPointer(false);
+        };
+        menu.IsOpen = true;
+    }
+
+    private async void ShowOutputError(string message)
+    {
+        if (_window is not { } w) return;
+        w.HomeOutput.Text = message;
+        await Task.Delay(3000);
+        UpdateVolumeControls();
+    }
+
+    private void SetBatteryPanelOpen(bool open)
+    {
+        if (_window is not { } w) return;
+        open &= _power?.Battery.HasBattery == true;
+        _batteryPanelOpen = open;
+        w.HomeBatteryPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        UpdateBatteryReading();
+        Refresh();
+    }
+
+    /// <summary>Reads the battery's report while the home page is open; stops reading once it closes.</summary>
+    private void UpdateBatteryReading()
+    {
+        if (_batteryTimer is null) return;
+        var reading = _expanded && _page == NotchModule.Controls && _power is not null;
+        if (!reading)
+        {
+            _batteryTimer.Stop();
+            return;
+        }
+        _batteryReading = _power!.Report();
+        if (!_batteryTimer.IsEnabled) _batteryTimer.Start();
+        UpdateBatteryControls();
+    }
+
+    private void UpdateBatteryControls()
+    {
+        if (_window is not { } w) return;
+        var battery = _power?.Battery ?? default;
+        var flow = _batteryReading is { } r ? BatteryDetails.ShortFlow(r) : null;
+        w.HomeBattery.Text = !battery.HasBattery ? "No battery"
+            : $"{battery.Percent}%{(battery.Charging ? " · charging" : battery.PluggedIn ? " · plugged in" : "")}{(flow is null ? "" : $" · {flow}")}";
+        w.HomeBatteryIcon.Text = BatteryGlyph(battery);
+        w.HomeBatteryChip.IsHitTestVisible = battery.HasBattery;
+        if (!_batteryPanelOpen) return;
+        var rows = BatteryDetails.Rows(_batteryReading ?? new BatteryReading(battery.Percent, battery.PluggedIn, battery.Charging));
+        var grid = w.HomeBatteryRows;
+        grid.Children.Clear();
+        grid.RowDefinitions.Clear();
+        if (grid.ColumnDefinitions.Count == 0)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        }
+        for (var i = 0; i < rows.Count; i++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var top = i == 0 ? 0 : 4;
+            var label = new TextBlock { Text = rows[i].Label, FontSize = 12, Foreground = (Brush)w.Resources["Dim"], Margin = new Thickness(0, top, 0, 0) };
+            var value = new TextBlock { Text = rows[i].Value, FontSize = 12, Margin = new Thickness(0, top, 0, 0) };
+            Grid.SetRow(label, i);
+            Grid.SetRow(value, i);
+            Grid.SetColumn(value, 1);
+            grid.Children.Add(label);
+            grid.Children.Add(value);
+        }
     }
 
     /// <summary>Readings that move on their own: the timer's clock and the song's position.</summary>

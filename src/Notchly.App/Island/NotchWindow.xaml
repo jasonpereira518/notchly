@@ -350,6 +350,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="14" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid Grid.Row="0" x:Name="HomePlayer">
                                 <Grid.ColumnDefinitions>
@@ -379,35 +380,55 @@
                                     <Button x:Name="HomeNext" Style="{StaticResource IconButton}" Content="&#xE893;" />
                                 </StackPanel>
                             </Grid>
-                            <Grid Grid.Row="2">
+                            <!-- Volume and brightness share one row, as upstream's levels: the sliders show the level,
+                                 so there is no readout. Without a brightness to set, the volume takes the row. -->
+                            <Grid Grid.Row="2" x:Name="HomeLevels">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="22" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <!-- Icon buttons carry 7 points of air around their glyph: the speaker's glyph lines up
-                                     with the cover and chips above and below it, the reading with the controls' glyphs. -->
-                                <Button x:Name="HomeMute" Grid.Column="0" Style="{StaticResource IconButton}" Content="&#xE767;" ToolTip="Mute"
-                                        HorizontalAlignment="Left" Margin="-7,0,0,0" />
-                                <Slider x:Name="HomeVolume" Grid.Column="1" Style="{StaticResource IslandSlider}" Minimum="0" Maximum="100"
-                                        VerticalAlignment="Center" Margin="6,0" />
-                                <TextBlock x:Name="HomeVolumeText" Grid.Column="2" FontSize="12" TextAlignment="Right" Margin="0,0,7,0"
-                                           VerticalAlignment="Center" Foreground="{StaticResource Dim}" />
+                                <Grid x:Name="HomeVolumeHalf" Grid.Column="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="22" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Icon buttons carry 7 points of air around their glyph: the speaker's glyph lines up
+                                         with the cover and chips above and below it. -->
+                                    <Button x:Name="HomeMute" Grid.Column="0" Style="{StaticResource IconButton}" Content="&#xE767;" ToolTip="Mute"
+                                            HorizontalAlignment="Left" Margin="-7,0,0,0" />
+                                    <Slider x:Name="HomeVolume" Grid.Column="1" Style="{StaticResource IslandSlider}" Minimum="0" Maximum="100"
+                                            VerticalAlignment="Center" Margin="6,0,2,0" ToolTip="Volume" />
+                                    <Button x:Name="HomeOutputMenu" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE70D;"
+                                            FontSize="9" Width="20" Foreground="{StaticResource Dim}" ToolTip="Choose a speaker" />
+                                </Grid>
+                                <Grid x:Name="HomeBrightnessHalf" Grid.Column="1" Margin="14,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="22" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="14"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Slider x:Name="HomeBrightness" Grid.Column="1" Style="{StaticResource IslandSlider}" Minimum="0" Maximum="100"
+                                            VerticalAlignment="Center" Margin="6,0,0,0" ToolTip="Brightness" />
+                                </Grid>
                             </Grid>
                             <!-- Each chip keeps 6 points below it for a wrapped row; the last row gives it back. -->
                             <WrapPanel Grid.Row="4" x:Name="HomeChips" Margin="0,0,0,-6">
-                                <Border Background="#1FFFFFFF" CornerRadius="13" Padding="10,5" Margin="0,0,6,6">
+                                <Button x:Name="HomeBatteryChip" Style="{StaticResource ChipButton}" Padding="10,5" ToolTip="Battery details">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="HomeBatteryIcon" Text="&#xE83F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
                                         <TextBlock x:Name="HomeBattery" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
-                                </Border>
-                                <Border Background="#1FFFFFFF" CornerRadius="13" Padding="10,5" Margin="0,0,6,6">
+                                </Button>
+                                <Button x:Name="HomeOutputChip" Style="{StaticResource ChipButton}" Padding="10,5" ToolTip="Choose a speaker">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE7F5;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
                                         <TextBlock x:Name="HomeOutput" FontSize="12" Margin="6,0,0,0" MaxWidth="220" VerticalAlignment="Center" />
+                                        <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="8" Margin="6,1,0,0"
+                                                   VerticalAlignment="Center" Foreground="{StaticResource Dim}" />
                                     </StackPanel>
-                                </Border>
+                                </Button>
                                 <Button x:Name="HomeTimerChip" Style="{StaticResource ChipButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
@@ -415,6 +436,11 @@
                                     </StackPanel>
                                 </Button>
                             </WrapPanel>
+                            <!-- The battery chip's details: what Windows reports, refreshed while it is open. -->
+                            <Border Grid.Row="5" x:Name="HomeBatteryPanel" Visibility="Collapsed" Background="#14FFFFFF"
+                                    CornerRadius="12" Padding="12,8" Margin="0,14,0,0">
+                                <Grid x:Name="HomeBatteryRows" />
+                            </Border>
                         </Grid>
 
                         <!-- Music -->

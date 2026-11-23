@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Battery charge and the charger, for the island's battery notices (upstream reads IOKit power
-// sources), and the built-in panel's brightness changes via WMI (WmiMonitorBrightnessEvent).
+// sources), and the built-in panel's brightness changes via WMI (WmiMonitorBrightnessEvent). The
+// home page also sets that brightness (WmiSetBrightness) and reads the battery's report: its flow
+// in watts and its capacities, which is all Windows says about power without a vendor's driver.
 using System.Management;
 using System.Windows.Threading;
+using Notchly.Core.Power;
 using Serilog;
 using Windows.System.Power;
 using static Notchly.App.Platform.Native;
@@ -70,6 +73,70 @@ public sealed class PowerService : IDisposable
             Log.Information("Brightness events unavailable: {Message}", e.Message);
             _brightnessWatcher = null;
         }
+    }
+
+    /// <summary>The battery's watts and capacities now; null without a battery.</summary>
+    public BatteryReading? Report()
+    {
+        var state = Battery;
+        if (!state.HasBattery) return null;
+        try
+        {
+            var report = Windows.Devices.Power.Battery.AggregateBattery.GetReport();
+            if (report.Status == Windows.System.Power.BatteryStatus.NotPresent) return null;
+            return new BatteryReading(state.Percent, state.PluggedIn, state.Charging,
+                report.ChargeRateInMilliwatts, report.RemainingCapacityInMilliwattHours,
+                report.FullChargeCapacityInMilliwattHours, report.DesignCapacityInMilliwattHours);
+        }
+        catch (Exception e)
+        {
+            Log.Debug(e, "Battery report unavailable");
+            return new BatteryReading(state.Percent, state.PluggedIn, state.Charging);
+        }
+    }
+
+    private int? _pendingBrightness;
+    private bool _settingBrightness;
+
+    /// <summary>
+    /// Sets the built-in panel's brightness, 0–100, off the UI thread. A drag sends many values:
+    /// only the newest waiting one is applied, so the panel never lags behind the slider.
+    /// </summary>
+    public void SetBrightness(int level)
+    {
+        lock (_brightnessGate)
+        {
+            _pendingBrightness = Math.Clamp(level, 0, 100);
+            if (_settingBrightness) return;
+            _settingBrightness = true;
+        }
+        Task.Run(() =>
+        {
+            while (true)
+            {
+                int next;
+                lock (_brightnessGate)
+                {
+                    if (_pendingBrightness is not { } pending) { _settingBrightness = false; return; }
+                    next = pending;
+                    _pendingBrightness = null;
+                }
+                ApplyBrightness(next);
+            }
+        });
+    }
+
+    private readonly object _brightnessGate = new();
+
+    private static void ApplyBrightness(int level)
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
+            foreach (ManagementObject monitor in searcher.Get())
+                using (monitor) monitor.InvokeMethod("WmiSetBrightness", [(uint)1, (byte)level]);
+        }
+        catch (Exception e) { Log.Debug(e, "Brightness could not be set"); }
     }
 
     /// <summary>The built-in panel's current brightness, or null when it cannot be read.</summary>

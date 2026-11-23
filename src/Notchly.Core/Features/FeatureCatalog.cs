@@ -248,8 +248,11 @@ public static class FeatureCatalog
             [DefaultsKey.NotchLiveEqualizer], true, WindowsStatus.Ported, "M3", "Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission.");
         Add(AppFeature.NotchDownloads, g, "Downloads", "Downloads in progress in the island.", Glyph.Download,
             [DefaultsKey.NotchDownloadsEnabled], true, WindowsStatus.Ported, "M3", "Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress.");
-        Add(AppFeature.NotchAgents, g, "AI agents", "Claude, Codex, Copilot and OpenCode usage and limits.", Glyph.Robot,
-            [DefaultsKey.NotchAgentsEnabled], true, P, "M3");
+        // Windows deviation: opt in rather than installed by default, as it runs the agents' own commands and asks
+        // cursor.com; upstream installs it and migrates people onto it.
+        Add(AppFeature.NotchAgents, g, "AI agents", "Claude Code, Codex, OpenCode, Copilot and Cursor usage and limits.", Glyph.Robot,
+            [DefaultsKey.NotchAgentsEnabled], false, WindowsStatus.Ported, "M3",
+            "Reads each agent's local logs; Claude limits via its own claude command; Cursor (beyond upstream) via its sign-in.");
         Add(AppFeature.NotchWatch, g, "Watch", "Watch part of a window and get told when it changes.", Glyph.Eye,
             [DefaultsKey.NotchWatchEnabled], true, P, "M3");
         Add(AppFeature.NotchMascot, g, "Companion", "An animated companion beside the island.", Glyph.Smile,

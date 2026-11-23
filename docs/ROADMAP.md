@@ -185,7 +185,7 @@ Legend: **P** = port, **T** = toggle the built-in Windows setting, **N** = Windo
 | downloads | P | `FileSystemWatcher` on Downloads (`.crdownload`/`.part`) |
 | calendar | P | ICS feed URLs via Ical.Net; Graph/Google OAuth later. The Windows AppointmentStore is out because Mail & Calendar is retired |
 | notifications | P | mirror only: `UserNotificationListener`, which needs package identity (sparse package). Native toasts can't be hidden |
-| agents | P | `%USERPROFILE%\.claude\projects`, `.codex\sessions`, `.copilot`, OpenCode SQLite; `claude`/`codex` CLI for limits |
+| agents | P | `%USERPROFILE%\.claude\projects`, `.codex\sessions`, `.copilot`, OpenCode SQLite; `claude` CLI for limits. Ported in M3 with Cursor added beyond upstream (its plan usage from cursor.com, with Cursor's own sign-in); Claude profiles, Codex accounts and Codex resets come later |
 | accessories | P | `DeviceWatcher` + Bluetooth battery property |
 | watch | P | Windows.Graphics.Capture + `Windows.Media.Ocr` |
 | mascot | P | |

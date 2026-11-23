@@ -222,7 +222,8 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
 
     private FrameworkElement IslandPage()
     {
-        return Page(
+        var settings = app.Settings;
+        return Page([
             PageTitle("Dynamic Island"),
             Caption("Music, notices, timers and controls around the webcam. Your laptop has no camera cutout, so Notchly draws one at the top centre of the screen; transparent areas around it pass clicks through."),
             Toggle("Show the Dynamic Island", null, DefaultsKey.NotchEnabled, ""),
@@ -284,6 +285,27 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Time left in current event", "Show a timed event in progress in the closed island during the hour before it ends. Its title may appear in screen captures.", DefaultsKey.NotchCalendarTimeLeft, "\uE916"),
             Toggle("Week numbers", "The month grid numbers its weeks.", DefaultsKey.NotchCalendarWeekNumbers, "\uE8C0"),
 
+            Section("AI agents"),
+            Toggle("AI agents on the island", AgentSettings.Description, DefaultsKey.NotchAgentsEnabled, "\uE99A"),
+            .. AgentSettings.ProviderRows(settings),
+            Toggle("Show it in the closed island", "While an agent works, its mark beside the camera and the reading below.", DefaultsKey.NotchAgentsLiveActivity, "\uE7F4"),
+            Choice("Beside the camera", null, DefaultsKey.NotchAgentsReadout,
+                   [("elapsed", "Time"), ("tokens", "Tokens written"), ("cost", "API value"), ("limit", "Limit")], "\uE916"),
+            Choice("Show limits as", null, DefaultsKey.NotchAgentsLimitDisplay, [("remaining", "Left"), ("used", "Used")], "\uE9D9"),
+            Choice("Limit to show", "The closed island's limit: the one closest to running out, or the session or week.", DefaultsKey.NotchAgentsLimitFocus,
+                   [("mostUsed", "Most used"), ("session", "Session"), ("weekly", "Week")], "\uE9D9"),
+            Toggle("When a task finishes", "A notice with how long it took and its API value.", DefaultsKey.NotchAgentsFinishAlert, "\uE73E"),
+            Card("For tasks longer than", null, "\uE823", AgentSettings.NumberChoice(settings, DefaultsKey.NotchAgentsFinishMinimum,
+                 Notchly.Core.Agents.NotchAgentSupport.FinishMinimums, Notchly.Core.Agents.NotchAgentSupport.DefaultFinishMinimum, AgentSettings.FinishLabel)),
+            Toggle("Near a plan limit", "A notice when a limit passes the share below, and when it renews.", DefaultsKey.NotchAgentsLimitAlert, "\uE7BA"),
+            Card("Warn at", null, "\uE9D9", AgentSettings.NumberChoice(settings, DefaultsKey.NotchAgentsLimitThreshold,
+                 Notchly.Core.Agents.NotchAgentSupport.LimitThresholds, Notchly.Core.Agents.NotchAgentSupport.DefaultLimitThreshold, AgentSettings.ThresholdLabel)),
+            Card("Daily API value budget", AgentSettings.ValueNote, "\uE8C7", AgentSettings.NumberChoice(settings, DefaultsKey.NotchAgentsDailyBudget,
+                 Notchly.Core.Agents.NotchAgentSupport.Budgets, 0, AgentSettings.BudgetLabel)),
+            Toggle("Keep prices up to date", AgentSettings.PriceHint, DefaultsKey.NotchAgentsPriceUpdates, "\uE895"),
+            AgentSettings.CardList(settings),
+            Caption(AgentSettings.Privacy),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),
@@ -300,7 +322,7 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             SliderRow("Short break", "Pomodoro", DefaultsKey.NotchPomodoroShortBreakMinutes, 1, 60, 1, "{0:0} min", ""),
             SliderRow("Long break", "Pomodoro", DefaultsKey.NotchPomodoroLongBreakMinutes, 1, 60, 1, "{0:0} min", ""),
             SliderRow("Long break every", "Pomodoro", DefaultsKey.NotchPomodoroLongBreakInterval, 1, 24, 1, "{0:0} sessions", ""),
-            SliderRow("Sessions", "Pomodoro", DefaultsKey.NotchPomodoroTotalSessions, 1, 24, 1, "{0:0}", ""));
+            SliderRow("Sessions", "Pomodoro", DefaultsKey.NotchPomodoroTotalSessions, 1, 24, 1, "{0:0}", "")]);
     }
 
     /// <summary>The watched folder with its choices (upstream NotchDownloadsSettingsControls).</summary>

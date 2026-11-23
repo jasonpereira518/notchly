@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Notchly.App.Island.Agents;
 using Notchly.App.Island.Calendar;
 using Notchly.App.Island.Downloads;
 using Notchly.App.Island.Files;
@@ -26,6 +27,7 @@ using Notchly.App.Platform.Power;
 using Notchly.App.Platform.Shell;
 using Notchly.App.Platform.Windowing;
 using Notchly.App.Shell;
+using Notchly.Core.Agents;
 using Notchly.Core.Calendar;
 using Notchly.Core.Downloads;
 using Notchly.Core.Features;
@@ -40,13 +42,13 @@ namespace Notchly.App.Island;
 
 public sealed class IslandService : IFeatureService
 {
-    private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Notice, Drop, Open }
-    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download }
+    private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Agents, Notice, Drop, Open }
+    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -66,6 +68,10 @@ public sealed class IslandService : IFeatureService
     private DownloadsPage? _downloadsPage;
     private CalendarService? _calendar;
     private CalendarPage? _calendarPage;
+    private AgentsService? _agents;
+    private AgentsPage? _agentsPage;
+    /// <summary>The shape of the agent reading the strip was sized for; a new shape resizes it.</summary>
+    private string _agentShape = "";
     private readonly Dictionary<string, double> _measured = new(StringComparer.Ordinal);
     private string _stripName = "";
     private double _stripNameWidth;
@@ -179,6 +185,10 @@ public sealed class IslandService : IFeatureService
         _calendar = new CalendarService(_dispatcher, _settings);
         _calendar.Changed += OnCalendarChanged;
         _calendarPage = new CalendarPage(window, _calendar, _settings);
+        _agents = new AgentsService(_dispatcher, _settings);
+        _agents.Changed += OnAgentsChanged;
+        _agents.Alert += OnAgentAlert;
+        _agentsPage = new AgentsPage(window, _agents, _settings);
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -231,6 +241,7 @@ public sealed class IslandService : IFeatureService
         _shelf?.Dispose(); _shelf = null; _files = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
+        _agents?.Dispose(); _agents = null; _agentsPage = null;
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -306,6 +317,7 @@ public sealed class IslandService : IFeatureService
         SyncLyrics();
         SyncDownloads();
         SyncCalendar();
+        SyncAgents();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -329,6 +341,7 @@ public sealed class IslandService : IFeatureService
             NotchModule.Files => w.FilesPage,
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
+            NotchModule.Agents => w.AgentsPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -345,6 +358,8 @@ public sealed class IslandService : IFeatureService
             running.Add(NotchCompactActivity.Downloads);
         if (_calendar?.Countdown is not null)
             running.Add(NotchCompactActivity.Calendar);
+        if (_agents is { Running: true, ShowsLiveActivity: true } && _agents.Snapshot.Live.Count > 0)
+            running.Add(NotchCompactActivity.Agents);
         if (_media?.Current is { IsPlaying: true } && _settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             && _settings.GetString(DefaultsKey.NotchIdleContent, "music") == "music")
             running.Add(NotchCompactActivity.Music);
@@ -395,6 +410,7 @@ public sealed class IslandService : IFeatureService
                 NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
                 NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
                 NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
+                NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
                 _ => (g.MusicStrip, ClosedContent.Music),
             };
         }
@@ -430,6 +446,8 @@ public sealed class IslandService : IFeatureService
         w.LevelMeter.Visibility = Visibility.Collapsed;
         w.TrackLead.Visibility = Visibility.Collapsed;
         w.TrackTrail.Visibility = Visibility.Collapsed;
+        w.AgentMarks.Visibility = Visibility.Collapsed;
+        w.AgentReading.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         // A notice's art sits beside the camera; music moves it to the strip's end below.
@@ -475,6 +493,9 @@ public sealed class IslandService : IFeatureService
                 break;
             case ClosedContent.Calendar when _calendar?.Countdown is { } countdown:
                 ShowCalendarStrip(w, countdown, Math.Max(0, (size.Width - g.CameraWidth) / 2));
+                break;
+            case ClosedContent.Agents when _agents is not null:
+                ShowAgentStrip(w, g, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
             case ClosedContent.Notice when _notice is { } notice:
                 if (notice.Art is not null) ShowArt(w, notice.Art, body);
@@ -773,6 +794,7 @@ public sealed class IslandService : IFeatureService
         _hoverState.Close(_inside);
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
         if (_calendarPage is not null) _calendarPage.Visible = false;
+        if (_agentsPage is not null) _agentsPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -834,6 +856,7 @@ public sealed class IslandService : IFeatureService
                 _page = NotchModule.Calendar;
                 _calendarPage?.Reveal(countdown.Event);
             }
+            if (_shown == ClosedContent.Agents || _notice?.Kind == NoticeKind.Agents) _page = NotchModule.Agents;
             Open(takeFocus: true);
             e.Handled = true;
         }
@@ -865,6 +888,8 @@ public sealed class IslandService : IFeatureService
         // So does the downloads list.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject listed && IsInside(listed, _window.DownloadsScroller)) return;
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject agenda && InCalendarAgenda(agenda)) return;
+        // And the AI page, once its cards outgrow the island.
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject cards && InTaggedScroller(cards, "AgentsPage")) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
             allowVertical: NotchGestureSupport.AllowsVertical(_expanded, inHeader, _page == NotchModule.Music, control: false, scroll: false),
@@ -1291,10 +1316,12 @@ public sealed class IslandService : IFeatureService
         if (_running && !_expanded) Refresh();
     }
 
-    private static bool InCalendarAgenda(DependencyObject node)
+    private static bool InCalendarAgenda(DependencyObject node) => InTaggedScroller(node, "CalendarAgenda");
+
+    private static bool InTaggedScroller(DependencyObject node, string tag)
     {
         for (var current = node; current is not null; current = VisualTreeHelper.GetParent(current))
-            if (current is ScrollViewer { Tag: "CalendarAgenda" }) return true;
+            if (current is ScrollViewer scroller && Equals(scroller.Tag, tag)) return true;
         return false;
     }
 
@@ -1344,6 +1371,108 @@ public sealed class IslandService : IFeatureService
     {
         w.CalClock.Text = CalendarSupport.CountdownText(countdown.Target, DateTime.Now);
         w.CalClock.Foreground = countdown.Ongoing ? Brush(Color.FromRgb(0x63, 0xE6, 0xBE)) : Brushes.White;
+    }
+
+    // MARK: AI agents (upstream AgentUsageService hooks, NotchAgentStrip and showAgentEvent)
+
+    /// <summary>The agents are read while their page is among the island's pages, as upstream's isEnabled.</summary>
+    private void SyncAgents() => _agents?.Sync(Pages().Contains(NotchModule.Agents));
+
+    private void OnAgentsChanged()
+    {
+        if (!_running) return;
+        // Closed, the strip follows the turns; open on the AI page, the island follows its cards.
+        if (!_expanded || _page == NotchModule.Agents) Refresh();
+    }
+
+    /// <summary>Room the strip keeps from the island's curved ends.</summary>
+    private const double AgentInset = 10;
+
+    private string AgentReadingText() => _agents is null ? "" : NotchAgentSupport.StripReading(_agents.Snapshot, _agents.Readout,
+        _agents.LimitDisplay, _agents.LimitFocus, DateTimeOffset.UtcNow, CultureInfo.CurrentCulture);
+
+    private IReadOnlyList<AgentProvider> WorkingAgents() => _agents is not { } agents ? []
+        : AgentProviders.All.Where(p => agents.Snapshot.Live.Any(s => s.Provider == p)).ToList();
+
+    private static double AgentTextSize(NotchGeometry g) => Math.Min(13, NotchAgentSupport.StripTextSize(g.StripBodyHeight));
+
+    /// <summary>Two working agents share a smaller mark (upstream: 14 points for one, 11 for several).</summary>
+    private static double AgentMarkSize(NotchGeometry g, int working) => Math.Min(working > 1 ? 11 : 14, Math.Max(8, g.StripBodyHeight - 8));
+
+    /// <summary>The wider of the two sides, the reading or the working agents' marks, with air beside the camera
+    /// (upstream agentStripWing). The reading's shape, not its digits, sets it, so the island holds still.</summary>
+    private double AgentWing(NotchGeometry g)
+    {
+        _agentShape = NotchAgentSupport.ReadingShape(AgentReadingText());
+        var text = MeasureText(_agentShape, AgentTextSize(g), FontWeights.Medium) + AgentInset;
+        var working = Math.Max(1, WorkingAgents().Count);
+        var marks = working * AgentMarkSize(g, working) + (working - 1) * 2 + AgentInset;
+        return Math.Max(text, marks) + NotchAgentSupport.StripCameraGap;
+    }
+
+    /// <summary>The working agents' marks at the left end, the chosen reading at the right end.</summary>
+    private void ShowAgentStrip(NotchWindow w, NotchGeometry g, double wing)
+    {
+        var working = WorkingAgents();
+        var mark = AgentMarkSize(g, working.Count);
+        w.AgentMarks.Children.Clear();
+        foreach (var provider in working)
+        {
+            var element = AgentLook.Mark(provider, _agents?.Icon(provider), mark);
+            element.Margin = new Thickness(w.AgentMarks.Children.Count == 0 ? AgentInset : 2, 0, 0, 0);
+            w.AgentMarks.Children.Add(element);
+        }
+        w.AgentMarks.Visibility = wing >= 28 && working.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        w.AgentReading.FontSize = AgentTextSize(g);
+        w.AgentReading.Margin = new Thickness(0, 0, AgentInset, 0);
+        w.AgentReading.Foreground = Brush(working.Count > 0 ? AgentLook.Tint(working[0]) : Colors.White);
+        w.AgentReading.Visibility = wing >= 42 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateAgentReading(w);
+    }
+
+    /// <summary>The clock ticks every second; a reading that gains a digit widens the strip.</summary>
+    private void UpdateAgentReading(NotchWindow w)
+    {
+        var reading = AgentReadingText();
+        if (w.AgentReading.Text != reading) w.AgentReading.Text = reading;
+        if (NotchAgentSupport.ReadingShape(reading) != _agentShape) Refresh();
+    }
+
+    private static string NoticeName(AgentProvider provider) => provider == AgentProvider.Claude ? "Claude Code" : provider.DisplayName();
+
+    /// <summary>A window's name inside a sentence: "session", "weekly", "5h".</summary>
+    private static string WindowWord(AgentLimitWindow window) => window.Kind switch
+    {
+        AgentLimitKind.Session => "session",
+        AgentLimitKind.Weekly => window.Scope is { } scope ? $"weekly {scope}" : "weekly",
+        _ when window.Id == CursorUsageSummary.WindowId => "included usage",
+        _ => window.Minutes is { } minutes ? AgentFormat.Duration(minutes * 60.0, 1) : "plan",
+    };
+
+    /// <summary>Finished turns, limits running low or renewed and the daily budget, at the timer's priority, for 5 s.</summary>
+    private void OnAgentAlert(AgentUsageEvent e)
+    {
+        if (!_running || _agents is not { } agents) return;
+        var culture = CultureInfo.CurrentCulture;
+        (string Glyph, string Text, Color Tint, AgentProvider? Provider) shown = e switch
+        {
+            AgentUsageEvent.Finished f => ("", string.Join(" · ", new[]
+            {
+                $"{NoticeName(f.Provider)} finished", AgentFormat.Clock(f.Duration), f.Cost > 0 ? AgentFormat.Cost(f.Cost, culture) : "",
+            }.Where(p => p.Length > 0)), AgentLook.Tint(f.Provider), f.Provider),
+            AgentUsageEvent.LimitWarning w => ("",
+                $"{NoticeName(w.Provider)} {WindowWord(w.Window)} limit at {AgentFormat.Percent(w.Window.UsedFraction, culture)}",
+                AgentLook.LimitTint(w.Provider, w.Window.UsedFraction), w.Provider),
+            AgentUsageEvent.LimitReset r => ("", $"{NoticeName(r.Provider)} {WindowWord(r.Window)} limit renewed",
+                AgentLook.Tint(r.Provider), r.Provider),
+            AgentUsageEvent.BudgetReached b => ("", $"Daily budget of {AgentFormat.Cost(b.Budget, culture)} reached", Amber, null),
+            _ => ("", "", Colors.White, null),
+        };
+        if (shown.Text.Length == 0) return;
+        var art = shown.Provider is { } provider ? agents.Icon(provider) : null;
+        var trailing = Math.Max(NotchGeometry.NoticeWingRange.Min, MeasureText(shown.Text, 12, FontWeights.SemiBold) + 18);
+        _notice = null;
+        ShowNotice(new Notice(NoticeKind.Agents, shown.Glyph, null, shown.Text, art, 44, trailing, 5, shown.Tint));
     }
 
     // MARK: Files (drops onto the island and drag-reveal)
@@ -1495,6 +1624,7 @@ public sealed class IslandService : IFeatureService
         if (_timer.IsRunning && _timer.FinishIfDue(Now)) OnTimerFinished();
         if (_shown == ClosedContent.Timer && _window is not null) _window.StripText.Text = TimerStripText();
         if (_shown == ClosedContent.Calendar && _window is not null && _calendar?.Countdown is { } countdown) UpdateCalendarClock(_window, countdown);
+        if (_shown == ClosedContent.Agents && _window is not null && _agents is not null && _agents.Readout.AdvancesWithClock()) UpdateAgentReading(_window);
         if (_expanded) UpdateLivePages();
     }
 
@@ -1571,7 +1701,8 @@ public sealed class IslandService : IFeatureService
                         && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
                         && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
                         && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
-                        && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled)))
+                        && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
+                        && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled)))
             .ToList();
     }
 
@@ -1587,6 +1718,7 @@ public sealed class IslandService : IFeatureService
                 NotchModule.Files => ("\uE8B7", "Files"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
+                NotchModule.Agents => ("\uE99A", "AI agents"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1616,6 +1748,9 @@ public sealed class IslandService : IFeatureService
         _window.CalendarPage.Visibility = module == NotchModule.Calendar ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Calendar && _geometry is { } cg) _calendarPage?.Layout(cg.ContentBudget, cg.ContentWidth);
         if (_calendarPage is not null) _calendarPage.Visible = module == NotchModule.Calendar && _expanded;
+        _window.AgentsPage.Visibility = module == NotchModule.Agents ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Agents && _geometry is { } ag) _agentsPage?.Layout(ag.ContentBudget, ag.ContentWidth);
+        if (_agentsPage is not null) _agentsPage.Visible = module == NotchModule.Agents && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

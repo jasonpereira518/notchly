@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files). See
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -17,20 +17,30 @@ for the porting plan.
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
-    **Files**, **Timer** (timer, Pomodoro, stopwatch).
+    **Files**, **Downloads**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - **Live equalizer** (opt-in): the closed music strip's bars follow the playing app's real audio, read with
     Windows process loopback; nothing is stored or sent.
   - **Files** page: drag files, links, text or images toward the notch and it grows into a drop zone. Shelved items
     keep across restarts; drag them back out into any app, open, share, pin, group into piles, or Create ZIP.
-  - Live activities in the closed island: music (cover + bars), timer countdown.
+  - **Downloads**: while a browser saves into your Downloads folder (or one you choose), the closed island shows the
+    file's name and the size so far; a notice names it when it finishes, and the Downloads page lists the folder's
+    newest files to open, show in Explorer or add to Files. Windows browsers publish no percentage, so size and speed
+    stand in for it.
+  - Live activities in the closed island: music (cover + bars), timer countdown, downloads.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.
   - Gestures: scroll down on it to open, up to close; touchpad sideways swipe changes track.
-  - Hides during full-screen games, videos and presentations; optional reserved top strip (AppBar) so maximized
-    windows start below it.
+  - Hides during full-screen games, videos and presentations.
+  - **Menu bar at the top** (optional): a black bar like a Mac's, with the app in front in bold and its menus left of
+    the notch, and the clock and date on the right (click for notifications and the calendar). Classic menus drop down
+    under the bar; Notepad, VS Code and other modern menus open the app's own menu; apps without menus get File, Edit,
+    View, Window and Help, whose items send the usual shortcut. Maximized windows start below it; off, they get their
+    full height back and the island floats over them.
   - `Islet.exe --toggle-island` opens/closes it (bind it to a key with any launcher).
+
+`Islet.exe --import-settings <file>` applies a settings backup, to the running Islet when there is one.
 
 ## Build and run
 

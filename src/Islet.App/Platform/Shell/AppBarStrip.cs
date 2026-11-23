@@ -17,6 +17,7 @@ public sealed class AppBarStrip : Window
     private DisplayInfo _display;
     private double _heightDips;
     private bool _registered;
+    private IntPtr _handle;
     private HwndSource? _source;
 
     /// <summary>A full-screen app took the display: the strip steps aside until it leaves.</summary>
@@ -34,6 +35,9 @@ public sealed class AppBarStrip : Window
         Background = Brushes.Black;
         Title = "Islet strip";
         SourceInitialized += (_, _) => Register();
+        // While the window still exists: by Closed it is destroyed, and the shell would keep its space
+        // reserved, leaving maximized windows below an empty band.
+        Closing += (_, _) => Unregister();
         Closed += (_, _) => Unregister();
     }
 
@@ -47,6 +51,7 @@ public sealed class AppBarStrip : Window
     private void Register()
     {
         var handle = new WindowInteropHelper(this).Handle;
+        _handle = handle;
         AddExStyle(handle, WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_EX_APPWINDOW);
         _source = HwndSource.FromHwnd(handle);
         _source.AddHook(WndProc);
@@ -59,7 +64,7 @@ public sealed class AppBarStrip : Window
 
     private void Position()
     {
-        var handle = new WindowInteropHelper(this).Handle;
+        var handle = _handle;
         var data = NewData(handle);
         data.uEdge = ABE_TOP;
         var height = (int)Math.Ceiling(_heightDips * _display.Scale);
@@ -92,9 +97,10 @@ public sealed class AppBarStrip : Window
     private void Unregister()
     {
         if (!_registered) return;
-        var data = NewData(new WindowInteropHelper(this).Handle);
+        var data = NewData(_handle);
         SHAppBarMessage(ABM_REMOVE, ref data);
         _registered = false;
+        Log.Information("Released the top strip's space");
     }
 
     private static APPBARDATA NewData(IntPtr handle) => new() { cbSize = (uint)Marshal.SizeOf<APPBARDATA>(), hWnd = handle };

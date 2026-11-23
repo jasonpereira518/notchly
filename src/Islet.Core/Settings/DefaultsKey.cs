@@ -81,6 +81,12 @@ public static class DefaultsKey
     public const string NotchQueueEnabled = "notchQueueEnabled";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";
+    /// <summary>Windows-only: the top strip shows the app in front and its menus, as a Mac menu bar.</summary>
+    public const string NotchStripMenus = "notchStripMenus";
+    /// <summary>Windows-only: the top strip shows the clock and date at its right end.</summary>
+    public const string NotchStripClock = "notchStripClock";
+    /// <summary>The folder Downloads watches; empty for Windows' Downloads folder (upstream keeps a bookmark).</summary>
+    public const string NotchDownloadsFolderPath = "notchDownloadsFolderPath";
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";
     public const string NotchCalendarEnabled = "notchCalendarEnabled";
     public const string NotchAgentsEnabled = "notchAgentsEnabled";

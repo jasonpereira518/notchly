@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using Islet.App.Island.Downloads;
+using Islet.App.Platform.Shell;
 using Islet.Core;
 using Islet.Core.Features;
 using Islet.Core.Settings;
@@ -235,7 +237,9 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             SliderRow("Custom height", null, DefaultsKey.NotchCustomHeight, 260, 640, 10, "{0:0} px", ""),
             Choice("Display", "Automatic uses the laptop's own screen, where the webcam is.", DefaultsKey.NotchDisplay,
                    [("automatic", "Automatic"), ("builtIn", "Built-in display"), ("main", "Main display"), ("pointer", "Follow the pointer")], ""),
-            Toggle("Reserve a strip at the top", "Maximized windows start below a black band, like a Mac menu bar with a notch. Off: the island floats over windows.", DefaultsKey.NotchReserveStrip, ""),
+            Toggle("Menu bar at the top", "A black bar like a Mac's: the app in front and its menus on the left, the clock on the right. Maximized windows start below it. Off: the island floats over windows.", DefaultsKey.NotchReserveStrip, ""),
+            Toggle("Show the app and its menus", "Apps without menus get File, Edit, View, Window and Help, whose items send the usual shortcut to the app.", DefaultsKey.NotchStripMenus, ""),
+            Toggle("Show the clock and date", "Click it for notifications and the calendar.", DefaultsKey.NotchStripClock, ""),
 
             Section("Behaviour"),
             Toggle("Open on hover", "Off: hovering only grows the island slightly, and a click opens it.", DefaultsKey.NotchOpenOnHover, ""),
@@ -265,6 +269,12 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Remove items after dragging them out", "Pinned items always stay.", DefaultsKey.ShelfRemoveAfterDrop, ""),
             Toggle("Close the island after dragging out", null, DefaultsKey.ShelfCloseAfterDrop, ""),
 
+            Section("Downloads"),
+            Toggle("Downloads in the island", "Files arriving in the watched folder show beside the camera, then wait on the island's Downloads page. " +
+                   "Browsers on Windows don't share download progress, so most downloads show the size received instead of a percentage.",
+                   DefaultsKey.NotchDownloadsEnabled, "\uE896"),
+            DownloadsFolderCard(),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),
@@ -282,6 +292,37 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             SliderRow("Long break", "Pomodoro", DefaultsKey.NotchPomodoroLongBreakMinutes, 1, 60, 1, "{0:0} min", ""),
             SliderRow("Long break every", "Pomodoro", DefaultsKey.NotchPomodoroLongBreakInterval, 1, 24, 1, "{0:0} sessions", ""),
             SliderRow("Sessions", "Pomodoro", DefaultsKey.NotchPomodoroTotalSessions, 1, 24, 1, "{0:0}", ""));
+    }
+
+    /// <summary>The watched folder with its choices (upstream NotchDownloadsSettingsControls).</summary>
+    private CardControl DownloadsFolderCard()
+    {
+        var path = new TextBlock { FontSize = 12, Opacity = 0.7, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 360, Margin = new Thickness(0, 2, 0, 0) };
+        path.SetBinding(TextBlock.TextProperty, new Binding($"[{DefaultsKey.NotchDownloadsFolderPath}]")
+            { Source = proxy, Mode = BindingMode.OneWay, Converter = new FolderConverter() });
+        var header = new StackPanel();
+        header.Children.Add(new TextBlock { Text = "Watched folder", FontSize = 14 });
+        header.Children.Add(path);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        buttons.Children.Add(ActionButton("Choose folder…", () => DownloadService.ChooseFolder(app.Settings, Window.GetWindow(path))));
+        buttons.Children.Add(ActionButton("Use Downloads folder", () => DownloadService.UseDownloadsFolder(app.Settings)));
+        buttons.Children.Add(ActionButton("Open folder", () => OpenFolder(DownloadService.ResolveFolder(app.Settings))));
+        return new CardControl
+        {
+            Header = header,
+            Icon = new FontIcon { Glyph = "\uE8B7", FontFamily = new FontFamily("Segoe Fluent Icons") },
+            Content = buttons,
+            Margin = new Thickness(0, 0, 0, 4),
+        };
+    }
+
+    /// <summary>An empty choice is Windows' own Downloads folder.</summary>
+    private sealed class FolderConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+            value is string { Length: > 0 } chosen ? chosen : KnownFolders.Downloads + "  (Windows Downloads folder)";
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 
     // MARK: About

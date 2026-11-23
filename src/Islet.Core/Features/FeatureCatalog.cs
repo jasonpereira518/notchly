@@ -247,7 +247,7 @@ public static class FeatureCatalog
         Add(AppFeature.NotchLiveEqualizer, g, "Live equalizer", "Bars that follow the music's real levels.", Glyph.Wave,
             [DefaultsKey.NotchLiveEqualizer], true, WindowsStatus.Ported, "M3", "Reads the playing app's own audio with Windows process loopback; off until you turn it on.");
         Add(AppFeature.NotchDownloads, g, "Downloads", "Downloads in progress in the island.", Glyph.Download,
-            [DefaultsKey.NotchDownloadsEnabled], true, P, "M3");
+            [DefaultsKey.NotchDownloadsEnabled], true, WindowsStatus.Ported, "M3", "Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress.");
         Add(AppFeature.NotchAgents, g, "AI agents", "Claude, Codex, Copilot and OpenCode usage and limits.", Glyph.Robot,
             [DefaultsKey.NotchAgentsEnabled], true, P, "M3");
         Add(AppFeature.NotchWatch, g, "Watch", "Watch part of a window and get told when it changes.", Glyph.Eye,

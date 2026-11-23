@@ -104,6 +104,9 @@ public sealed record NotchGeometry
 
     /// <summary>The closed music strip: the cover in the left wing, the bars in the right one.</summary>
     public SizeD MusicStrip => StripWithWings(56, 44);
+
+    /// <summary>A download: both wings as wide as the name needs, 56–160 (upstream compactDownloadGeometry).</summary>
+    public SizeD DownloadStrip(double wing) => StripWithWings(wing, 44);
     public double MusicWingWidth => Math.Max(0, (MusicStrip.Width - CameraWidth) / 2);
 
     /// <summary>Both timer wings take the width the wider reading needs, 44–64 points.</summary>

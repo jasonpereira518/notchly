@@ -103,6 +103,30 @@
             </Setter>
         </Style>
 
+        <!-- A row that acts as a button: transparent until the pointer is over it. -->
+        <Style x:Key="PlainButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Back" CornerRadius="6" Background="Transparent" Padding="2,0">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="#14FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="#26FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ChipButton" TargetType="Button">
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontSize" Value="12" />
@@ -195,6 +219,13 @@
                         </Border>
                         <TextBlock x:Name="StripIcon" FontFamily="{StaticResource IconFont}" FontSize="13"
                                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="Collapsed" />
+                        <!-- A download: its arrow and name from the wing's outer edge (upstream NotchDownloadStrip). -->
+                        <StackPanel x:Name="StripLead" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="10,0,4,0" Visibility="Collapsed">
+                            <TextBlock x:Name="StripLeadIcon" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock x:Name="StripLeadText" FontSize="11" FontWeight="Medium" Margin="6,0,0,0"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </StackPanel>
                     </Grid>
                     <Grid x:Name="RightWing" Grid.Column="2" ClipToBounds="True">
                         <StackPanel x:Name="StripBars" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -206,6 +237,15 @@
                             <Border CornerRadius="2" Background="#33FFFFFF" />
                             <Border x:Name="StripLevelFill" CornerRadius="2" Background="White" HorizontalAlignment="Left" Width="0" />
                         </Grid>
+                        <!-- A download's reading toward the wing's outer edge: a meter and percentage, or the size so far. -->
+                        <StackPanel x:Name="StripTrail" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Margin="4,0,10,0" Visibility="Collapsed">
+                            <Grid x:Name="StripTrailMeter" Width="36" Height="4" VerticalAlignment="Center" Margin="0,0,6,0">
+                                <Border CornerRadius="2" Background="#33FFFFFF" />
+                                <Border x:Name="StripTrailFill" CornerRadius="2" Background="White" HorizontalAlignment="Left" Width="0" />
+                            </Grid>
+                            <TextBlock x:Name="StripTrailText" FontSize="10" FontWeight="Medium" VerticalAlignment="Center" />
+                        </StackPanel>
                     </Grid>
                 </Grid>
 
@@ -421,6 +461,39 @@
                                                Foreground="{StaticResource Dim}" />
                                 </StackPanel>
                             </Grid>
+                        </Grid>
+
+                        <!-- Downloads (upstream NotchDownloadsView): transfers arriving and the folder's newest files. -->
+                        <Grid x:Name="DownloadsPage" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Button x:Name="DownloadsFolder" Grid.Row="0" Style="{StaticResource ChipButton}" Margin="0"
+                                    HorizontalAlignment="Left" Padding="10,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock x:Name="DownloadsFolderName" Text="Downloads" FontSize="11" FontWeight="Medium"
+                                               MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="8"
+                                               VerticalAlignment="Center" Margin="6,1,0,0" Foreground="{StaticResource Dim}" />
+                                </StackPanel>
+                            </Button>
+                            <ScrollViewer x:Name="DownloadsScroller" Grid.Row="2" VerticalScrollBarVisibility="Hidden"
+                                          HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                <StackPanel x:Name="DownloadsList" />
+                            </ScrollViewer>
+                            <StackPanel x:Name="DownloadsEmpty" Grid.Row="2" Visibility="Collapsed" MaxWidth="300"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock x:Name="DownloadsEmptyGlyph" Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                                           HorizontalAlignment="Center" Foreground="{StaticResource Dim}" />
+                                <TextBlock x:Name="DownloadsEmptyText" Text="No files in this folder" FontSize="12" Margin="0,8,0,0"
+                                           TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource Dim}" />
+                                <Button x:Name="DownloadsChoose" Style="{StaticResource ChipButton}" Content="Choose Folder…"
+                                        HorizontalAlignment="Center" Margin="0,10,0,0" Visibility="Collapsed" />
+                            </StackPanel>
                         </Grid>
 
                         <!-- Timer, Pomodoro and stopwatch -->

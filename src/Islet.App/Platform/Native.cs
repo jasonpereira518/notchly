@@ -174,6 +174,32 @@ public static class Native
     [DllImport("kernel32.dll")] public static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS status);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out int value, int size);
 
+    // MARK: Files (the downloads folder and file identity)
+
+    public const uint FILE_READ_ATTRIBUTES = 0x80;
+    /// <summary>FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE: never in the way of a browser's rename.</summary>
+    public const uint FILE_SHARE_ALL = 0x7;
+    public const uint OPEN_EXISTING = 3;
+    public const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
+    public const uint FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000;
+    public const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BY_HANDLE_FILE_INFORMATION
+    {
+        public uint dwFileAttributes;
+        public System.Runtime.InteropServices.ComTypes.FILETIME ftCreationTime, ftLastAccessTime, ftLastWriteTime;
+        public uint dwVolumeSerialNumber, nFileSizeHigh, nFileSizeLow, nNumberOfLinks, nFileIndexHigh, nFileIndexLow;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security,
+                                                                               uint disposition, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetFileInformationByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle file, out BY_HANDLE_FILE_INFORMATION info);
+    [DllImport("shell32.dll")]
+    public static extern int SHGetKnownFolderPath(in Guid folder, uint flags, IntPtr token, out IntPtr path);
+
     // MARK: Helpers
 
     public static string ClassName(IntPtr hwnd)

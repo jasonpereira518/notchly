@@ -81,6 +81,8 @@ public static class DefaultsKey
     public const string NotchQueueEnabled = "notchQueueEnabled";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";
+    /// <summary>The folder Downloads watches; empty for Windows' Downloads folder (upstream keeps a bookmark).</summary>
+    public const string NotchDownloadsFolderPath = "notchDownloadsFolderPath";
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";
     public const string NotchCalendarEnabled = "notchCalendarEnabled";
     public const string NotchAgentsEnabled = "notchAgentsEnabled";

@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Islet.App.Island.Downloads;
 using Islet.App.Island.Files;
 using Islet.App.Island.Lyrics;
 using Islet.App.Platform;
@@ -23,6 +24,7 @@ using Islet.App.Platform.Power;
 using Islet.App.Platform.Shell;
 using Islet.App.Platform.Windowing;
 using Islet.App.Shell;
+using Islet.Core.Downloads;
 using Islet.Core.Features;
 using Islet.Core.Notch;
 using Islet.Core.Notch.Lyrics;
@@ -34,13 +36,13 @@ namespace Islet.App.Island;
 
 public sealed class IslandService : IFeatureService
 {
-    private enum ClosedContent { Bare, Music, Timer, Notice, Drop, Open }
-    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer }
+    private enum ClosedContent { Bare, Music, Timer, Download, Notice, Drop, Open }
+    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -56,6 +58,10 @@ public sealed class IslandService : IFeatureService
     private LiveEqualizerService? _equalizer;
     private ShelfService? _shelf;
     private FilesPage? _files;
+    private DownloadService? _downloads;
+    private DownloadsPage? _downloadsPage;
+    private string _stripName = "";
+    private double _stripNameWidth;
     // Drag-reveal: a low-level mouse hook notices a held button near the notch (hook thread fields).
     private sealed record RevealZone(int Left, int Top, int Right, int Bottom);
     private volatile RevealZone? _revealZone;
@@ -152,6 +158,11 @@ public sealed class IslandService : IFeatureService
         _shelf = new ShelfService(_dispatcher);
         _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
         _files.Render();
+        _downloads = new DownloadService(_dispatcher);
+        _downloads.Changed += OnDownloadsChanged;
+        _downloads.Arrived += OnDownloadArrived;
+        _downloadsPage = new DownloadsPage(window, _downloads, _settings, () => FilesAvailable ? _shelf : null,
+            modal => _modalOpen = modal, () => { _page = NotchModule.Downloads; Open(takeFocus: true); ShowPage(NotchModule.Downloads); });
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -199,6 +210,7 @@ public sealed class IslandService : IFeatureService
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
         _shelf?.Dispose(); _shelf = null; _files = null;
+        _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -268,6 +280,7 @@ public sealed class IslandService : IFeatureService
         BuildTimerPresets();
         UpdatePages();
         SyncLyrics();
+        SyncDownloads();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -289,6 +302,7 @@ public sealed class IslandService : IFeatureService
         {
             NotchModule.Music => w.MusicPlayer,
             NotchModule.Files => w.FilesPage,
+            NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -301,6 +315,8 @@ public sealed class IslandService : IFeatureService
         if (_timer.HasSession && _settings.IsAvailable(AppFeature.NotchTimer) && _settings.GetBool(DefaultsKey.NotchTimerEnabled)
             && !_settings.GetBool(DefaultsKey.NotchHideTimerCountdown))
             running.Add(NotchCompactActivity.Timer);
+        if (_downloads?.Current is not null)
+            running.Add(NotchCompactActivity.Downloads);
         if (_media?.Current is { IsPlaying: true } && _settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             && _settings.GetString(DefaultsKey.NotchIdleContent, "music") == "music")
             running.Add(NotchCompactActivity.Music);
@@ -336,8 +352,12 @@ public sealed class IslandService : IFeatureService
         }
         else if (CurrentActivity() is { } activity)
         {
-            size = activity == NotchCompactActivity.Timer ? g.TimerStrip(52) : g.MusicStrip;
-            content = activity == NotchCompactActivity.Timer ? ClosedContent.Timer : ClosedContent.Music;
+            (size, content) = activity switch
+            {
+                NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
+                NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
+                _ => (g.MusicStrip, ClosedContent.Music),
+            };
         }
         else
         {
@@ -347,13 +367,13 @@ public sealed class IslandService : IFeatureService
         }
         if (_hoverEmphasized && !_expanded && _notice is null && !_dragPlaceholder) size = g.HoverEmphasis(size);
 
-        ShowClosedContent(content, g);
+        ShowClosedContent(content, g, size);
         SyncEqualizer();
         UpdateWarningTint();
         MoveTo(size, shift, animated && !hidden);
     }
 
-    private void ShowClosedContent(ClosedContent content, NotchGeometry g)
+    private void ShowClosedContent(ClosedContent content, NotchGeometry g, SizeD size)
     {
         if (_window is not { } w) return;
         _shown = content;
@@ -363,6 +383,8 @@ public sealed class IslandService : IFeatureService
         w.StripBars.Visibility = Visibility.Collapsed;
         w.StripText.Visibility = Visibility.Collapsed;
         w.StripLevel.Visibility = Visibility.Collapsed;
+        w.StripLead.Visibility = Visibility.Collapsed;
+        w.StripTrail.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         w.StripIcon.Foreground = Brushes.White;
@@ -384,6 +406,9 @@ public sealed class IslandService : IFeatureService
                 w.StripText.Text = TimerStripText();
                 w.StripText.Foreground = Brush(_timer.IsRunning ? Orange : Colors.White);
                 w.StripText.Visibility = Visibility.Visible;
+                break;
+            case ClosedContent.Download when _downloads?.Current is { } download:
+                ShowDownloadStrip(w, download, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
             case ClosedContent.Notice when _notice is { } notice:
                 if (notice.Art is not null) ShowArt(w, notice.Art, body);
@@ -519,6 +544,7 @@ public sealed class IslandService : IFeatureService
             _openedByHover = byHover;
             _hoverEmphasized = false;
             _hoverState.Open();
+            if (_downloads?.FolderUnavailable == true) SyncDownloads();
             ShowPage(_page);
             UpdatePages();
             SyncLyrics();
@@ -552,6 +578,7 @@ public sealed class IslandService : IFeatureService
             _window.SetActivatable(false);
         }
         _hoverState.Close(_inside);
+        if (_downloadsPage is not null) _downloadsPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -607,6 +634,7 @@ public sealed class IslandService : IFeatureService
         if (e.OriginalSource is DependencyObject source && IsInsideControl(source)) return;
         if (!_expanded)
         {
+            if (_shown == ClosedContent.Download || _notice?.Kind == NoticeKind.Download) _page = NotchModule.Downloads;
             Open(takeFocus: true);
             e.Handled = true;
         }
@@ -635,6 +663,8 @@ public sealed class IslandService : IFeatureService
         var inHeader = e.GetPosition(_window.Surface).Y <= _geometry.PageTopInset;
         // Over the lyrics the wheel scrolls them instead of closing the island.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject node && IsInside(node, _window.LyricsScroller)) return;
+        // So does the downloads list.
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject listed && IsInside(listed, _window.DownloadsScroller)) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
             allowVertical: NotchGestureSupport.AllowsVertical(_expanded, inHeader, _page == NotchModule.Music, control: false, scroll: false),
@@ -991,6 +1021,62 @@ public sealed class IslandService : IFeatureService
         return false;
     }
 
+    // MARK: Downloads (upstream NotchDownloadService hooks in NotchService)
+
+    /// <summary>The folder is watched while the Downloads page is among the island's pages.</summary>
+    private void SyncDownloads()
+    {
+        if (_downloads is null) return;
+        _downloads.Sync(Pages().Contains(NotchModule.Downloads), DownloadService.ResolveFolder(_settings));
+    }
+
+    private void OnDownloadsChanged()
+    {
+        if (_running && !_expanded) Refresh();
+    }
+
+    private void OnDownloadArrived(DownloadItem item)
+    {
+        if (Starting) return;
+        var trailing = Math.Min(NotchGeometry.NoticeWingRange.Max + 60, 16 + item.Name.Length * 6.5);
+        ShowNotice(new Notice(NoticeKind.Download, "\uE930", null, item.Name, null, 44,
+            Math.Max(NotchGeometry.NoticeWingRange.Min, trailing), 6, Green));
+    }
+
+    /// <summary>Wide enough for the arrow and the file's name (upstream NotchDownloadSupport.compactWing).</summary>
+    private double DownloadWing(NotchGeometry g)
+    {
+        var name = _downloads?.Current?.Name;
+        if (string.IsNullOrWhiteSpace(name) || _window is null) return DownloadSupport.CompactBareWing;
+        if (name != _stripName)
+        {
+            // The strip asks on every refresh, so the one name on show is measured once.
+            var text = new FormattedText(name, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+                new Typeface(_window.StripLeadText.FontFamily, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+                11, Brushes.White, VisualTreeHelper.GetDpi(_window).PixelsPerDip);
+            _stripName = name;
+            _stripNameWidth = Math.Ceiling(text.WidthIncludingTrailingWhitespace);
+        }
+        return DownloadSupport.CompactWing(name, 13 + 6 + _stripNameWidth, 10, g.CompactSideRoom ?? 0);
+    }
+
+    /// <summary>The arrow and name left of the camera; right of it a meter and percentage, or the size so far.</summary>
+    private static void ShowDownloadStrip(NotchWindow w, DownloadItem download, double wing)
+    {
+        w.StripLeadIcon.Text = "\uE896";
+        var showsName = wing >= DownloadSupport.CompactNameMinimumWing;
+        w.StripLeadText.Visibility = showsName ? Visibility.Visible : Visibility.Collapsed;
+        w.StripLeadText.Text = download.Name;
+        w.StripLeadText.MaxWidth = Math.Max(0, wing - 10 - 13 - 6 - 4);
+        w.StripLead.Visibility = Visibility.Visible;
+        var fraction = download.Fraction;
+        w.StripTrailMeter.Visibility = fraction is not null && wing >= 90 ? Visibility.Visible : Visibility.Collapsed;
+        w.StripTrailFill.Width = Math.Clamp(fraction ?? 0, 0, 1) * w.StripTrailMeter.Width;
+        w.StripTrailText.Text = fraction is { } value ? $"{Math.Round(value * 100):0}%"
+            : download.ReceivedBytes is > 0 and var bytes ? DownloadSupport.FormatBytes(bytes) : "";
+        w.StripTrail.Visibility = Visibility.Visible;
+    }
+
     // MARK: Files (drops onto the island and drag-reveal)
 
     private bool FilesAvailable => _shelf is not null && Pages().Contains(NotchModule.Files);
@@ -1206,7 +1292,8 @@ public sealed class IslandService : IFeatureService
         return NotchSupport.Modules(_settings.GetString(DefaultsKey.NotchModuleOrder), _settings.GetString(DefaultsKey.NotchHiddenModules))
             .Where(m => ImplementedPages.Contains(m) && NotchSupport.IsAvailable(m, Installed)
                         && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
-                        && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf)))
+                        && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
+                        && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled)))
             .ToList();
     }
 
@@ -1220,6 +1307,7 @@ public sealed class IslandService : IFeatureService
             {
                 NotchModule.Music => ("", "Music"),
                 NotchModule.Files => ("\uE8B7", "Files"),
+                NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1242,7 +1330,10 @@ public sealed class IslandService : IFeatureService
         _window.MusicPage.Visibility = module == NotchModule.Music ? Visibility.Visible : Visibility.Collapsed;
         _window.TimerPage.Visibility = module == NotchModule.Timer ? Visibility.Visible : Visibility.Collapsed;
         _window.FilesPage.Visibility = module == NotchModule.Files ? Visibility.Visible : Visibility.Collapsed;
+        _window.DownloadsPage.Visibility = module == NotchModule.Downloads ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Files && _geometry is { } g) _files?.Layout(g.ContentBudget);
+        if (module == NotchModule.Downloads && _geometry is { } dg) _downloadsPage?.Layout(dg.ContentBudget);
+        if (_downloadsPage is not null) _downloadsPage.Visible = module == NotchModule.Downloads;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

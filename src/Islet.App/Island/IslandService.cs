@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using Islet.App.Island.Downloads;
 using Islet.App.Island.Files;
 using Islet.App.Island.Lyrics;
+using Islet.App.Island.MenuBar;
 using Islet.App.Platform;
 using Islet.App.Platform.Audio;
 using Islet.App.Platform.Input;
@@ -79,6 +80,7 @@ public sealed class IslandService : IFeatureService
     private DispatcherTimer? _lyricsTimer, _scrollTimer;
     private double _scrollFrom, _scrollTo, _scrollStart;
     private AppBarStrip? _strip;
+    private MenuBarController? _menuBar;
     private MediaSessionService? _media;
     private VolumeService? _volume;
     private PowerService? _power;
@@ -180,7 +182,7 @@ public sealed class IslandService : IFeatureService
         _power.BatteryChanged += OnBatteryChanged;
         _power.BrightnessChanged += OnBrightnessChanged;
         _foreground = new ForegroundWatcher();
-        _foreground.ForegroundChanged += _ => { _window?.ReassertTopmost(); CheckFullscreen(); };
+        _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
 
         _hoverTimer = NewTimer(OnHoverTimer);
@@ -214,6 +216,7 @@ public sealed class IslandService : IFeatureService
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
+        _menuBar?.Dispose(); _menuBar = null;
         _strip?.Close(); _strip = null;
         _window?.Close(); _window = null;
         _expanded = false; _notice = null; _drawn = SizeD.Zero; _target = SizeD.Zero; _placementKey = "";
@@ -260,11 +263,13 @@ public sealed class IslandService : IFeatureService
         if (reserve && _strip is null)
         {
             _strip = new AppBarStrip(display, geometry.StripHeight + geometry.FloatingDrop);
+            _menuBar = new MenuBarController(_strip, _settings, _dispatcher);
             _strip.Show();
             _window.ReassertTopmost();
         }
         else if (reserve && _strip is not null) _strip.Update(display, geometry.StripHeight + geometry.FloatingDrop);
-        else if (!reserve && _strip is not null) { _strip.Close(); _strip = null; }
+        else if (!reserve && _strip is not null) { _menuBar?.Dispose(); _menuBar = null; _strip.Close(); _strip = null; }
+        _menuBar?.Apply(display, geometry, offset);
 
         _window.SetShownInCaptures(_settings.GetBool(DefaultsKey.NotchShowInCaptures));
         if (_media is not null) _media.PreferredPlayer = _settings.GetString(DefaultsKey.NotchPreferredPlayer);

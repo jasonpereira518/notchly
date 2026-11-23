@@ -200,6 +200,77 @@ public static class Native
     [DllImport("shell32.dll")]
     public static extern int SHGetKnownFolderPath(in Guid folder, uint flags, IntPtr token, out IntPtr path);
 
+    // MARK: Menu bar (the app in front, its menus, window commands and shortcuts)
+
+    public const uint WM_CLOSE = 0x0010, WM_COMMAND = 0x0111, WM_SYSCOMMAND = 0x0112, WM_INITMENU = 0x0116, WM_INITMENUPOPUP = 0x0117;
+    public const uint SC_MINIMIZE = 0xF020, SC_MAXIMIZE = 0xF030, SC_CLOSE = 0xF060, SC_RESTORE = 0xF120;
+    public const uint SMTO_BLOCK = 0x1, SMTO_ABORTIFHUNG = 0x2;
+    public const uint MIIM_STATE = 0x1, MIIM_ID = 0x2, MIIM_SUBMENU = 0x4, MIIM_STRING = 0x40, MIIM_FTYPE = 0x100;
+    public const uint MFT_BITMAP = 0x4, MFT_OWNERDRAW = 0x100, MFT_SEPARATOR = 0x800, MFS_DISABLED = 0x3, MFS_CHECKED = 0x8;
+    public const int SW_RESTORE = 9;
+    public const uint INPUT_KEYBOARD = 1, KEYEVENTF_KEYUP = 0x2;
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000, TOKEN_QUERY = 0x8;
+    public const int TokenElevation = 20;
+    public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MENUITEMINFO
+    {
+        public uint cbSize, fMask, fType, fState, wID;
+        public IntPtr hSubMenu, hbmpChecked, hbmpUnchecked, dwItemData, dwTypeData;
+        public uint cch;
+        public IntPtr hbmpItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr dwExtraInfo; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr dwExtraInfo; }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT { public uint type; public INPUTUNION u; }
+
+    public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr data);
+
+    [DllImport("user32.dll")] public static extern IntPtr GetMenu(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool IsMenu(IntPtr menu);
+    [DllImport("user32.dll")] public static extern IntPtr GetSubMenu(IntPtr menu, int position);
+    [DllImport("user32.dll")] public static extern int GetMenuItemCount(IntPtr menu);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool GetMenuItemInfo(IntPtr menu, uint item, bool byPosition, ref MENUITEMINFO info);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeout, out IntPtr result);
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr data);
+    [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hwnd, uint command);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hwnd, char[] text, int max);
+    [DllImport("user32.dll", SetLastError = true)] public static extern uint SendInput(uint count, INPUT[] inputs, int size);
+    [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")] public static extern int DwmGetWindowRect(IntPtr hwnd, int attribute, out RECT value, int size);
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr OpenProcess(uint access, bool inherit, uint processId);
+    [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool QueryFullProcessImageName(IntPtr process, uint flags, char[] name, ref uint size);
+    [DllImport("advapi32.dll", SetLastError = true)] public static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool GetTokenInformation(IntPtr token, int infoClass, out int info, int length, out int returned);
+
+    public const uint GW_OWNER = 4;
+
+    public static string WindowText(IntPtr hwnd)
+    {
+        var buffer = new char[256];
+        var length = GetWindowText(hwnd, buffer, buffer.Length);
+        return length > 0 ? new string(buffer, 0, length) : "";
+    }
+
     // MARK: Helpers
 
     public static string ClassName(IntPtr hwnd)

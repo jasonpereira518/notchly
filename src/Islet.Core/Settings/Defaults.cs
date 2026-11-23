@@ -41,6 +41,8 @@ public static class Defaults
         [DefaultsKey.NotchQueueEnabled] = true,
         [DefaultsKey.NotchLiveEqualizer] = false,
         [DefaultsKey.NotchDownloadsEnabled] = true,
+        [DefaultsKey.NotchStripMenus] = true,
+        [DefaultsKey.NotchStripClock] = true,
         [DefaultsKey.NotchDownloadsFolderPath] = "",
         [DefaultsKey.NotchNotificationsEnabled] = true,
         [DefaultsKey.NotchCalendarEnabled] = true,

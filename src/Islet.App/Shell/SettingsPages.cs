@@ -237,7 +237,9 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             SliderRow("Custom height", null, DefaultsKey.NotchCustomHeight, 260, 640, 10, "{0:0} px", ""),
             Choice("Display", "Automatic uses the laptop's own screen, where the webcam is.", DefaultsKey.NotchDisplay,
                    [("automatic", "Automatic"), ("builtIn", "Built-in display"), ("main", "Main display"), ("pointer", "Follow the pointer")], ""),
-            Toggle("Reserve a strip at the top", "Maximized windows start below a black band, like a Mac menu bar with a notch. Off: the island floats over windows.", DefaultsKey.NotchReserveStrip, ""),
+            Toggle("Menu bar at the top", "A black bar like a Mac's: the app in front and its menus on the left, the clock on the right. Maximized windows start below it. Off: the island floats over windows.", DefaultsKey.NotchReserveStrip, ""),
+            Toggle("Show the app and its menus", "Apps without menus get File, Edit, View, Window and Help, whose items send the usual shortcut to the app.", DefaultsKey.NotchStripMenus, ""),
+            Toggle("Show the clock and date", "Click it for notifications and the calendar.", DefaultsKey.NotchStripClock, ""),
 
             Section("Behaviour"),
             Toggle("Open on hover", "Off: hovering only grows the island slightly, and a click opens it.", DefaultsKey.NotchOpenOnHover, ""),

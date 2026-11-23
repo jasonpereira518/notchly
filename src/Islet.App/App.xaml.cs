@@ -44,8 +44,11 @@ public partial class App : Application
         _instance = SingleInstance.TryAcquire();
         if (_instance is null)
         {
-            // Launching again opens Settings in the running Islet, as reopening the Mac app does.
-            SingleInstance.SendToRunningInstance(e.Args.Contains("--toggle-island") ? "island" : background ? "noop" : "settings");
+            // Launching again opens Settings in the running Islet, as reopening the Mac app does; an import
+            // goes to the running Islet, which owns the settings file.
+            var import = Array.IndexOf(e.Args, "--import-settings");
+            SingleInstance.SendToRunningInstance(import >= 0 && import + 1 < e.Args.Length ? "import " + Path.GetFullPath(e.Args[import + 1])
+                : e.Args.Contains("--toggle-island") ? "island" : background ? "noop" : "settings");
             Shutdown();
             return;
         }
@@ -85,6 +88,18 @@ public partial class App : Application
         {
             case "settings": ShowSettings(SettingsPage.General); break;
             case "island": Features.Get<IslandService>(AppFeature.Notch)?.Toggle(); break;
+            case var import when import.StartsWith("import ", StringComparison.Ordinal):
+                try
+                {
+                    var result = SettingsBackup.Import(Settings, File.ReadAllText(import["import ".Length..]));
+                    Settings.Flush();
+                    Log.Information("Imported {Count} settings", result.Applied);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or System.Text.Json.JsonException)
+                {
+                    Log.Warning(ex, "Settings import failed");
+                }
+                break;
         }
     }
 

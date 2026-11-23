@@ -32,9 +32,15 @@ for the porting plan.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.
   - Gestures: scroll down on it to open, up to close; touchpad sideways swipe changes track.
-  - Hides during full-screen games, videos and presentations; optional reserved top strip (AppBar) so maximized
-    windows start below it.
+  - Hides during full-screen games, videos and presentations.
+  - **Menu bar at the top** (optional): a black bar like a Mac's, with the app in front in bold and its menus left of
+    the notch, and the clock and date on the right (click for notifications and the calendar). Classic menus drop down
+    under the bar; Notepad, VS Code and other modern menus open the app's own menu; apps without menus get File, Edit,
+    View, Window and Help, whose items send the usual shortcut. Maximized windows start below it; off, they get their
+    full height back and the island floats over them.
   - `Islet.exe --toggle-island` opens/closes it (bind it to a key with any launcher).
+
+`Islet.exe --import-settings <file>` applies a settings backup, to the running Islet when there is one.
 
 ## Build and run
 

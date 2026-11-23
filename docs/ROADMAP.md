@@ -156,6 +156,10 @@ docs/UPSTREAM.md           pinned commit + porting conventions
 **Reserved-strip mode**
 - `SHAppBarMessage(ABM_NEW/ABM_SETPOS, ABE_TOP)` reserves the notch height, so maximized windows start below it.
 - The strip is drawn black with the notch in the middle. Later it can show compact readouts on either side, the Windows stand-in for upstream's menu-bar readouts.
+- **Menu bar (done):** the strip reads like a Mac menu bar: the app in front in bold and its menus left of the notch, the clock on the right.
+  - Classic Win32 menus drop down under the bar (`WM_INITMENUPOPUP`, then `WM_COMMAND`); UI Automation menu bars open the app's own menu.
+  - Apps without menus get File, Edit, View, Window and Help, whose items send the usual shortcut (`SendInput`).
+  - The strip unregisters (`ABM_REMOVE`) while its window still exists, so turning it off gives maximized windows their full height back.
 
 **Displays and fullscreen**
 - Display options: built-in / primary / pointer / all (port `NotchDisplay`).

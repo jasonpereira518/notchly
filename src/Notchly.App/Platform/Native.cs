@@ -259,6 +259,13 @@ public static class Native
     [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern bool QueryFullProcessImageName(IntPtr process, uint flags, char[] name, ref uint size);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetProcessTimes(IntPtr process, out long creation, out long exit, out long kernel, out long user);
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+    public const uint STILL_ACTIVE = 259;
+    public const int ERROR_ACCESS_DENIED = 5;
+    /// <summary>Interrupt time in 100 ns units, leaving out sleep and hibernation: how long the computer was awake.</summary>
+    [DllImport("kernel32.dll")] public static extern bool QueryUnbiasedInterruptTime(out ulong time);
     [DllImport("advapi32.dll", SetLastError = true)] public static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
     [DllImport("advapi32.dll", SetLastError = true)]
     public static extern bool GetTokenInformation(IntPtr token, int infoClass, out int info, int length, out int returned);

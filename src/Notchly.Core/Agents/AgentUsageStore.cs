@@ -477,9 +477,18 @@ public sealed record AgentSessionRegistry
     /// <summary>
     /// The registry from the records read: <paramref name="records"/> holds each <c>&lt;pid&gt;.json</c> file's text, or
     /// null when it could not be read. A record naming a process domain other than <paramref name="domain"/> (as one
-    /// from a container sharing the folder) proves nothing.
+    /// from a container sharing the folder) proves nothing; Claude Code on Windows writes <c>win32:&lt;computer&gt;</c>,
+    /// in whatever case, so domains compare without case.
     /// </summary>
-    public static AgentSessionRegistry FromRecords(IEnumerable<string?> records, Func<int, bool> isRunning, bool listed, string domain = "windows")
+    public static AgentSessionRegistry FromRecords(IEnumerable<string?> records, Func<int, bool> isRunning, bool listed, string domain = "windows") =>
+        FromRecords(records, (pid, _) => isRunning(pid), listed, domain);
+
+    /// <summary>
+    /// As the other overload, with each record's <c>procStart</c> passed to <paramref name="isRunning"/> beside its pid
+    /// (null when the record has none): on Windows it is the process's creation time as a FILETIME, which tells the
+    /// recorded process from a later one that was given the same id.
+    /// </summary>
+    public static AgentSessionRegistry FromRecords(IEnumerable<string?> records, Func<int, string?, bool> isRunning, bool listed, string domain)
     {
         var running = new HashSet<string>();
         var ended = new HashSet<string>();
@@ -493,8 +502,14 @@ public sealed record AgentSessionRegistry
                 complete = false;
                 continue;
             }
-            if (document.RootElement.Str("pidDomain") is { } named && named != domain) continue;
-            if (isRunning((int)Math.Clamp(pid, int.MinValue, int.MaxValue))) running.Add(session); else ended.Add(session);
+            if (document.RootElement.Str("pidDomain") is { } named && !string.Equals(named, domain, StringComparison.OrdinalIgnoreCase)) continue;
+            var start = document.RootElement.Field("procStart") switch
+            {
+                { ValueKind: System.Text.Json.JsonValueKind.String } stamp => stamp.GetString(),
+                { ValueKind: System.Text.Json.JsonValueKind.Number } number => number.GetRawText(),
+                _ => null,
+            };
+            if (isRunning((int)Math.Clamp(pid, int.MinValue, int.MaxValue), start)) running.Add(session); else ended.Add(session);
         }
         // A session resumed by a new process after an old one was killed.
         ended.ExceptWith(running);

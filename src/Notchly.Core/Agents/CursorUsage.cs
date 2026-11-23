@@ -172,3 +172,57 @@ public sealed record CursorUsageSummary(bool Recognized, string? Plan, DateTimeO
         return value > 100_000_000_000 ? AgentTime.FromUnixMilliseconds(value) : AgentTime.FromUnixSeconds(value);
     }
 }
+
+/// <summary>
+/// Electron's safeStorage on Windows, as Cursor (a Chromium app) seals its secrets: a 32-byte AES key kept in
+/// <c>Local State</c> under <c>os_crypt.encrypted_key</c>, base64 of <c>"DPAPI"</c> and the key sealed with the
+/// user's DPAPI, and each value as <c>"v10"</c>, a 12-byte nonce, the AES-256-GCM ciphertext and its 16-byte tag.
+/// Unsealing the key with DPAPI is the app's job; what opens stays in memory.
+/// </summary>
+public static class ElectronSafeStorage
+{
+    private static readonly byte[] DpapiPrefix = "DPAPI"u8.ToArray();
+    private static readonly byte[] Version10 = "v10"u8.ToArray();
+    public const int NonceSize = 12, TagSize = 16, KeySize = 32;
+
+    /// <summary>The DPAPI-sealed key that <c>Local State</c>'s JSON holds, without its prefix; null when it holds none.</summary>
+    public static byte[]? SealedKey(string? localStateJson)
+    {
+        using var document = localStateJson is null || localStateJson.Length > 4 << 20 ? null : AgentLogParser.Object(localStateJson);
+        if (document?.RootElement.Obj("os_crypt").Str("encrypted_key") is not { Length: > 0 } encoded) return null;
+        byte[] raw;
+        try { raw = Convert.FromBase64String(encoded); }
+        catch (FormatException) { return null; }
+        return raw.Length > DpapiPrefix.Length && raw.AsSpan(0, DpapiPrefix.Length).SequenceEqual(DpapiPrefix)
+            ? raw[DpapiPrefix.Length..] : null;
+    }
+
+    /// <summary>The plaintext of a <c>v10</c> blob under <paramref name="key"/>; null when it is not one or fails to open.</summary>
+    public static byte[]? Open(byte[] blob, byte[] key)
+    {
+        if (key.Length != KeySize || blob.Length < Version10.Length + NonceSize + TagSize
+            || !blob.AsSpan(0, Version10.Length).SequenceEqual(Version10)) return null;
+        var nonce = blob.AsSpan(Version10.Length, NonceSize);
+        var cipher = blob.AsSpan(Version10.Length + NonceSize, blob.Length - Version10.Length - NonceSize - TagSize);
+        var tag = blob.AsSpan(blob.Length - TagSize);
+        var plain = new byte[cipher.Length];
+        try
+        {
+            using var aes = new System.Security.Cryptography.AesGcm(key, TagSize);
+            aes.Decrypt(nonce, cipher, tag, plain);
+            return plain;
+        }
+        catch (System.Security.Cryptography.CryptographicException) { return null; }
+    }
+
+    /// <summary>Seals <paramref name="plain"/> the way Electron does; for tests and round trips.</summary>
+    public static byte[] Seal(byte[] plain, byte[] key, byte[] nonce)
+    {
+        var blob = new byte[Version10.Length + NonceSize + plain.Length + TagSize];
+        Version10.CopyTo(blob, 0);
+        nonce.CopyTo(blob, Version10.Length);
+        using var aes = new System.Security.Cryptography.AesGcm(key, TagSize);
+        aes.Encrypt(nonce, plain, blob.AsSpan(Version10.Length + NonceSize, plain.Length), blob.AsSpan(blob.Length - TagSize));
+        return blob;
+    }
+}

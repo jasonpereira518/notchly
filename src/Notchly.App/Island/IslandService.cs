@@ -1873,12 +1873,15 @@ public sealed class IslandService : IFeatureService
     /// <summary>The speakers to choose from, as upstream's output chooser: a tick on the one in use.</summary>
     private void ShowOutputMenu(FrameworkElement anchor)
     {
-        if (_volume is null) return;
-        var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Bottom };
+        if (_volume is null || _window is not { } window) return;
+        // Black like the island, whatever the app theme; the styles sit on the menu, which is outside the island's tree.
+        var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Bottom, Style = (Style)window.Resources["IslandMenu"] };
+        menu.Resources[typeof(MenuItem)] = window.Resources["IslandMenuItem"];
+        menu.Resources[MenuItem.SeparatorStyleKey] = window.Resources["IslandMenuSeparator"];
         var outputs = _volume.Outputs();
         foreach (var output in outputs)
         {
-            var item = new MenuItem { Header = output.Name, IsCheckable = true, IsChecked = output.Current, StaysOpenOnClick = false };
+            var item = new MenuItem { Header = output.Name, IsChecked = output.Current };
             var id = output.Id;
             item.Click += (_, _) =>
             {

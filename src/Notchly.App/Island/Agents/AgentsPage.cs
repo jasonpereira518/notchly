@@ -100,6 +100,9 @@ public sealed class AgentsPage
     /// <summary>The live turns' clocks, advanced every second without a redraw.</summary>
     private readonly List<(TextBlock Text, DateTimeOffset Started)> _clocks = [];
     private double _height = 264, _width = 500;
+    /// <summary>How far the cards are scrolled, kept across the page's redraws while it stays open.</summary>
+    private double _scrollOffset;
+    private ScrollViewer? _scroller;
     private bool _visible;
     private int _ticks;
 
@@ -138,7 +141,7 @@ public sealed class AgentsPage
             _visible = value;
             _agents.PageVisible = value;
             if (value) { Render(); _timer.Start(); }
-            else { _timer.Stop(); _clocks.Clear(); }
+            else { _timer.Stop(); _clocks.Clear(); _scrollOffset = 0; _scroller = null; }
         }
     }
 
@@ -157,6 +160,9 @@ public sealed class AgentsPage
     public void Render()
     {
         if (!_visible) return;
+        // The cards are drawn anew every 15 seconds: they stay where they were scrolled to.
+        if (_scroller is not null) _scrollOffset = _scroller.VerticalOffset;
+        _scroller = null;
         _root.Children.Clear();
         _root.RowDefinitions.Clear();
         _clocks.Clear();
@@ -193,6 +199,10 @@ public sealed class AgentsPage
             Content = stack, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             Focusable = false, Tag = "AgentsPage",
         };
+        ScrollEdgeFade.Attach(scroller);
+        var offset = _scrollOffset;
+        if (offset > 0) scroller.Loaded += (_, _) => scroller.ScrollToVerticalOffset(offset);
+        _scroller = scroller;
         Grid.SetRow(scroller, 1);
         _root.Children.Add(scroller);
     }

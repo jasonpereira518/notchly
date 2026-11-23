@@ -61,6 +61,8 @@ public partial class App : Application
         ApplyDotfile();
         ApplyTheme();
         Log.Information("{App} {Version} starting", AppIdentity.Name, AppIdentity.Version);
+        Log.Information("Package identity: {Identity}; notification access: {Access}",
+            Platform.Notifications.PackageIdentity.FullName ?? "none", Platform.Notifications.NotificationListener.Access);
 
         Input = new InputHookService();
         Hotkeys = new HotkeyService();
@@ -80,7 +82,21 @@ public partial class App : Application
         Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
         Features.SyncAll();
         Tray = new TrayIconService(this);
-        if (firstRun || !background) ShowSettings(firstRun ? SettingsPage.Features : SettingsPage.General);
+        if (e.Args.Contains(NotificationSettings.SetupFlag)) ContinueNotificationSetup();
+        else if (firstRun || !background) ShowSettings(firstRun ? SettingsPage.Features : SettingsPage.General);
+    }
+
+    /// <summary>
+    /// Notchly restarted after setting up (or removing) its notification access, at the person's click in
+    /// Settings: the island's settings open again and, now that Notchly has its identity, Windows asks once.
+    /// </summary>
+    private async void ContinueNotificationSetup()
+    {
+        Log.Information("Restarted for notifications: package identity {Identity}, access {Access}",
+            Platform.Notifications.PackageIdentity.HasIdentity, Platform.Notifications.NotificationListener.Access);
+        ShowSettings(SettingsPage.Island);
+        if (Platform.Notifications.NotificationListener.Access == Platform.Notifications.NotificationAccess.Unspecified)
+            await Platform.Notifications.NotificationListener.RequestAccessAsync();
     }
 
     private void HandleRequest(string request)

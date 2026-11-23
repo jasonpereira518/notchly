@@ -14,6 +14,12 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <!-- The sparse package that gives Notchly.exe an identity for the notification listener (Windows-only). -->
+  <ItemGroup>
+    <None Include="Package\AppxManifest.xml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Package\Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Notchly.Core\Notchly.Core.csproj" />
   </ItemGroup>

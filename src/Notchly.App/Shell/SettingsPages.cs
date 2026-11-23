@@ -306,6 +306,12 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             AgentSettings.CardList(settings),
             Caption(AgentSettings.Privacy),
 
+            Section("Notifications"),
+            Toggle("Notifications in the island", NotificationSettings.Description, DefaultsKey.NotchNotificationsEnabled, ""),
+            NotificationSettings.StatusCard(),
+            Toggle("Hide the system banner", NotificationSettings.HideBannerHint, DefaultsKey.NotchDismissNativeNotifications, ""),
+            Caption(NotificationSettings.Privacy),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

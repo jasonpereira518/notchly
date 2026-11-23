@@ -48,6 +48,7 @@ public static class Defaults
         [DefaultsKey.NotchStripMatchesApp] = true,
         [DefaultsKey.NotchDownloadsFolderPath] = "",
         [DefaultsKey.NotchNotificationsEnabled] = true,
+        [DefaultsKey.NotchDismissNativeNotifications] = false,
         [DefaultsKey.NotchCalendarEnabled] = true,
         [DefaultsKey.NotchCalendarCountdown] = false,
         [DefaultsKey.NotchCalendarCountdownLead] = Notchly.Core.Calendar.CalendarSupport.DefaultCountdownLeadMinutes,

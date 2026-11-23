@@ -233,7 +233,8 @@ public static class FeatureCatalog
         Add(AppFeature.NotchCalendar, g, "Calendar", "Upcoming events and countdowns in the island.", Glyph.Calendar,
             [DefaultsKey.NotchCalendarEnabled], true, WindowsStatus.Ported, "M3", "Google, Outlook, Canvas and iCloud calendars by their private iCal link; links are encrypted on this PC and events stay in memory.");
         Add(AppFeature.NotchNotifications, g, "Notifications", "Mirror Windows notifications in the island.", Glyph.Bell,
-            [DefaultsKey.NotchNotificationsEnabled], true, P, "M3", "Needs package identity (UserNotificationListener).");
+            [DefaultsKey.NotchNotificationsEnabled], true, WindowsStatus.Ported, "M3",
+            "Through Windows' notification listener; needs a one-time setup (Developer Mode) and your permission.");
         Add(AppFeature.NotchGestures, g, "Island gestures", "Scroll to open or close; swipe to change tracks.", Glyph.Gesture,
             [DefaultsKey.NotchGesturesEnabled], true, WindowsStatus.Ported, "M2");
         Add(AppFeature.NotchTimer, g, "Timer", "Timer, Pomodoro and stopwatch in the island.", Glyph.Timer,

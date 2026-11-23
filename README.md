@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents). See
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents, notifications). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -17,7 +17,7 @@ for the porting plan.
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
-    **Files**, **Downloads**, **Calendar**, **AI agents**, **Timer** (timer, Pomodoro, stopwatch).
+    **Files**, **Downloads**, **Calendar**, **AI agents**, **Notifications**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - **Live equalizer** (on by default): the closed music strip's bars follow what the PC plays on its default
@@ -37,6 +37,13 @@ for the porting plan.
     value, the turns under way, a trend, top models and projects, and thirteen weeks of activity; the closed island
     shows a working agent's mark with its time, tokens, cost or limit, and notices say when a task finishes, a limit
     runs low or renews, or a daily budget is reached. Only counters, model names, times and folder names are kept.
+  - **Notifications**: new Windows notifications show beside the camera for 3 s (the app's icon and the sender or
+    title on one side, the message on the other), then wait on the Notifications page with Open, Dismiss and Clear
+    All; *Hide the system banner* removes the original from Windows once the island shows it. Do Not Disturb keeps
+    banners away while the page still lists them. One-time setup in Settings → Dynamic Island → Notifications:
+    with Developer Mode on, Notchly registers a small sparse package (`Package\AppxManifest.xml`, no admin rights,
+    no certificate) so Windows lets it read notifications, restarts, and Windows asks for your permission.
+    Messages stay in memory and are cleared when you lock the PC or turn this off.
   - Live activities in the closed island: music (cover + bars), timer countdown, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

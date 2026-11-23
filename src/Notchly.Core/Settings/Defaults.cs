@@ -49,6 +49,8 @@ public static class Defaults
         [DefaultsKey.NotchDownloadsFolderPath] = "",
         [DefaultsKey.NotchNotificationsEnabled] = true,
         [DefaultsKey.NotchDismissNativeNotifications] = false,
+        [DefaultsKey.NotchCameraEnabled] = true,
+        [DefaultsKey.NotchCameraDevice] = "",
         [DefaultsKey.NotchCalendarEnabled] = true,
         [DefaultsKey.NotchCalendarCountdown] = false,
         [DefaultsKey.NotchCalendarCountdownLead] = Notchly.Core.Calendar.CalendarSupport.DefaultCountdownLeadMinutes,

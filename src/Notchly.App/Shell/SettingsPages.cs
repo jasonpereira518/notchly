@@ -322,6 +322,10 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Hide the system banner", NotificationSettings.HideBannerHint, DefaultsKey.NotchDismissNativeNotifications, ""),
             Caption(NotificationSettings.Privacy),
 
+            Section("Camera"),
+            Toggle(Notchly.Core.Camera.CameraPreviewSupport.Title, Notchly.Core.Camera.CameraPreviewSupport.Hint, DefaultsKey.NotchCameraEnabled, ""),
+            Caption("The image shows only on the island and is never recorded or saved. The camera runs only after Open camera and stops when you leave the page."),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

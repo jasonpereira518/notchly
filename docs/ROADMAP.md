@@ -276,7 +276,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 | cleaning mode | |
 | color picker | |
 | OCR + QR | `Windows.Media.Ocr` + ZXing |
-| camera preview | `MediaCapture` |
+| camera preview | `MediaCapture` (shared, read-only) + `MediaFrameReader` into a `WriteableBitmap`. The island's Camera page is ported in M3; the floating mirror window comes in M9 |
 | wallpaper | `IDesktopWallpaper` |
 | screenshot | Windows.Graphics.Capture + annotate editor |
 | screen recorder | WGC + WASAPI loopback/process loopback + Media Foundation (NVENC) |

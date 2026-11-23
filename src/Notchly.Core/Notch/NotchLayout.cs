@@ -75,6 +75,23 @@ public static class NotchLayout
     /// <summary>A closed capsule is round at its ends; an open one keeps the island's corners.</summary>
     public static double CapsuleRadius(double height) => Math.Min(Math.Max(0, height) / 2, 28);
 
+    /// <summary>
+    /// The camera mirror inside a page of this size (upstream cameraPreviewSize(in:)): as wide as 16:9 allows
+    /// and as tall as 4:3 allows, so the image fills it whichever way the camera points.
+    /// </summary>
+    public static SizeD CameraPreviewSize(double width, double height)
+    {
+        width = double.IsFinite(width) ? Math.Max(0, width) : 0;
+        height = double.IsFinite(height) ? Math.Max(0, height) : 0;
+        return new SizeD(Math.Min(width, height * 16 / 9), Math.Min(height, width * 3 / 4));
+    }
+
+    /// <summary>The camera page's corners (upstream CameraPreviewView's 14-point rounded rectangle).</summary>
+    public const double CameraPreviewRadius = 14;
+
+    /// <summary>The camera page keeps its messages reachable in a short island (upstream NotchView's 144).</summary>
+    public const double CameraMinimumHeight = 144;
+
     public static double PreferredWidth(NotchSize layout, double custom) => layout switch
     {
         NotchSize.Compact => 480,

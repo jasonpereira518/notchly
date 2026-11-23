@@ -20,6 +20,14 @@ public sealed class AppBarStrip : Window
     private IntPtr _handle;
     private HwndSource? _source;
 
+    /// <summary>
+    /// The island's window. The strip slots in right below it rather than at the very top, so it
+    /// never covers the island's own strip or the open island's header beside the camera.
+    /// </summary>
+    public IntPtr KeepBelow { get; set; }
+
+    private IntPtr TopmostSlot => KeepBelow != IntPtr.Zero && IsWindow(KeepBelow) ? KeepBelow : HWND_TOPMOST;
+
     /// <summary>A full-screen app took the display: the strip steps aside until it leaves.</summary>
     public event Action<bool>? FullscreenAppChanged;
 
@@ -73,7 +81,7 @@ public sealed class AppBarStrip : Window
         // The shell may have moved the rect below another top bar; keep our height from there.
         data.rc.Bottom = data.rc.Top + height;
         SHAppBarMessage(ABM_SETPOS, ref data);
-        SetWindowPos(handle, HWND_TOPMOST, data.rc.Left, data.rc.Top, data.rc.Width, data.rc.Height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SetWindowPos(handle, TopmostSlot, data.rc.Left, data.rc.Top, data.rc.Width, data.rc.Height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -86,7 +94,7 @@ public sealed class AppBarStrip : Window
                 break;
             case ABN_FULLSCREENAPP:
                 var fullscreen = lParam != IntPtr.Zero;
-                SetWindowPos(hwnd, fullscreen ? HWND_NOTOPMOST : HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                SetWindowPos(hwnd, fullscreen ? HWND_NOTOPMOST : TopmostSlot, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
                 FullscreenAppChanged?.Invoke(fullscreen);
                 break;
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Port of upstream Services/Notch/NotchAudioLevelService.swift: decides when to read the
-// playing app's audio and publishes the bars' levels, or null for their synthetic motion.
+// Port of upstream Services/Notch/NotchAudioLevelService.swift: decides when to read audio and
+// publishes the bars' levels, or null for their synthetic motion. Upstream taps the player's
+// process; here the bars follow the system output, everything the default device plays.
 // It reads only while the feature is on, music plays and the closed music strip is visible.
 // Every member runs on the UI thread; reader callbacks are posted back to it.
 using System.Windows.Threading;
@@ -22,8 +23,6 @@ public sealed class LiveEqualizerService(SettingsStore settings, Dispatcher disp
     private NotchAudioLevelSupport.SilenceMemory _silence;
     private DispatcherTimer? _stopTimer;
     private bool _visible;
-    private string? _missedSource;
-    private DateTime _missedAt;
 
     /// <summary>Seven levels from 0 to 1, or null while the bars keep their synthetic motion.</summary>
     public double[]? Levels { get; private set; }
@@ -59,33 +58,23 @@ public sealed class LiveEqualizerService(SettingsStore settings, Dispatcher disp
         // give the resumed play a fresh chance, keeping audible readers through short pauses.
         var resumeBeforeSound = _stopTimer?.IsEnabled == true && Levels is null;
         _stopTimer?.Stop();
-        if (_reader is not null && _readerSource == playing.SourceAppId && !resumeBeforeSound) return;
+        // One reader hears the whole output, whichever player is in front.
+        if (_reader is not null && !resumeBeforeSound) return;
         Stop();
         var identity = Identity(playing);
         if (!_silence.Reads(identity)) return;
-        // Listing sessions is not free: a player with no audio process is looked up again
-        // only after a few seconds, or when another player takes over.
-        if (_missedSource == playing.SourceAppId && DateTime.UtcNow - _missedAt < TimeSpan.FromSeconds(5)) return;
-        if (AudioSessions.FindPlayerProcess(playing.SourceAppId) is not { } pid)
-        {
-            Log.Debug("Live equalizer found no audio process for {App}", playing.SourceAppId);
-            _missedSource = playing.SourceAppId;
-            _missedAt = DateTime.UtcNow;
-            return;
-        }
-        _missedSource = null;
-        Read(pid, playing.SourceAppId, identity);
+        Read(playing.SourceAppId, identity);
     }
 
     private static NotchMusicIdentity Identity(NowPlaying playing) =>
         new(playing.Title, playing.Artist, playing.Album, playing.Duration.TotalSeconds, playing.SourceAppId);
 
-    private void Read(uint pid, string source, NotchMusicIdentity identity)
+    private void Read(string source, NotchMusicIdentity identity)
     {
         var id = Guid.NewGuid();
         _readerId = id;
         _readerSource = source;
-        var reader = new ProcessLevelReader(pid);
+        var reader = ProcessLevelReader.ForSystemOutput();
         // Only this reading may publish: a stopped reader can finish late.
         reader.Levels += levels => dispatcher.BeginInvoke(() => { if (_readerId == id) Receive(levels); });
         reader.Silent += () => dispatcher.BeginInvoke(() => { if (_readerId == id) GiveUp(identity); });
@@ -109,7 +98,7 @@ public sealed class LiveEqualizerService(SettingsStore settings, Dispatcher disp
         Stop();
     }
 
-    /// <summary>The player moved its sound to another process: read it from scratch.</summary>
+    /// <summary>The default output moved to another device: read it from scratch.</summary>
     private void Restart()
     {
         var pausing = _stopTimer?.IsEnabled == true;

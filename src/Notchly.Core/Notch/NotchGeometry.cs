@@ -189,6 +189,52 @@ public sealed record NotchGeometry
     public double NoticeShift(double leading, double trailing) =>
         (NoticeWingWidth(trailing) - NoticeWingWidth(leading)) / 2;
 
+    // MARK: Capsule rows (upstream NotchCapsuleLayout): a capsule has no camera inside it, so its
+    // closed content runs in one row from end to end and the capsule is as wide as that row.
+
+    public const double CapsuleSpacing = 6;
+    public const double CapsuleSymbolWidth = 16;
+    public const double CapsuleMeterWidth = 56;
+    public const double CapsuleMeterHeight = 4;
+    public const double CapsuleMaximumNotice = 340;
+
+    /// <summary>The capsule's side within its surface, where its round end starts.</summary>
+    public double CapsuleSide => NotchLayout.ShoulderFor(StripHeight);
+
+    /// <summary>From the surface's left edge to a capsule row's first content.</summary>
+    public double CapsuleRowLeading => CapsuleSide + CapsuleEndPadding;
+
+    /// <summary>A level notice's row: its mark, its meter and a reading `readingWidth` wide.</summary>
+    public static double CapsuleLevelContent(double readingWidth) =>
+        CapsuleSymbolWidth + CapsuleSpacing + CapsuleMeterWidth + CapsuleSpacing + Math.Max(0, readingWidth);
+
+    /// <summary>
+    /// The widest surface the bar leaves: the display less its margins, and the free room on both
+    /// sides of the capsule's middle (upstream CapsuleLayout.availableWidth).
+    /// </summary>
+    public double CapsuleAvailableWidth
+    {
+        get
+        {
+            var room = CompactSideRoom ?? 0;
+            return Math.Max(0, Math.Min(Screen.Width - 24, CameraWidth + 2 * (double.IsFinite(room) ? Math.Max(0, room) : 0)));
+        }
+    }
+
+    /// <summary>
+    /// The surface around a row `content` wide between the capsule's end paddings, on whole
+    /// points: never shorter than the bare capsule, never wider than `maximum` or the room left
+    /// (upstream CapsuleLayout.surface).
+    /// </summary>
+    public SizeD CapsuleSurface(double content, double maximum)
+    {
+        var side = CapsuleSide;
+        var resting = RestingSize(showsContent: false).Width;
+        var limit = Math.Max(resting, Math.Floor(Math.Min(maximum + side * 2, CapsuleAvailableWidth)));
+        var wanted = Math.Ceiling(Math.Max(0, double.IsFinite(content) ? content : 0) + CapsuleEndPadding * 2 + side * 2);
+        return new SizeD(Math.Min(limit, Math.Max(resting, wanted)), StripHeight);
+    }
+
     // MARK: Open sizes
 
     /// <summary>Below the cutout, or for a capsule the island's even inner margin.</summary>

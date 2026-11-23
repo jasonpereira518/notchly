@@ -31,6 +31,32 @@ public class NotchGeometryTests
     }
 
     [Fact]
+    public void CapsuleLevelNoticeIsOneRowAsWideAsItsContent()
+    {
+        // Upstream CapsuleLayout.surface: the row plus an end padding and the capsule's side at each end.
+        var geometry = new NotchGeometry(Omen, silhouette: NotchSilhouette.Capsule) { CompactSideRoom = 500 };
+        var content = NotchGeometry.CapsuleLevelContent(30);
+        Assert.Equal(16 + 6 + 56 + 6 + 30, content, 6);
+        var surface = geometry.CapsuleSurface(content, NotchGeometry.CapsuleMaximumNotice);
+        var expected = Math.Ceiling(content + 8 * 2 + geometry.CapsuleSide * 2);
+        Assert.Equal(Math.Max(expected, geometry.RestingSize(showsContent: false).Width), surface.Width, 6);
+        Assert.Equal(geometry.StripHeight, surface.Height, 6);
+        Assert.Equal(geometry.CapsuleSide + 8, geometry.CapsuleRowLeading, 6);
+    }
+
+    [Fact]
+    public void CapsuleSurfaceStaysWithinItsLimits()
+    {
+        var geometry = new NotchGeometry(Omen, silhouette: NotchSilhouette.Capsule) { CompactSideRoom = 500 };
+        var resting = geometry.RestingSize(showsContent: false).Width;
+        Assert.Equal(resting, geometry.CapsuleSurface(0, NotchGeometry.CapsuleMaximumNotice).Width, 6);
+        Assert.Equal(Math.Floor(NotchGeometry.CapsuleMaximumNotice + geometry.CapsuleSide * 2),
+                     geometry.CapsuleSurface(10_000, NotchGeometry.CapsuleMaximumNotice).Width, 6);
+        var cramped = new NotchGeometry(Omen, silhouette: NotchSilhouette.Capsule) { CompactSideRoom = 10 };
+        Assert.True(cramped.CapsuleSurface(10_000, NotchGeometry.CapsuleMaximumNotice).Width <= Math.Max(resting, cramped.CapsuleAvailableWidth));
+    }
+
+    [Fact]
     public void CapsuleMusicStripPutsCoverAndBarsAtItsEnds()
     {
         // Upstream CapsuleLayout: a round cover concentric with the capsule's end, bars 8 points

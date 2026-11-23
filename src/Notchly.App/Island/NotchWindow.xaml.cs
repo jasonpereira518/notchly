@@ -31,13 +31,16 @@ public partial class NotchWindow : Window
             HwndSource.FromHwnd(_handle)?.AddHook(WndProc);
         };
         KeepTransparent();
-        // Bars of the closed music strip.
+        // Bars of the closed music strip, as thin and as close as upstream draws them
+        // (compactMusicBarWidth, with 0.85 of a bar between two).
+        const double barWidth = NotchLayout.CompactMusicBarWidth;
         for (var i = 0; i < NotchLayout.CompactMusicBarCount; i++)
         {
             StripBars.Children.Add(new Border
             {
-                Width = 2.2, Height = 4, CornerRadius = new CornerRadius(1.1), Background = Brushes.White,
-                Margin = new Thickness(0, 0, i == NotchLayout.CompactMusicBarCount - 1 ? 0 : 2, 0), VerticalAlignment = VerticalAlignment.Center,
+                Width = barWidth, Height = 4, CornerRadius = new CornerRadius(barWidth / 2), Background = Brushes.White,
+                Margin = new Thickness(0, 0, i == NotchLayout.CompactMusicBarCount - 1 ? 0 : barWidth * 0.85, 0),
+                VerticalAlignment = VerticalAlignment.Center,
             });
         }
     }

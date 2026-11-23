@@ -52,6 +52,8 @@ public sealed class DownloadsPage
         _reopen = reopen;
         window.DownloadsFolder.Click += (_, _) => ShowFolderMenu();
         window.DownloadsChoose.Click += (_, _) => ChooseFolder();
+        // Fades where more downloads lie beyond an edge instead of slicing a row (upstream NotchScrollEdgeFade).
+        ScrollEdgeFade.Attach(window.DownloadsScroller);
         downloads.Changed += Render;
     }
 

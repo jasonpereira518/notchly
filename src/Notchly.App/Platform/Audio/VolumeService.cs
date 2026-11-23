@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The default output's volume and the default microphone's mute, with change notifications for
-// the island's notices. WASAPI endpoint volume via NAudio; follows default-device changes.
+// the island's notices. WASAPI endpoint volume via NAudio; follows default-device changes. Also the
+// outputs to choose from and switching between them, for the home page's speaker menu.
 using System.Windows.Threading;
 using NAudio.CoreAudioApi;
+using Notchly.Core.Audio;
 using Serilog;
 
 namespace Notchly.App.Platform.Audio;
@@ -20,6 +22,8 @@ public sealed class VolumeService : IDisposable
     public event Action<double, bool>? VolumeChanged;
     /// <summary>Microphone muted. Raised on the UI thread.</summary>
     public event Action<bool>? MicrophoneMuteChanged;
+    /// <summary>The default output changed, or an output came or went. Raised on the UI thread.</summary>
+    public event Action? OutputsChanged;
 
     public VolumeService(Dispatcher dispatcher)
     {
@@ -29,8 +33,11 @@ public sealed class VolumeService : IDisposable
         _notifications.DefaultDeviceChanged += (_, e) =>
         {
             if ((e.Flow == DataFlow.Render && e.Role == Role.Multimedia) || (e.Flow == DataFlow.Capture && e.Role == Role.Communications))
-                _dispatcher.BeginInvoke(Attach);
+                _dispatcher.BeginInvoke(() => { Attach(); OutputsChanged?.Invoke(); });
         };
+        _notifications.DeviceAdded += (_, _) => _dispatcher.BeginInvoke(() => OutputsChanged?.Invoke());
+        _notifications.DeviceRemoved += (_, _) => _dispatcher.BeginInvoke(() => OutputsChanged?.Invoke());
+        _notifications.DeviceStateChanged += (_, _) => _dispatcher.BeginInvoke(() => OutputsChanged?.Invoke());
         Attach();
     }
 
@@ -47,6 +54,30 @@ public sealed class VolumeService : IDisposable
     }
 
     public string OutputName { get { lock (_gate) return _output?.FriendlyName ?? "No output"; } }
+
+    /// <summary>The outputs that are plugged in or paired and on, the default one ticked.</summary>
+    public IReadOnlyList<AudioOutputChoice> Outputs()
+    {
+        lock (_gate)
+        {
+            var outputs = new List<AudioOutput>();
+            try
+            {
+                foreach (var device in _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    using (device) outputs.Add(new AudioOutput(device.ID, device.FriendlyName));
+            }
+            catch (Exception e) { Log.Warning(e, "Audio outputs could not be listed"); }
+            return AudioOutputMenu.Choices(outputs, _output?.ID);
+        }
+    }
+
+    /// <summary>Makes `id` the output for every app, as the Sound settings page does. False when Windows refused.</summary>
+    public static bool UseOutput(string id)
+    {
+        var ok = AudioOutputSwitcher.SetDefault(id);
+        if (!ok) Log.Warning("Could not switch the audio output to {Id}", id);
+        return ok;
+    }
 
     /// <summary>Steps like the volume keys (2%), unmuting on the way up.</summary>
     public void Step(int direction, double step = 0.02)

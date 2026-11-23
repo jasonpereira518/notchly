@@ -20,8 +20,8 @@ for the porting plan.
     **Files**, **Downloads**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
-  - **Live equalizer** (opt-in): the closed music strip's bars follow the playing app's real audio, read with
-    Windows process loopback; nothing is stored or sent.
+  - **Live equalizer** (on by default): the closed music strip's bars follow what the PC plays on its default
+    output, read with WASAPI loopback; nothing is stored or sent.
   - **Files** page: drag files, links, text or images toward the notch and it grows into a drop zone. Shelved items
     keep across restarts; drag them back out into any app, open, share, pin, group into piles, or Create ZIP.
   - **Downloads**: while a browser saves into your Downloads folder (or one you choose), the closed island shows the

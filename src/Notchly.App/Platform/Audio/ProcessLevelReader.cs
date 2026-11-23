@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Reads one player's audio and turns it into seven band levels: the Windows counterpart of
-// upstream's NotchAudioLevelReader (a Core Audio process tap). Windows process loopback
-// (NAudio's WasapiRecorder) hears the target process and its children, with no permission
-// prompt. Captured packets go into a mono ring; a 30 Hz timer analyses the latest block.
+// Reads audio and turns it into seven band levels: the Windows counterpart of upstream's
+// NotchAudioLevelReader (a Core Audio process tap). It hears either everything the default
+// output device plays (WASAPI loopback, what the island's bars use) or one process and its
+// children (process loopback), with no permission prompt either way. Captured packets go into
+// a mono ring; a 30 Hz timer analyses the latest block.
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -15,7 +16,9 @@ namespace Notchly.App.Platform.Audio;
 
 public sealed class ProcessLevelReader : IDisposable
 {
-    private readonly uint _processId;
+    /// <summary>The process heard, or null for the default output device's whole mix.</summary>
+    private readonly uint? _processId;
+    private string? _deviceId;
     private readonly AudioRing _ring = new(8192);
     private readonly NotchAudioLevelSupport.Smoother _smoother = new();
     private readonly float[] _samples = new float[SpectrumAnalyzer.Size];
@@ -34,20 +37,35 @@ public sealed class ProcessLevelReader : IDisposable
     public event Action? Silent;
     /// <summary>No capture could be created, or it failed.</summary>
     public event Action? Unavailable;
-    /// <summary>The player's process exited, taking the capture's ears with it.</summary>
+    /// <summary>
+    /// The capture lost what it hears: the player's process exited, or the default output moved
+    /// to another device. Read again from scratch.
+    /// </summary>
     public event Action? ProcessesLeft;
 
     public ProcessLevelReader(uint processId) => _processId = processId;
+
+    private ProcessLevelReader() => _processId = null;
+
+    /// <summary>Hears everything the default output device plays.</summary>
+    public static ProcessLevelReader ForSystemOutput() => new();
 
     public async Task StartAsync()
     {
         try
         {
-            _process = Process.GetProcessById((int)_processId);
-            var recorder = await new WasapiRecorderBuilder()
-                .WithProcessLoopback(_processId, ProcessLoopbackMode.IncludeTargetProcessTree)
-                .WithFormat(WaveFormat.CreateIeeeFloatWaveFormat(48_000, 2))
-                .BuildAsync();
+            var builder = new WasapiRecorderBuilder();
+            if (_processId is { } pid)
+            {
+                _process = Process.GetProcessById((int)pid);
+                builder.WithProcessLoopback(pid, ProcessLoopbackMode.IncludeTargetProcessTree);
+            }
+            else
+            {
+                _deviceId = DefaultOutputId();
+                builder.WithLoopbackCapture();
+            }
+            var recorder = await builder.WithFormat(WaveFormat.CreateIeeeFloatWaveFormat(48_000, 2)).BuildAsync();
             if (Volatile.Read(ref _stopped) != 0) { recorder.Dispose(); return; }
             _recorder = recorder;
             _format = recorder.WaveFormat;
@@ -55,11 +73,12 @@ public sealed class ProcessLevelReader : IDisposable
             recorder.DataAvailable += OnData;
             recorder.StartRecording();
             _timer = new Timer(_ => Analyse(), null, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(1 / NotchAudioLevelSupport.UpdatesPerSecond));
-            Log.Information("Live equalizer reading process {Pid} ({Format})", _processId, _format);
+            if (_processId is null) Log.Information("Live equalizer reading the system output ({Format})", _format);
+            else Log.Information("Live equalizer reading process {Pid} ({Format})", _processId, _format);
         }
         catch (Exception e)
         {
-            Log.Warning(e, "Live equalizer could not read process {Pid}", _processId);
+            Log.Warning(e, "Live equalizer could not read {Source}", _processId?.ToString() ?? "the system output");
             Unavailable?.Invoke();
         }
     }
@@ -91,7 +110,8 @@ public sealed class ProcessLevelReader : IDisposable
             if (now >= _nextProcessCheck)
             {
                 _nextProcessCheck = now + 1;
-                if (_process is null || _process.HasExited) { ProcessesLeft?.Invoke(); return; }
+                var lost = _processId is null ? DefaultOutputId() != _deviceId : _process is null || _process.HasExited;
+                if (lost) { ProcessesLeft?.Invoke(); return; }
             }
             // Levels are reported only once sound has arrived, so the bars keep their usual motion
             // while the capture warms up, and this play is given up when it only ever hears silence.
@@ -109,6 +129,18 @@ public sealed class ProcessLevelReader : IDisposable
             ProcessesLeft?.Invoke();
         }
         finally { Volatile.Write(ref _analysing, 0); }
+    }
+
+    /// <summary>The default output's endpoint id, to notice headphones or another device taking over.</summary>
+    private static string? DefaultOutputId()
+    {
+        try
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            using var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+            return device.ID;
+        }
+        catch (Exception) { return null; }
     }
 
     public void Dispose()

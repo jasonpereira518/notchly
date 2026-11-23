@@ -343,17 +343,21 @@
                             </Grid>
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="22" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="44" />
                                 </Grid.ColumnDefinitions>
-                                <Button x:Name="HomeMute" Grid.Column="0" Style="{StaticResource IconButton}" Content="&#xE767;" ToolTip="Mute" />
+                                <!-- Icon buttons carry 7 points of air around their glyph: the speaker's glyph lines up
+                                     with the cover and chips above and below it, the reading with the controls' glyphs. -->
+                                <Button x:Name="HomeMute" Grid.Column="0" Style="{StaticResource IconButton}" Content="&#xE767;" ToolTip="Mute"
+                                        HorizontalAlignment="Left" Margin="-7,0,0,0" />
                                 <Slider x:Name="HomeVolume" Grid.Column="1" Style="{StaticResource IslandSlider}" Minimum="0" Maximum="100"
                                         VerticalAlignment="Center" Margin="6,0" />
-                                <TextBlock x:Name="HomeVolumeText" Grid.Column="2" FontSize="12" TextAlignment="Right"
+                                <TextBlock x:Name="HomeVolumeText" Grid.Column="2" FontSize="12" TextAlignment="Right" Margin="0,0,7,0"
                                            VerticalAlignment="Center" Foreground="{StaticResource Dim}" />
                             </Grid>
-                            <WrapPanel Grid.Row="4" x:Name="HomeChips">
+                            <!-- Each chip keeps 6 points below it for a wrapped row; the last row gives it back. -->
+                            <WrapPanel Grid.Row="4" x:Name="HomeChips" Margin="0,0,0,-6">
                                 <Border Background="#1FFFFFFF" CornerRadius="13" Padding="10,5" Margin="0,0,6,6">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="HomeBatteryIcon" Text="&#xE83F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />

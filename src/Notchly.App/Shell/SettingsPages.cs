@@ -253,8 +253,8 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Section("Music"),
             Toggle("Show what's playing", "Spotify, browsers and other players that use Windows media controls.", DefaultsKey.NotchShowPlayingMusic, ""),
             Toggle("Announce track changes", null, DefaultsKey.NotchTrackChange, ""),
-            Toggle("Live equalizer", "Listens to the player's own audio output to move the bars. Nothing is stored or sent. " +
-                   "Without it, the bars keep their usual motion.", DefaultsKey.NotchLiveEqualizer, ""),
+            Toggle("Live equalizer", "The bars follow what this PC plays on its default output, so other sounds move them too. " +
+                   "Nothing is stored or sent. Without it, the bars keep their usual motion.", DefaultsKey.NotchLiveEqualizer, ""),
 
             Section("Lyrics"),
             Toggle("Show lyrics", "Follow the lyrics of the current song on the island's Music page.", DefaultsKey.NotchLyricsEnabled, ""),

@@ -39,7 +39,9 @@ public static class Defaults
         [DefaultsKey.ShelfRemoveAfterDrop] = true,
         [DefaultsKey.ShelfCloseAfterDrop] = false,
         [DefaultsKey.NotchQueueEnabled] = true,
-        [DefaultsKey.NotchLiveEqualizer] = false,
+        // Windows-only default: on. Upstream starts off because macOS asks for audio recording
+        // permission; system loopback asks for nothing.
+        [DefaultsKey.NotchLiveEqualizer] = true,
         [DefaultsKey.NotchDownloadsEnabled] = true,
         [DefaultsKey.NotchStripMenus] = true,
         [DefaultsKey.NotchStripClock] = true,

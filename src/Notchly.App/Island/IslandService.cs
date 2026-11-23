@@ -262,7 +262,7 @@ public sealed class IslandService : IFeatureService
         var reserve = _settings.GetBool(DefaultsKey.NotchReserveStrip);
         if (reserve && _strip is null)
         {
-            _strip = new AppBarStrip(display, geometry.StripHeight + geometry.FloatingDrop);
+            _strip = new AppBarStrip(display, geometry.StripHeight + geometry.FloatingDrop) { KeepBelow = _window.Handle };
             _menuBar = new MenuBarController(_strip, _settings, _dispatcher);
             _strip.Show();
             _window.ReassertTopmost();

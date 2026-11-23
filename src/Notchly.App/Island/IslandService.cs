@@ -43,7 +43,7 @@ public sealed class IslandService : IFeatureService
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
-                                 double Leading, double Trailing, double Seconds, Color? Tint = null);
+                                 double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null);
 
     private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
@@ -99,6 +99,8 @@ public sealed class IslandService : IFeatureService
 
     private bool _running, _expanded, _openedByHover, _focusTaken, _inside, _hoverEmphasized, _hiddenInFullscreen;
     private bool _updatingControls, _seeking;
+    /// <summary>Where a scrub let go, shown until the player reports its new position.</summary>
+    private (double Position, DateTimeOffset At)? _seekHold;
     private NotchModule _page = NotchModule.Controls;
     private Notice? _notice;
     private NotchHoverState _hoverState;
@@ -418,6 +420,8 @@ public sealed class IslandService : IFeatureService
         w.StripRow.Visibility = Visibility.Collapsed;
         w.LevelLead.Visibility = Visibility.Collapsed;
         w.LevelMeter.Visibility = Visibility.Collapsed;
+        w.TrackLead.Visibility = Visibility.Collapsed;
+        w.TrackTrail.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         // A notice's art sits beside the camera; music moves it to the strip's end below.
@@ -457,6 +461,9 @@ public sealed class IslandService : IFeatureService
                 break;
             case ClosedContent.Notice when _notice is { Level: { } wingLevel } notice:
                 ShowLevelWings(w, notice, wingLevel);
+                break;
+            case ClosedContent.Notice when _notice is { Kind: NoticeKind.Track } notice:
+                ShowTrackNotice(w, notice);
                 break;
             case ClosedContent.Calendar when _calendar?.Countdown is { } countdown:
                 ShowCalendarStrip(w, countdown, Math.Max(0, (size.Width - g.CameraWidth) / 2));
@@ -523,6 +530,37 @@ public sealed class IslandService : IFeatureService
         w.LevelMeterFilled.MinWidth = fraction > 0 ? w.LevelMeter.Height : 0;
         w.LevelMeter.Visibility = Visibility.Visible;
     }
+
+    /// <summary>A new song: cover and title from the left end, the artist toward the right end.</summary>
+    private static void ShowTrackNotice(NotchWindow w, Notice notice)
+    {
+        var wing = notice.Leading;
+        w.TrackLeadArtBrush.ImageSource = notice.Art;
+        w.TrackLeadArt.Background = notice.Art is null ? NoArtwork : w.TrackLeadArtBrush;
+        w.TrackLeadTitle.Text = notice.Text ?? "";
+        w.TrackLeadTitle.MaxWidth = Math.Max(0, wing - TrackInset - 18 - 8 - TrackCameraGap);
+        w.TrackLead.Visibility = Visibility.Visible;
+        w.TrackTrail.Text = notice.Detail ?? "";
+        w.TrackTrail.MaxWidth = Math.Max(0, wing - TrackInset - TrackCameraGap);
+        w.TrackTrail.Visibility = string.IsNullOrEmpty(notice.Detail) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Room the song's words keep from the curved ends and from the camera.</summary>
+    private const double TrackInset = 12, TrackCameraGap = 6;
+
+    /// <summary>The wing a song needs: the wider of cover and title, or artist, within 44–180 points.</summary>
+    private double TrackNoticeWing(string title, string artist)
+    {
+        if (_window is not { } w) return NotchGeometry.NoticeWingRange.Min;
+        var lead = TrackInset + 18 + 8 + TextWidth(w, title, w.TrackLeadTitle) + TrackCameraGap;
+        var trail = string.IsNullOrEmpty(artist) ? 0 : TrackCameraGap + TextWidth(w, artist, w.TrackTrail) + TrackInset;
+        return Math.Clamp(Math.Ceiling(Math.Max(lead, trail)), NotchGeometry.NoticeWingRange.Min, 180);
+    }
+
+    private static double TextWidth(NotchWindow w, string text, TextBlock style) =>
+        string.IsNullOrEmpty(text) ? 0 : new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            new Typeface(style.FontFamily, style.FontStyle, style.FontWeight, style.FontStretch), style.FontSize, Brushes.White,
+            VisualTreeHelper.GetDpi(w).PixelsPerDip).WidthIncludingTrailingWhitespace + 1;
 
     /// <summary>Room a level keeps inside its curved ends (upstream NotchNotice.levelInset).</summary>
     private const double LevelInset = 13;
@@ -892,9 +930,10 @@ public sealed class IslandService : IFeatureService
     {
         if (!_settings.GetBool(DefaultsKey.NotchTrackChange) || !_settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             || !playing.IsPlaying || Starting) return;
-        var text = string.IsNullOrEmpty(playing.Artist) ? playing.Title : $"{playing.Title} · {playing.Artist}";
-        var trailing = Math.Min(NotchGeometry.NoticeWingRange.Max + 60, 16 + text.Length * 6.5);
-        ShowNotice(new Notice(NoticeKind.Track, "", null, text, playing.Artwork, 44, trailing, 3));
+        // Both sides as wide as the longer one needs, so the island grows evenly from the camera
+        // instead of sliding toward a long title (upstream reaches toward the wider side).
+        var wing = TrackNoticeWing(playing.Title, playing.Artist);
+        ShowNotice(new Notice(NoticeKind.Track, "", null, playing.Title, playing.Artwork, wing, wing, 3, Detail: playing.Artist));
     }
 
     private bool OnVolumeKey(in KeyEvent e)
@@ -1439,11 +1478,18 @@ public sealed class IslandService : IFeatureService
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
-        w.MusicTimeline.PreviewMouseLeftButtonDown += (_, _) => _seeking = true;
+        w.MusicTimeline.PreviewMouseLeftButtonDown += (_, _) => { if (w.MusicTimeline.IsEnabled) _seeking = true; };
         w.MusicTimeline.PreviewMouseLeftButtonUp += (_, _) =>
         {
+            if (!_seeking) return;
             _seeking = false;
+            _seekHold = (w.MusicTimeline.Value, DateTimeOffset.Now);
             _media?.Seek(TimeSpan.FromSeconds(w.MusicTimeline.Value));
+        };
+        // While scrubbing, the times follow the thumb rather than the song.
+        w.MusicTimeline.ValueChanged += (_, e) =>
+        {
+            if (_seeking) ShowTimes(w, e.NewValue, w.MusicTimeline.Maximum);
         };
         w.TimerPrimary.Click += (_, _) => OnTimerPrimary();
         w.LyricsButton.Click += (_, _) => SetLyricsOpen(w.LyricsButton.IsChecked == true);
@@ -1627,11 +1673,22 @@ public sealed class IslandService : IFeatureService
         {
             var duration = playing.Duration.TotalSeconds;
             var position = playing.CurrentPosition.TotalSeconds;
+            // Until the player reports from after the scrub, its old position would pull the thumb back.
+            if (_seekHold is { } hold)
+            {
+                if (playing.PositionUpdated > hold.At || DateTimeOffset.Now - hold.At > TimeSpan.FromSeconds(2)) _seekHold = null;
+                else position = hold.Position + (playing.IsPlaying ? (DateTimeOffset.Now - hold.At).TotalSeconds : 0);
+            }
             w.MusicTimeline.Maximum = Math.Max(1, duration);
             w.MusicTimeline.Value = Math.Clamp(position, 0, w.MusicTimeline.Maximum);
-            w.MusicElapsed.Text = Format(position);
-            w.MusicRemaining.Text = duration > 0 ? "-" + Format(Math.Max(0, duration - position)) : "";
+            ShowTimes(w, position, duration);
         }
+    }
+
+    private static void ShowTimes(NotchWindow w, double position, double duration)
+    {
+        w.MusicElapsed.Text = Format(position);
+        w.MusicRemaining.Text = duration > 0 ? "-" + Format(Math.Max(0, duration - position)) : "";
     }
 
     private static string Format(double seconds)

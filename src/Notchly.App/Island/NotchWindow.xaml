@@ -163,8 +163,9 @@
                         <Grid Height="16" Background="Transparent">
                             <Border Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center" />
                             <Track x:Name="PART_Track" VerticalAlignment="Center">
+                                <!-- Style="{x:Null}": WPF-UI's own RepeatButton style otherwise hides the played part. -->
                                 <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Style="{x:Null}">
                                         <RepeatButton.Template>
                                             <ControlTemplate TargetType="RepeatButton">
                                                 <Border Height="4" CornerRadius="2" Background="{DynamicResource Accent}" />
@@ -173,7 +174,7 @@
                                     </RepeatButton>
                                 </Track.DecreaseRepeatButton>
                                 <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Style="{x:Null}">
                                         <RepeatButton.Template>
                                             <ControlTemplate TargetType="RepeatButton">
                                                 <Border Background="Transparent" />
@@ -182,7 +183,7 @@
                                     </RepeatButton>
                                 </Track.IncreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb Width="12" Height="12">
+                                    <Thumb Width="12" Height="12" Style="{x:Null}">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
                                                 <Ellipse Fill="White" />
@@ -242,6 +243,16 @@
                             <TextBlock x:Name="LevelLeadText" FontSize="11" FontWeight="Medium" Typography.NumeralAlignment="Tabular"
                                        TextTrimming="None" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- A new song: its cover and title from the wing's outer end (upstream NotchNoticeView, .track). -->
+                        <StackPanel x:Name="TrackLead" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="12,0,0,0" Visibility="Collapsed">
+                            <Border x:Name="TrackLeadArt" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center">
+                                <Border.Background>
+                                    <ImageBrush x:Name="TrackLeadArtBrush" Stretch="UniformToFill" />
+                                </Border.Background>
+                            </Border>
+                            <TextBlock x:Name="TrackLeadTitle" FontSize="11" FontWeight="Medium" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
                     </Grid>
                     <Grid x:Name="RightWing" Grid.Column="2" ClipToBounds="True">
                         <StackPanel x:Name="StripBars" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -264,6 +275,9 @@
                             </Grid>
                             <TextBlock x:Name="StripTrailText" FontSize="10" FontWeight="Medium" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- ...and its artist toward the other end. -->
+                        <TextBlock x:Name="TrackTrail" FontSize="11" FontWeight="Medium" Foreground="#CCFFFFFF" HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" Margin="6,0,12,0" Visibility="Collapsed" />
                         <!-- ...and its meter from the camera to the other end (upstream NotchNoticeView.trailing). -->
                         <Grid x:Name="LevelMeter" Height="5" VerticalAlignment="Center" Margin="0,0,13,0" Visibility="Collapsed">
                             <Grid.ColumnDefinitions>

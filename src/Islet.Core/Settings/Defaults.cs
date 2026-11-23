@@ -33,6 +33,11 @@ public static class Defaults
         [DefaultsKey.NotchLyricsEnabled] = true,
         // Online lookup needs consent: off until the user turns it on (upstream default).
         [DefaultsKey.NotchLyricsOnline] = false,
+        // Files on the island and the shelf behind it (upstream defaults).
+        [DefaultsKey.NotchShelf] = true,
+        [DefaultsKey.NotchDragReveal] = true,
+        [DefaultsKey.ShelfRemoveAfterDrop] = true,
+        [DefaultsKey.ShelfCloseAfterDrop] = false,
         [DefaultsKey.NotchQueueEnabled] = true,
         [DefaultsKey.NotchLiveEqualizer] = false,
         [DefaultsKey.NotchDownloadsEnabled] = true,

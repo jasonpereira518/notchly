@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer). See
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -17,11 +17,13 @@ for the porting plan.
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
-    **Timer** (timer, Pomodoro, stopwatch).
+    **Files**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - **Live equalizer** (opt-in): the closed music strip's bars follow the playing app's real audio, read with
     Windows process loopback; nothing is stored or sent.
+  - **Files** page: drag files, links, text or images toward the notch and it grows into a drop zone. Shelved items
+    keep across restarts; drag them back out into any app, open, share, pin, group into piles, or Create ZIP.
   - Live activities in the closed island: music (cover + bars), timer countdown.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

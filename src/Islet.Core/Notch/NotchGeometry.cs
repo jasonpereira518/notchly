@@ -132,6 +132,9 @@ public sealed record NotchGeometry
 
     public SizeD Peek => new(Math.Min(Screen.Width - 24, Math.Max(CameraWidth + 110, 340)), SafeContentTop + 52);
 
+    /// <summary>The closed island while files are dragged near it: room for "Drop files here".</summary>
+    public SizeD DropPlaceholder => new(Math.Min(Screen.Width - 24, Math.Max(CameraWidth + 110, 340)), SafeContentTop + 66);
+
     /// <summary>A capsule's row keeps clear of its rounded top corners.</summary>
     public double HeaderTopInset => Floats ? NotchLayout.BottomInset - (NotchLayout.HeaderHeight - 28) / 2 : 0;
     public double HeaderRowHeight => NotchLayout.HeaderHeight;
@@ -208,7 +211,7 @@ public sealed record NotchGeometry
         {
             var open = ExpandedSize(extraHeight: MusicExtrasHeight);
             var width = Math.Max(open.Width, Math.Max(Peek.Width, NoticeSize(120, 120).Width)) + OvershootRoom * 2;
-            var height = Math.Max(open.Height, Peek.Height) + OvershootRoom + FloatingDrop;
+            var height = Math.Max(open.Height, Math.Max(Peek.Height, DropPlaceholder.Height)) + OvershootRoom + FloatingDrop;
             return new SizeD(Math.Min(Screen.Width, Math.Ceiling(width)), Math.Min(Screen.Height, Math.Ceiling(height)));
         }
     }

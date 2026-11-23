@@ -171,7 +171,7 @@ public static class FeatureCatalog
         Add(AppFeature.FinderRename, g, "Rename with F2", "Rename files with F2.", Glyph.Rename,
             [DefaultsKey.FinderRenameEnabled], true, N, "-", "Explorer already renames with F2.");
         Add(AppFeature.Shelf, g, "Shelf", "Park files, text and links while dragging.", Glyph.Tray,
-            [DefaultsKey.ShelfEnabled], true, P, "M3/M8");
+            [DefaultsKey.ShelfEnabled], true, WindowsStatus.Ported, "M3", "Files page on the island; the floating shelf window comes in M8.");
         Add(AppFeature.UrlCleaner, g, "Clean URL", "Remove tracking parameters from links.", Glyph.Link,
             [DefaultsKey.UrlCleanerEnabled], true, P, "M8");
         Add(AppFeature.DiskImageInstaller, g, "Disk image installer", "Install apps from mounted disk images.", Glyph.Disk,

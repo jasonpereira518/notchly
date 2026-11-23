@@ -209,6 +209,15 @@
                     </Grid>
                 </Grid>
 
+                <!-- Drag-reveal: the closed island grown into a drop target (upstream NotchView placeholder). -->
+                <Grid x:Name="DropPlaceholder" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="18,0,18,14" Height="52">
+                    <Rectangle RadiusX="16" RadiusY="16" Stroke="#3DFFFFFF" StrokeThickness="1" StrokeDashArray="5 4" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="Drop files here" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
                 <!-- Open island: a row of page buttons, then the page. -->
                 <Grid x:Name="OpenLayer" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" Opacity="0">
                     <Grid.RowDefinitions>
@@ -379,6 +388,39 @@
                                 </StackPanel>
                             </Grid>
                         </Grid>
+                        </Grid>
+
+                        <!-- Files (upstream NotchFilesView): the shelf's tiles, flowing sideways. -->
+                        <Grid x:Name="FilesPage" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <TextBlock x:Name="FilesHint" FontSize="10" TextWrapping="Wrap" TextTrimming="None" MaxWidth="250"
+                                           HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="{StaticResource Dim}"
+                                           Text="Click to select. Drag out to use or right-click for more actions." />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Button x:Name="FilesZip" Style="{StaticResource ChipButton}" Margin="0,0,6,0" Content="Create ZIP"
+                                            ToolTip="Each selected item is saved as a separate ZIP. Originals stay unchanged." />
+                                    <Button x:Name="FilesShare" Style="{StaticResource IconButton}" Content="&#xE72D;" ToolTip="Share" Margin="0,0,4,0" />
+                                    <Button x:Name="FilesClear" Style="{StaticResource ChipButton}" Margin="0" Content="Clear all" />
+                                </StackPanel>
+                            </Grid>
+                            <ScrollViewer x:Name="FilesScroller" Grid.Row="2" HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Disabled" Focusable="False">
+                                <WrapPanel x:Name="FilesTiles" Orientation="Vertical" Margin="4" />
+                            </ScrollViewer>
+                            <Grid x:Name="FilesEmpty" Grid.Row="0" Grid.RowSpan="3" Visibility="Collapsed">
+                                <Rectangle RadiusX="20" RadiusY="20" Stroke="#2EFFFFFF" StrokeThickness="0.75" StrokeDashArray="4 5" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="22" HorizontalAlignment="Center"
+                                               Foreground="{StaticResource Dim}" />
+                                    <TextBlock Text="Drop files here" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center"
+                                               Foreground="{StaticResource Dim}" />
+                                </StackPanel>
+                            </Grid>
                         </Grid>
 
                         <!-- Timer, Pomodoro and stopwatch -->

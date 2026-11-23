@@ -72,6 +72,19 @@ public class ShellTests
     }
 
     [Fact]
+    public void AFeatureReachingWindowsStartsInstalledOnceAndThenKeepsTheUsersChoice()
+    {
+        var store = NewStore();
+        // An old preset marked the shelf unavailable while it could not be installed.
+        store.Set(FeatureCatalog.Info(AppFeature.Shelf).AvailabilityKey, false);
+        Assert.Equal(new[] { AppFeature.Shelf }, store.AdoptNewlyPorted());
+        Assert.True(store.IsAvailable(AppFeature.Shelf));
+        store.SetAvailable(AppFeature.Shelf, false);
+        Assert.Empty(store.AdoptNewlyPorted());
+        Assert.False(store.IsAvailable(AppFeature.Shelf));
+    }
+
+    [Fact]
     public void StoreReadsDefaultsUntilAValueIsSavedAndReportsChanges()
     {
         var store = NewStore();

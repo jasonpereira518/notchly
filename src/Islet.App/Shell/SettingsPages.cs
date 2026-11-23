@@ -258,6 +258,13 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
                    "Song titles, artist names and albums may also be checked with musicbrainz.org. Imported lyrics stay on this PC.",
                    DefaultsKey.NotchLyricsOnline, ""),
 
+            Section("Files"),
+            Toggle("Files on the island", "Drop files, links, text or images on the island to keep them on a shelf, then drag them out anywhere.",
+                   DefaultsKey.NotchShelf, ""),
+            Toggle("Reveal while dragging", "Holding something near the notch grows it into a drop target.", DefaultsKey.NotchDragReveal, ""),
+            Toggle("Remove items after dragging them out", "Pinned items always stay.", DefaultsKey.ShelfRemoveAfterDrop, ""),
+            Toggle("Close the island after dragging out", null, DefaultsKey.ShelfCloseAfterDrop, ""),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

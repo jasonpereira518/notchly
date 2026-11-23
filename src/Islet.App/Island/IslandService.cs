@@ -13,7 +13,9 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Islet.App.Island.Files;
 using Islet.App.Island.Lyrics;
+using Islet.App.Platform;
 using Islet.App.Platform.Audio;
 using Islet.App.Platform.Input;
 using Islet.App.Platform.Media;
@@ -32,13 +34,13 @@ namespace Islet.App.Island;
 
 public sealed class IslandService : IFeatureService
 {
-    private enum ClosedContent { Bare, Music, Timer, Notice, Open }
+    private enum ClosedContent { Bare, Music, Timer, Notice, Drop, Open }
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -52,6 +54,17 @@ public sealed class IslandService : IFeatureService
     private NotchWindow? _window;
     private LyricsService? _lyrics;
     private LiveEqualizerService? _equalizer;
+    private ShelfService? _shelf;
+    private FilesPage? _files;
+    // Drag-reveal: a low-level mouse hook notices a held button near the notch (hook thread fields).
+    private sealed record RevealZone(int Left, int Top, int Right, int Bottom);
+    private volatile RevealZone? _revealZone;
+    private IntPtr _islandHandle;
+    private IDisposable? _dragHook;
+    private bool _hookDown, _hookFromIsland, _hookNear;
+    private int _hookDownX, _hookDownY;
+    private bool _dragPlaceholder;
+    private DispatcherTimer? _revealTimer;
     private bool _lyricsOpen, _modalOpen;
     private int? _lyricsActive = -1;
     private string _lyricsKey = "";
@@ -125,6 +138,7 @@ public sealed class IslandService : IFeatureService
         {
             if (e.Key != Key.Escape) return;
             if (_lyricsOpen && _page == NotchModule.Music) SetLyricsOpen(false);
+            else if (_page == NotchModule.Files && _shelf?.Store.Selection.Count > 0) _shelf.ClearSelection();
             else Collapse();
         };
         WireControls(window);
@@ -135,6 +149,13 @@ public sealed class IslandService : IFeatureService
         _media.TrackChanged += OnTrackChanged;
         _lyrics = new LyricsService(_settings);
         _equalizer = new LiveEqualizerService(_settings, _dispatcher, () => _media?.Current);
+        _shelf = new ShelfService(_dispatcher);
+        _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
+        _files.Render();
+        window.Surface.AllowDrop = true;
+        window.Surface.DragEnter += OnDragOver;
+        window.Surface.DragOver += OnDragOver;
+        window.Surface.Drop += OnDrop;
         _lyrics.Changed += RenderLyrics;
         _ = _media.StartAsync();
         try
@@ -158,6 +179,7 @@ public sealed class IslandService : IFeatureService
         _tickTimer = NewTimer(OnTick, TimeSpan.FromMilliseconds(250));
         _barsTimer = NewTimer(OnBars, TimeSpan.FromMilliseconds(33));
         _lyricsTimer = NewTimer(OnLyricsTimer);
+        _revealTimer = NewTimer(EndReveal, TimeSpan.FromMilliseconds(350));
         _scrollTimer = NewTimer(OnScrollFrame, TimeSpan.FromMilliseconds(15));
         _tickTimer.Start();
         Log.Information("Island started");
@@ -167,13 +189,17 @@ public sealed class IslandService : IFeatureService
     {
         _running = false;
         StopFrames();
-        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer }) timer?.Stop();
+        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer }) timer?.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
         _volumeKeys?.Dispose(); _volumeKeys = null;
         _foreground?.Dispose(); _foreground = null;
         _media?.Dispose(); _media = null;
         _lyrics?.Dispose(); _lyrics = null;
         _equalizer?.Dispose(); _equalizer = null;
+        _dragHook?.Dispose(); _dragHook = null;
+        _revealZone = null;
+        _shelf?.Dispose(); _shelf = null; _files = null;
+        _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
         _strip?.Close(); _strip = null;
@@ -242,6 +268,8 @@ public sealed class IslandService : IFeatureService
         BuildTimerPresets();
         UpdatePages();
         SyncLyrics();
+        UpdateRevealZone(display, geometry, offset);
+        SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
     }
 
@@ -260,6 +288,7 @@ public sealed class IslandService : IFeatureService
         FrameworkElement page = _page switch
         {
             NotchModule.Music => w.MusicPlayer,
+            NotchModule.Files => w.FilesPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -294,6 +323,11 @@ public sealed class IslandService : IFeatureService
             _window.LayoutOpenLayer(size, g);
             content = ClosedContent.Open;
         }
+        else if (_dragPlaceholder)
+        {
+            size = g.DropPlaceholder;
+            content = ClosedContent.Drop;
+        }
         else if (_notice is { } notice)
         {
             size = g.NoticeSize(notice.Leading, notice.Trailing);
@@ -311,7 +345,7 @@ public sealed class IslandService : IFeatureService
                 ? new SizeD(g.CameraWidth, 4) : g.RestingSize(showsContent: false);
             content = ClosedContent.Bare;
         }
-        if (_hoverEmphasized && !_expanded && _notice is null) size = g.HoverEmphasis(size);
+        if (_hoverEmphasized && !_expanded && _notice is null && !_dragPlaceholder) size = g.HoverEmphasis(size);
 
         ShowClosedContent(content, g);
         SyncEqualizer();
@@ -329,6 +363,7 @@ public sealed class IslandService : IFeatureService
         w.StripBars.Visibility = Visibility.Collapsed;
         w.StripText.Visibility = Visibility.Collapsed;
         w.StripLevel.Visibility = Visibility.Collapsed;
+        w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         w.StripIcon.Foreground = Brushes.White;
         w.StripText.Foreground = Brushes.White;
@@ -640,6 +675,7 @@ public sealed class IslandService : IFeatureService
         _hiddenInFullscreen = hide;
         Log.Debug("Full screen {State}: {Window}", hide ? "entered" : "left", FullscreenDetector.ForegroundDescription());
         if (hide) Collapse();
+        SyncDragReveal();
         Refresh(animated: false);
     }
 
@@ -955,6 +991,115 @@ public sealed class IslandService : IFeatureService
         return false;
     }
 
+    // MARK: Files (drops onto the island and drag-reveal)
+
+    private bool FilesAvailable => _shelf is not null && Pages().Contains(NotchModule.Files);
+
+    private bool RevealEnabled => FilesAvailable && _settings.GetBool(DefaultsKey.NotchDragReveal) && !_hiddenInFullscreen;
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (_files?.DraggingOut == true || _shelf is null || !FilesAvailable || !_shelf.CanAccept(e.Data))
+        {
+            e.Effects = DragDropEffects.None;
+            return;
+        }
+        e.Effects = (e.AllowedEffects & DragDropEffects.Copy) != 0 ? DragDropEffects.Copy
+            : (e.AllowedEffects & DragDropEffects.Link) != 0 ? DragDropEffects.Link : e.AllowedEffects;
+        _revealTimer?.Stop();
+        if (!_expanded && !_dragPlaceholder) { _dragPlaceholder = true; Refresh(); }
+    }
+
+    /// <summary>An accepted drop adds to the shelf, clears the placeholder and opens Files without focus.</summary>
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (_files?.DraggingOut == true || _shelf is null || !FilesAvailable) return;
+        var added = _shelf.AddDrop(e.Data);
+        _dragPlaceholder = false;
+        _revealTimer?.Stop();
+        if (added is not null)
+        {
+            _page = NotchModule.Files;
+            if (_expanded) ShowPage(NotchModule.Files);
+            else Open(takeFocus: false, byHover: true);
+        }
+        Refresh();
+    }
+
+    /// <summary>Where a held button counts as bringing something to the notch, in screen pixels.</summary>
+    private void UpdateRevealZone(DisplayInfo display, NotchGeometry geometry, double offset)
+    {
+        var scale = display.Scale;
+        var centre = display.Bounds.Left + display.Bounds.Width / 2.0 + offset * scale;
+        var halfWidth = (geometry.DropPlaceholder.Width / 2 + 80) * scale;
+        _revealZone = new RevealZone((int)(centre - halfWidth), display.Bounds.Top, (int)(centre + halfWidth),
+                                     display.Bounds.Top + (int)((geometry.DropPlaceholder.Height + 80) * scale));
+        _islandHandle = _window?.Handle ?? IntPtr.Zero;
+    }
+
+    /// <summary>The mouse hook runs only while drag-reveal can show something.</summary>
+    private void SyncDragReveal()
+    {
+        var wanted = _running && RevealEnabled;
+        if (wanted && _dragHook is null) _dragHook = _input.SubscribeMouse(OnMouseHook);
+        else if (!wanted && _dragHook is not null)
+        {
+            _dragHook.Dispose();
+            _dragHook = null;
+            if (_dragPlaceholder) { _dragPlaceholder = false; Refresh(); }
+        }
+    }
+
+    /// <summary>Hook thread: must return at once and never swallows input.</summary>
+    private bool OnMouseHook(in MouseEvent e)
+    {
+        switch (e.Message)
+        {
+            case 0x0201: // WM_LBUTTONDOWN
+                _hookDown = true;
+                _hookDownX = e.X;
+                _hookDownY = e.Y;
+                // A tile dragged out of the island is the island's own drag.
+                _hookFromIsland = Native.GetAncestor(Native.WindowFromPoint(new Native.POINT { X = e.X, Y = e.Y }), 2) == _islandHandle;
+                break;
+            case 0x0202: // WM_LBUTTONUP
+                if (!_hookDown) break;
+                _hookDown = false;
+                if (_hookNear) { _hookNear = false; _dispatcher.BeginInvoke(() => _revealTimer?.Start()); }
+                break;
+            case 0x0200: // WM_MOUSEMOVE
+                if (!_hookDown || _hookFromIsland || _revealZone is not { } zone) break;
+                if (Math.Abs(e.X - _hookDownX) < 8 && Math.Abs(e.Y - _hookDownY) < 8) break;
+                var near = e.X >= zone.Left && e.X <= zone.Right && e.Y >= zone.Top && e.Y <= zone.Bottom;
+                if (near == _hookNear) break;
+                _hookNear = near;
+                _dispatcher.BeginInvoke(() => OnRevealNear(near));
+                break;
+        }
+        return false;
+    }
+
+    private void OnRevealNear(bool near)
+    {
+        if (near)
+        {
+            _revealTimer?.Stop();
+            if (!_expanded && RevealEnabled && !_dragPlaceholder) { _dragPlaceholder = true; Refresh(); }
+        }
+        else _revealTimer?.Start();
+    }
+
+    /// <summary>Released or moved away without a drop: the placeholder goes.</summary>
+    private void EndReveal()
+    {
+        _revealTimer?.Stop();
+        if (!_dragPlaceholder || _hookNear) return;
+        _dragPlaceholder = false;
+        Refresh();
+    }
+
     // MARK: Timer (upstream NotchTimerService)
 
     public void StartTimer(int minutes)
@@ -1060,7 +1205,8 @@ public sealed class IslandService : IFeatureService
         bool Installed(AppFeature f) => _settings.IsAvailable(f);
         return NotchSupport.Modules(_settings.GetString(DefaultsKey.NotchModuleOrder), _settings.GetString(DefaultsKey.NotchHiddenModules))
             .Where(m => ImplementedPages.Contains(m) && NotchSupport.IsAvailable(m, Installed)
-                        && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled)))
+                        && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
+                        && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf)))
             .ToList();
     }
 
@@ -1073,6 +1219,7 @@ public sealed class IslandService : IFeatureService
             var (glyph, tip) = module switch
             {
                 NotchModule.Music => ("", "Music"),
+                NotchModule.Files => ("\uE8B7", "Files"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1094,6 +1241,8 @@ public sealed class IslandService : IFeatureService
         _window.HomePage.Visibility = module == NotchModule.Controls ? Visibility.Visible : Visibility.Collapsed;
         _window.MusicPage.Visibility = module == NotchModule.Music ? Visibility.Visible : Visibility.Collapsed;
         _window.TimerPage.Visibility = module == NotchModule.Timer ? Visibility.Visible : Visibility.Collapsed;
+        _window.FilesPage.Visibility = module == NotchModule.Files ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Files && _geometry is { } g) _files?.Layout(g.ContentBudget);
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

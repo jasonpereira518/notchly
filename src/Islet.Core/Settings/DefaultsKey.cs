@@ -13,6 +13,7 @@ public static class DefaultsKey
     public const string PanelCollapsedSections = "panelCollapsedSections";
     public const string LaunchAtLogin = "launchAtLogin";                 // Windows-only (HKCU Run value)
     public const string AppTheme = "appTheme";                           // Windows-only: system|light|dark
+    public const string PortedFeaturesSeen = "portedFeaturesSeen";       // Windows-only: features known to be installable
 
     public static string FeatureAvailable(string featureId) => "featureAvailable." + featureId;
 
@@ -52,6 +53,10 @@ public static class DefaultsKey
     public const string FinderPasteImageAsFile = "finderPasteImageAsFile";
     public const string FinderRenameEnabled = "finderRenameEnabled";
     public const string ShelfEnabled = "shelfEnabled";
+    public const string ShelfRemoveAfterDrop = "shelfRemoveAfterDrop";
+    public const string ShelfCloseAfterDrop = "shelfCloseAfterDrop";
+    public const string NotchShelf = "notchShelf";
+    public const string NotchDragReveal = "notchDragReveal";
     public const string UrlCleanerEnabled = "urlCleanerEnabled";
     public const string SoundOutputSwitcherEnabled = "soundOutputSwitcherEnabled";
     public const string AudioPriorityOutputEnabled = "audioPriorityOutputEnabled";

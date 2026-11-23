@@ -71,6 +71,8 @@ public partial class App : Application
             Settings.Set(DefaultsKey.HasOnboarded, true);
         }
 
+        foreach (var feature in Settings.AdoptNewlyPorted())
+            Log.Information("Feature {Feature} is now available on Windows and was installed", FeatureCatalog.Id(feature));
         Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
         Features.SyncAll();
         Tray = new TrayIconService(this);

@@ -201,9 +201,11 @@
 
     <Canvas x:Name="Root">
         <Grid x:Name="Surface" Canvas.Left="0" Canvas.Top="0" Background="{x:Null}">
-            <!-- The edge: a 2-point stroke clipped to the island, so only its inner point shows
-                 (upstream NotchLayout.outlineWidth). Its brush is set by how much the island needs it. -->
-            <Path x:Name="Shape" Fill="Black" StrokeThickness="2" />
+            <!-- The island itself: black right up to the screen's top edge. -->
+            <Path x:Name="Shape" Fill="Black" />
+            <!-- Its edge, on a layer of its own: a 2-point stroke clipped to the island, so only its
+                 inner point shows (upstream NotchLayout.outlineWidth). Clipping it never clips the fill. -->
+            <Path x:Name="Edge" StrokeThickness="2" IsHitTestVisible="False" />
             <Grid x:Name="ContentLayer">
 
                 <!-- Closed strip: wings either side of the simulated camera. -->

@@ -184,7 +184,7 @@ Legend: **P** = port, **T** = toggle the built-in Windows setting, **N** = Windo
 | live equalizer | P | WASAPI process loopback (falls back to system loopback), 7 bands at 50…12 kHz |
 | downloads | P | `FileSystemWatcher` on Downloads (`.crdownload`/`.part`) |
 | calendar | P | ICS feed URLs via Ical.Net; Graph/Google OAuth later. The Windows AppointmentStore is out because Mail & Calendar is retired |
-| notifications | P | mirror only: `UserNotificationListener`, which needs package identity (sparse package). Native toasts can't be hidden |
+| notifications | P | `UserNotificationListener` with package identity from a sparse package registered in Developer Mode (unsigned, per user, no admin); `NotificationChanged` events with a 10 s backup look (2 s polling where events aren't offered). "Hide the system banner" removes the original toast, which also takes it out of the notification centre. Ported in M3; a signed package for PCs without Developer Mode comes later (Windows SDK `makeappx`/`signtool` and a trusted certificate) |
 | agents | P | `%USERPROFILE%\.claude\projects`, `.codex\sessions`, `.copilot`, OpenCode SQLite; `claude` CLI for limits. Ported in M3 with Cursor added beyond upstream (its plan usage from cursor.com, with Cursor's own sign-in); Claude profiles, Codex accounts and Codex resets come later |
 | accessories | P | `DeviceWatcher` + Bluetooth battery property |
 | watch | P | Windows.Graphics.Capture + `Windows.Media.Ocr` |
@@ -313,7 +313,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
     - **Brightness notice** (WMI event; the native brightness flyout will still show because the OMEN firmware handles those keys).
     - **Battery and charging notices.**
     - **Timer / pomodoro / stopwatch.**
-- **M3 Island extensions.** In order: lyrics → live equalizer → file drop/shelf on the island → downloads → calendar (ICS) → agents → notifications (sparse package: Windows SDK `makeappx`/`signtool`, self-signed certificate) → camera → accessories → watch → mascot.
+- **M3 Island extensions.** In order: lyrics → live equalizer → file drop/shelf on the island → downloads → calendar (ICS) → agents → notifications (sparse package registered in Developer Mode; the signed package for other PCs, with `makeappx`/`signtool` and a certificate, later) → camera → accessories → watch → mascot.
 - **M4 Sound.**
   - Mixer panel section and island page: per-app sessions with icons, volume, mute, meters, pinning and order.
   - Per-app output device, output switcher hotkey, priority auto-switch, quieter on headphone disconnect, mic mute with island indicator.

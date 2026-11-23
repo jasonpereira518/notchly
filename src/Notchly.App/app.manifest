@@ -2,6 +2,10 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="0.1.0.0" name="Notchly.Utils.app" />
 
+  <!-- Matches Package\AppxManifest.xml: once that sparse package is registered (Settings → Notifications),
+       Notchly.exe runs with its identity and may read notifications. Without it this is ignored. -->
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1" publisher="CN=Notchly" packageName="Notchly" applicationId="Notchly" />
+
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">

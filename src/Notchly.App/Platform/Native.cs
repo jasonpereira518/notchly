@@ -272,6 +272,27 @@ public static class Native
 
     public const uint GW_OWNER = 4;
 
+    // MARK: Package identity and app activation (notifications on the island)
+
+    /// <summary>GetCurrentPackageFullName's answer for a process without package identity.</summary>
+    public const int APPMODEL_ERROR_NO_PACKAGE = 15700;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetCurrentPackageFullName(ref int length, char[]? fullName);
+
+    /// <summary>Launches a packaged app by its AppUserModelID (shobjidl_core.h).</summary>
+    [ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IApplicationActivationManager
+    {
+        [PreserveSig] int ActivateApplication([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId,
+                                              [MarshalAs(UnmanagedType.LPWStr)] string? arguments, int options, out uint processId);
+        [PreserveSig] int ActivateForFile(string appUserModelId, IntPtr itemArray, string verb, out uint processId);
+        [PreserveSig] int ActivateForProtocol(string appUserModelId, IntPtr itemArray, out uint processId);
+    }
+
+    [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
+    public class ApplicationActivationManager;
+
     public static string WindowText(IntPtr hwnd)
     {
         var buffer = new char[256];

@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**9 ported**, 59 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**10 ported**, 58 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -99,7 +99,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 |---|---|---|---|---|
 | `notch` | Dynamic Island | ✅ Ported | M2 |  |
 | `notchCalendar` | Calendar | ✅ Ported | M3 | Google, Outlook, Canvas and iCloud calendars by their private iCal link; links are encrypted on this PC and events stay in memory. |
-| `notchNotifications` | Notifications | 🛠️ Planned | M3 | Needs package identity (UserNotificationListener). |
+| `notchNotifications` | Notifications | ✅ Ported | M3 | Through Windows' notification listener; needs a one-time setup (Developer Mode) and your permission. |
 | `notchGestures` | Island gestures | ✅ Ported | M2 |  |
 | `notchTimer` | Timer | ✅ Ported | M2 |  |
 | `notchAccessories` | Accessories | 🛠️ Planned | M3 |  |

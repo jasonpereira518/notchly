@@ -322,6 +322,13 @@
                             </Border>
                             <TextBlock x:Name="TrackLeadTitle" FontSize="11" FontWeight="Medium" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- A notification: its app's icon and title from the wing's outer end
+                             (upstream NotchNoticeView.leading for a notification). -->
+                        <StackPanel x:Name="NotifLead" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Visibility="Collapsed">
+                            <Border x:Name="NotifIcon" Width="18" Height="18" VerticalAlignment="Center" />
+                            <TextBlock x:Name="NotifTitle" FontSize="11" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
                     </Grid>
                     <Grid x:Name="RightWing" Grid.Column="2" ClipToBounds="True">
                         <StackPanel x:Name="StripBars" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -344,6 +351,9 @@
                             </Grid>
                             <TextBlock x:Name="StripTrailText" FontSize="10" FontWeight="Medium" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- ...and its message at the far end, on one line or two in a tall strip. -->
+                        <TextBlock x:Name="NotifDetail" FontSize="11" Foreground="#D9FFFFFF" HorizontalAlignment="Right" TextAlignment="Right"
+                                   VerticalAlignment="Center" LineStackingStrategy="BlockLineHeight" LineHeight="13" Visibility="Collapsed" />
                         <!-- ...and the reading the person chose toward the other end. -->
                         <TextBlock x:Name="AgentReading" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Typography.NumeralAlignment="Tabular" TextTrimming="None" Visibility="Collapsed" />
@@ -397,6 +407,8 @@
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <ToggleButton x:Name="LyricsButton" Style="{StaticResource LyricsToggle}" Content="&#xE8BD;" ToolTip="Lyrics"
                                           Visibility="Collapsed" Margin="0,0,2,0" />
+                            <Button x:Name="NotificationsClear" Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Clear All"
+                                    Visibility="Collapsed" Margin="0,0,2,0" />
                             <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Island settings" />
                             <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Content="&#xE70E;" ToolTip="Close" />
                         </StackPanel>
@@ -657,6 +669,9 @@
 
                         <!-- AI agents (upstream NotchAgentsView): built in code by AgentsPage. -->
                         <Grid x:Name="AgentsPage" Visibility="Collapsed" />
+
+                        <!-- Notifications (upstream NotchNotificationsView): built in code by NotificationsPage. -->
+                        <Grid x:Name="NotificationsPage" Visibility="Collapsed" />
 
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">

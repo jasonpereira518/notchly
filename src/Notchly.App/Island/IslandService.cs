@@ -19,6 +19,7 @@ using Notchly.App.Island.Downloads;
 using Notchly.App.Island.Files;
 using Notchly.App.Island.Lyrics;
 using Notchly.App.Island.MenuBar;
+using Notchly.App.Island.Notifications;
 using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
 using Notchly.App.Platform.Input;
@@ -35,6 +36,7 @@ using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
 using Notchly.Core.Power;
 using Notchly.Core.Notch.Lyrics;
+using Notchly.Core.Notifications;
 using Notchly.Core.Settings;
 using Microsoft.Win32;
 using Serilog;
@@ -44,12 +46,13 @@ namespace Notchly.App.Island;
 public sealed class IslandService : IFeatureService
 {
     private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Agents, Notice, Drop, Open }
-    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents }
+    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
-                                 double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null);
+                                 double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
+                                 uint? NotificationId = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -71,6 +74,8 @@ public sealed class IslandService : IFeatureService
     private CalendarPage? _calendarPage;
     private AgentsService? _agents;
     private AgentsPage? _agentsPage;
+    private NotificationsService? _notifications;
+    private NotificationsPage? _notificationsPage;
     /// <summary>The shape of the agent reading the strip was sized for; a new shape resizes it.</summary>
     private string _agentShape = "";
     private readonly Dictionary<string, double> _measured = new(StringComparer.Ordinal);
@@ -196,6 +201,11 @@ public sealed class IslandService : IFeatureService
         _agents.Changed += OnAgentsChanged;
         _agents.Alert += OnAgentAlert;
         _agentsPage = new AgentsPage(window, _agents, _settings);
+        _notifications = new NotificationsService(_dispatcher, _settings);
+        _notifications.Changed += OnNotificationsChanged;
+        _notifications.Arrived += OnNotificationArrived;
+        _notificationsPage = new NotificationsPage(window, _notifications);
+        _notificationsPage.Resized += () => { if (_expanded && _page == NotchModule.Notifications) Refresh(); };
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -253,6 +263,7 @@ public sealed class IslandService : IFeatureService
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
+        _notifications?.Dispose(); _notifications = null; _notificationsPage = null;
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -329,6 +340,7 @@ public sealed class IslandService : IFeatureService
         SyncDownloads();
         SyncCalendar();
         SyncAgents();
+        SyncNotifications();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -353,6 +365,7 @@ public sealed class IslandService : IFeatureService
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
             NotchModule.Agents => w.AgentsPage,
+            NotchModule.Notifications => w.NotificationsPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -459,6 +472,8 @@ public sealed class IslandService : IFeatureService
         w.TrackTrail.Visibility = Visibility.Collapsed;
         w.AgentMarks.Visibility = Visibility.Collapsed;
         w.AgentReading.Visibility = Visibility.Collapsed;
+        w.NotifLead.Visibility = Visibility.Collapsed;
+        w.NotifDetail.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         // A notice's art sits beside the camera; music moves it to the strip's end below.
@@ -501,6 +516,9 @@ public sealed class IslandService : IFeatureService
                 break;
             case ClosedContent.Notice when _notice is { Kind: NoticeKind.Track } notice:
                 ShowTrackNotice(w, notice);
+                break;
+            case ClosedContent.Notice when _notice is { Kind: NoticeKind.Notification } notice:
+                ShowNotificationBanner(w, g, notice);
                 break;
             case ClosedContent.Calendar when _calendar?.Countdown is { } countdown:
                 ShowCalendarStrip(w, countdown, Math.Max(0, (size.Width - g.CameraWidth) / 2));
@@ -810,6 +828,7 @@ public sealed class IslandService : IFeatureService
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
         if (_calendarPage is not null) _calendarPage.Visible = false;
         if (_agentsPage is not null) _agentsPage.Visible = false;
+        if (_notificationsPage is not null) _notificationsPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -872,6 +891,11 @@ public sealed class IslandService : IFeatureService
                 _calendarPage?.Reveal(countdown.Event);
             }
             if (_shown == ClosedContent.Agents || _notice?.Kind == NoticeKind.Agents) _page = NotchModule.Agents;
+            if (_notice is { Kind: NoticeKind.Notification, NotificationId: { } notification })
+            {
+                _page = NotchModule.Notifications;
+                _notificationsPage?.Reveal(notification);
+            }
             Open(takeFocus: true);
             e.Handled = true;
         }
@@ -905,6 +929,7 @@ public sealed class IslandService : IFeatureService
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject agenda && InCalendarAgenda(agenda)) return;
         // And the AI page, once its cards outgrow the island.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject cards && InTaggedScroller(cards, "AgentsPage")) return;
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject messages && InTaggedScroller(messages, "NotificationsPage")) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
             allowVertical: NotchGestureSupport.AllowsVertical(_expanded, inHeader, _page == NotchModule.Music, control: false, scroll: false),
@@ -1492,6 +1517,118 @@ public sealed class IslandService : IFeatureService
         ShowNotice(new Notice(NoticeKind.Agents, shown.Glyph, null, shown.Text, art, 44, trailing, 5, shown.Tint));
     }
 
+    // MARK: Notifications (upstream NotchNotificationService hooks and NotchNoticeView for a notification)
+
+    /// <summary>Notifications are read while their page is among the island's pages, as upstream's isEnabled.</summary>
+    private void SyncNotifications() => _notifications?.Sync(Pages().Contains(NotchModule.Notifications));
+
+    private void OnNotificationsChanged()
+    {
+        if (!_running || _notice is not { Kind: NoticeKind.Notification, NotificationId: { } id } notice) return;
+        // A banner whose notification was dismissed or cleared (or the session locked) goes with it.
+        if (_notifications?.Find(id) is not { } item)
+        {
+            _noticeTimer?.Stop();
+            _notice = null;
+            Refresh();
+        }
+        // Its app's icon arrives a moment after the first banner from that app.
+        else if (notice.Art is null && _notifications.Icon(item) is { } icon)
+        {
+            _notice = notice with { Art = icon };
+            Refresh();
+        }
+    }
+
+    /// <summary>Upstream NotchEvent.priority for the notices the island shows: levels, then timers, then the rest.</summary>
+    private static int NoticePriority(NoticeKind kind) => kind switch
+    {
+        NoticeKind.Volume or NoticeKind.Brightness or NoticeKind.Microphone => 3,
+        NoticeKind.Timer => 2,
+        NoticeKind.Battery or NoticeKind.Agents or NoticeKind.Notification => 1,
+        _ => 0,
+    };
+
+    /// <summary>
+    /// Windows holds its own banners back during Do Not Disturb, presentations and full-screen apps; the island
+    /// does too, and the page still lists the notification.
+    /// </summary>
+    private static bool BannersHeldBack() =>
+        Native.SHQueryUserNotificationState(out var state) == 0
+        && state is Native.QUNS_QUIET_TIME or Native.QUNS_BUSY or Native.QUNS_PRESENTATION_MODE or Native.QUNS_RUNNING_D3D_FULL_SCREEN;
+
+    /// <summary>A new notification beside the camera for 3 s (upstream NotchEvent.systemNotification).</summary>
+    private void OnNotificationArrived(SystemNotification item)
+    {
+        if (!_running || _notifications is not { } notifications || _geometry is not { } g || BannersHeldBack()) return;
+        // A level or a timer on show keeps its place; the notification waits on the page.
+        if (_notice is { } current && NoticePriority(current.Kind) > NotificationBanner.Priority) return;
+        var content = item.Content;
+        var message = content.CompactDetail.Length > NotificationBanner.MeasuredCharacters
+            ? content.CompactDetail[..NotificationBanner.MeasuredCharacters] : content.CompactDetail;
+        var title = MeasureText(content.CompactTitle, NotificationBanner.TitleFontSize, FontWeights.SemiBold);
+        var detail = MeasureText(message, NotificationBanner.MessageFontSize, FontWeights.Normal);
+        var wrapped = NotificationBanner.MessageLines(g.StripHeight) > 1 ? WrappedWidth(message, NotificationBanner.MessageRoom) : (double?)null;
+        var (leading, trailing) = NotificationBanner.Wings(title, detail, wrapped);
+        ShowNotice(new Notice(NoticeKind.Notification, "", null, content.CompactTitle, notifications.Icon(item), leading, trailing,
+            NotificationBanner.Seconds, Detail: content.CompactDetail, NotificationId: item.Id));
+        // "Hide the system banner": once the island shows it, the original leaves Windows.
+        if (_notice?.NotificationId == item.Id && notifications.HidesSystemBanner) notifications.HideOriginal(item.Id);
+    }
+
+    /// <summary>The width a message takes once wrapped at <paramref name="room"/> (its widest line).</summary>
+    private double WrappedWidth(string text, double room)
+    {
+        if (_window is null || text.Length == 0) return 0;
+        var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+            new Typeface(_window.CalTitle.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+            NotificationBanner.MessageFontSize, Brushes.White, VisualTreeHelper.GetDpi(_window).PixelsPerDip)
+        { MaxTextWidth = room, MaxLineCount = 2 };
+        return Math.Ceiling(formatted.Width);
+    }
+
+    private static readonly Brush NotificationIconBack = Brush(Color.FromArgb(0x17, 0xFF, 0xFF, 0xFF));
+
+    /// <summary>The app's icon and the title from the left end, the message toward the right end.</summary>
+    private static void ShowNotificationBanner(NotchWindow w, NotchGeometry g, Notice notice)
+    {
+        var leading = g.NoticeWingWidth(notice.Leading);
+        var trailing = g.NoticeWingWidth(notice.Trailing);
+        var leadInset = Math.Min(NotificationBanner.Inset, leading / 2);
+        var trailInset = Math.Min(NotificationBanner.Inset, trailing / 2);
+        var side = Math.Max(10, Math.Min(NotificationBanner.IconSize, g.StripBodyHeight - 4));
+        w.NotifIcon.Width = w.NotifIcon.Height = side;
+        w.NotifIcon.CornerRadius = new CornerRadius(side * 0.24);
+        if (notice.Art is { } art)
+        {
+            w.NotifIcon.Background = new ImageBrush(art) { Stretch = Stretch.Uniform };
+            w.NotifIcon.Child = null;
+        }
+        else
+        {
+            w.NotifIcon.Background = NotificationIconBack;
+            w.NotifIcon.Child = new TextBlock
+            {
+                Text = notice.Glyph, FontFamily = (FontFamily)Application.Current.Resources["IconFont"], FontSize = side * 0.5,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.None,
+            };
+        }
+        w.NotifTitle.Text = notice.Text ?? "";
+        w.NotifTitle.Margin = new Thickness(NotificationBanner.Spacing, 0, 0, 0);
+        w.NotifTitle.MaxWidth = Math.Max(0, leading - leadInset - side - NotificationBanner.Spacing - NotificationBanner.Air);
+        w.NotifLead.Margin = new Thickness(leadInset, 0, 0, 0);
+        w.NotifLead.Visibility = Visibility.Visible;
+
+        var lines = NotificationBanner.MessageLines(g.StripHeight);
+        w.NotifDetail.Text = notice.Detail ?? "";
+        w.NotifDetail.TextWrapping = lines > 1 ? TextWrapping.Wrap : TextWrapping.NoWrap;
+        w.NotifDetail.TextTrimming = TextTrimming.CharacterEllipsis;
+        w.NotifDetail.MaxHeight = w.NotifDetail.LineHeight * lines + 0.5;
+        w.NotifDetail.MaxWidth = Math.Max(0, trailing - trailInset - NotificationBanner.Air);
+        w.NotifDetail.Margin = new Thickness(0, 0, trailInset, 0);
+        w.NotifDetail.Visibility = string.IsNullOrEmpty(notice.Detail) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     // MARK: Files (drops onto the island and drag-reveal)
 
     private bool FilesAvailable => _shelf is not null && Pages().Contains(NotchModule.Files);
@@ -1663,6 +1800,7 @@ public sealed class IslandService : IFeatureService
     {
         w.CloseButton.Click += (_, _) => Collapse();
         w.SettingsButton.Click += (_, _) => { Collapse(); App.Current.ShowSettings(SettingsPage.Island); };
+        w.NotificationsClear.Click += (_, _) => _notificationsPage?.ConfirmClear(modal => _modalOpen = modal);
         w.HomePlayPause.Click += (_, _) => _media?.TogglePlayPause();
         w.HomePrevious.Click += (_, _) => _media?.Previous();
         w.HomeNext.Click += (_, _) => _media?.Next();
@@ -1728,7 +1866,8 @@ public sealed class IslandService : IFeatureService
                         && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
                         && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
                         && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
-                        && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled)))
+                        && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled))
+                        && (m != NotchModule.Notifications || _settings.GetBool(DefaultsKey.NotchNotificationsEnabled)))
             .ToList();
     }
 
@@ -1745,6 +1884,7 @@ public sealed class IslandService : IFeatureService
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),
+                NotchModule.Notifications => ("\uEA8F", "Notifications"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1778,6 +1918,10 @@ public sealed class IslandService : IFeatureService
         _window.AgentsPage.Visibility = module == NotchModule.Agents ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Agents && _geometry is { } ag) _agentsPage?.Layout(ag.ContentBudget, ag.ContentWidth);
         if (_agentsPage is not null) _agentsPage.Visible = module == NotchModule.Agents && _expanded;
+        _window.NotificationsPage.Visibility = module == NotchModule.Notifications ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Notifications && _geometry is { } ng) _notificationsPage?.Layout(ng.ContentBudget);
+        if (_notificationsPage is not null) _notificationsPage.Visible = module == NotchModule.Notifications && _expanded;
+        if (module != NotchModule.Notifications) _window.NotificationsClear.Visibility = Visibility.Collapsed;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

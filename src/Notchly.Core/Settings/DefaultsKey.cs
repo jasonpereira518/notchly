@@ -90,6 +90,8 @@ public static class DefaultsKey
     /// <summary>The folder Downloads watches; empty for Windows' Downloads folder (upstream keeps a bookmark).</summary>
     public const string NotchDownloadsFolderPath = "notchDownloadsFolderPath";
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";
+    /// <summary>Removes the original from Windows once the island shows it (upstream hides the macOS banner).</summary>
+    public const string NotchDismissNativeNotifications = "notchDismissNativeNotifications";
     public const string NotchCalendarEnabled = "notchCalendarEnabled";
     public const string NotchCalendarCountdown = "notchCalendarCountdown";
     /// <summary>Minutes before a start the countdown appears, chosen events included.</summary>

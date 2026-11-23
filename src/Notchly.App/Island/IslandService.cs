@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Notchly.App.Island.Calendar;
 using Notchly.App.Island.Downloads;
 using Notchly.App.Island.Files;
 using Notchly.App.Island.Lyrics;
@@ -25,6 +26,7 @@ using Notchly.App.Platform.Power;
 using Notchly.App.Platform.Shell;
 using Notchly.App.Platform.Windowing;
 using Notchly.App.Shell;
+using Notchly.Core.Calendar;
 using Notchly.Core.Downloads;
 using Notchly.Core.Features;
 using Notchly.Core.Notch;
@@ -37,13 +39,13 @@ namespace Notchly.App.Island;
 
 public sealed class IslandService : IFeatureService
 {
-    private enum ClosedContent { Bare, Music, Timer, Download, Notice, Drop, Open }
+    private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Notice, Drop, Open }
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -61,6 +63,9 @@ public sealed class IslandService : IFeatureService
     private FilesPage? _files;
     private DownloadService? _downloads;
     private DownloadsPage? _downloadsPage;
+    private CalendarService? _calendar;
+    private CalendarPage? _calendarPage;
+    private readonly Dictionary<string, double> _measured = new(StringComparer.Ordinal);
     private string _stripName = "";
     private double _stripNameWidth;
     // Drag-reveal: a low-level mouse hook notices a held button near the notch (hook thread fields).
@@ -165,6 +170,9 @@ public sealed class IslandService : IFeatureService
         _downloads.Arrived += OnDownloadArrived;
         _downloadsPage = new DownloadsPage(window, _downloads, _settings, () => FilesAvailable ? _shelf : null,
             modal => _modalOpen = modal, () => { _page = NotchModule.Downloads; Open(takeFocus: true); ShowPage(NotchModule.Downloads); });
+        _calendar = new CalendarService(_dispatcher, _settings);
+        _calendar.Changed += OnCalendarChanged;
+        _calendarPage = new CalendarPage(window, _calendar, _settings);
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -213,6 +221,7 @@ public sealed class IslandService : IFeatureService
         _revealZone = null;
         _shelf?.Dispose(); _shelf = null; _files = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
+        _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -286,6 +295,7 @@ public sealed class IslandService : IFeatureService
         UpdatePages();
         SyncLyrics();
         SyncDownloads();
+        SyncCalendar();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -308,6 +318,7 @@ public sealed class IslandService : IFeatureService
             NotchModule.Music => w.MusicPlayer,
             NotchModule.Files => w.FilesPage,
             NotchModule.Downloads => w.DownloadsPage,
+            NotchModule.Calendar => w.CalendarPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -322,6 +333,8 @@ public sealed class IslandService : IFeatureService
             running.Add(NotchCompactActivity.Timer);
         if (_downloads?.Current is not null)
             running.Add(NotchCompactActivity.Downloads);
+        if (_calendar?.Countdown is not null)
+            running.Add(NotchCompactActivity.Calendar);
         if (_media?.Current is { IsPlaying: true } && _settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             && _settings.GetString(DefaultsKey.NotchIdleContent, "music") == "music")
             running.Add(NotchCompactActivity.Music);
@@ -371,6 +384,7 @@ public sealed class IslandService : IFeatureService
             {
                 NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
                 NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
+                NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
                 _ => (g.MusicStrip, ClosedContent.Music),
             };
         }
@@ -399,6 +413,8 @@ public sealed class IslandService : IFeatureService
         w.StripText.Visibility = Visibility.Collapsed;
         w.StripLead.Visibility = Visibility.Collapsed;
         w.StripTrail.Visibility = Visibility.Collapsed;
+        w.CalLead.Visibility = Visibility.Collapsed;
+        w.CalTrail.Visibility = Visibility.Collapsed;
         w.StripRow.Visibility = Visibility.Collapsed;
         w.LevelLead.Visibility = Visibility.Collapsed;
         w.LevelMeter.Visibility = Visibility.Collapsed;
@@ -441,6 +457,9 @@ public sealed class IslandService : IFeatureService
                 break;
             case ClosedContent.Notice when _notice is { Level: { } wingLevel } notice:
                 ShowLevelWings(w, notice, wingLevel);
+                break;
+            case ClosedContent.Calendar when _calendar?.Countdown is { } countdown:
+                ShowCalendarStrip(w, countdown, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
             case ClosedContent.Notice when _notice is { } notice:
                 if (notice.Art is not null) ShowArt(w, notice.Art, body);
@@ -668,6 +687,7 @@ public sealed class IslandService : IFeatureService
         }
         _hoverState.Close(_inside);
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
+        if (_calendarPage is not null) _calendarPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -724,6 +744,11 @@ public sealed class IslandService : IFeatureService
         if (!_expanded)
         {
             if (_shown == ClosedContent.Download || _notice?.Kind == NoticeKind.Download) _page = NotchModule.Downloads;
+            if (_shown == ClosedContent.Calendar && _calendar?.Countdown is { } countdown)
+            {
+                _page = NotchModule.Calendar;
+                _calendarPage?.Reveal(countdown.Event);
+            }
             Open(takeFocus: true);
             e.Handled = true;
         }
@@ -754,6 +779,7 @@ public sealed class IslandService : IFeatureService
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject node && IsInside(node, _window.LyricsScroller)) return;
         // So does the downloads list.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject listed && IsInside(listed, _window.DownloadsScroller)) return;
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject agenda && InCalendarAgenda(agenda)) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
             allowVertical: NotchGestureSupport.AllowsVertical(_expanded, inHeader, _page == NotchModule.Music, control: false, scroll: false),
@@ -1169,6 +1195,71 @@ public sealed class IslandService : IFeatureService
         w.StripTrail.Visibility = Visibility.Visible;
     }
 
+    // MARK: Calendar (upstream NotchCalendarService hooks and NotchCalendarStrip)
+
+    /// <summary>The calendar reads while its page is among the island's pages, as upstream's isEnabled.</summary>
+    private void SyncCalendar() => _calendar?.Sync(Pages().Contains(NotchModule.Calendar));
+
+    private void OnCalendarChanged()
+    {
+        if (_running && !_expanded) Refresh();
+    }
+
+    private static bool InCalendarAgenda(DependencyObject node)
+    {
+        for (var current = node; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is ScrollViewer { Tag: "CalendarAgenda" }) return true;
+        return false;
+    }
+
+    private double MeasureText(string text, double size, FontWeight weight)
+    {
+        if (_window is null) return 0;
+        var key = $"{size}|{weight}|{text}";
+        if (_measured.TryGetValue(key, out var width)) return width;
+        if (_measured.Count > 64) _measured.Clear();
+        var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+            new Typeface(_window.CalTitle.FontFamily, FontStyles.Normal, weight, FontStretches.Normal), size, Brushes.White,
+            VisualTreeHelper.GetDpi(_window).PixelsPerDip);
+        return _measured[key] = Math.Ceiling(formatted.WidthIncludingTrailingWhitespace);
+    }
+
+    private static string CountdownTitle(CalendarCountdown countdown) =>
+        countdown.Event.Title.Trim() is { Length: > 0 } title ? title : "Untitled event";
+
+    /// <summary>As wide as the title or the clock needs (upstream compactCalendarGeometry fitting).</summary>
+    private double CalendarWing()
+    {
+        if (_calendar?.Countdown is not { } countdown) return 72;
+        var title = MeasureText(CountdownTitle(countdown), 11, FontWeights.SemiBold) + 6 + 5 + 14;
+        var lead = CalendarSupport.CountdownLeadTime(_settings.GetInt(DefaultsKey.NotchCalendarCountdownLead, CalendarSupport.DefaultCountdownLeadMinutes));
+        var clock = MeasureText(CalendarSupport.CountdownShape(lead), 13, FontWeights.Medium) + 4
+                    + MeasureText(CalendarSupport.TimeText(countdown, CultureInfo.CurrentCulture), 11, FontWeights.Medium) + 14;
+        return Math.Max(title, clock);
+    }
+
+    private void ShowCalendarStrip(NotchWindow w, CalendarCountdown countdown, double wing)
+    {
+        var color = countdown.Event.Color;
+        w.CalDot.Fill = Brush(Color.FromRgb(color.R, color.G, color.B));
+        w.CalTitle.Text = CountdownTitle(countdown);
+        w.CalTitle.MaxWidth = Math.Max(0, wing - 6 - 5 - 14);
+        w.CalTime.Text = CalendarSupport.TimeText(countdown, CultureInfo.CurrentCulture);
+        var clockRoom = MeasureText(CalendarSupport.CountdownText(countdown.Target, DateTime.Now), 13, FontWeights.Medium) + 4
+                        + MeasureText(w.CalTime.Text, 11, FontWeights.Medium) + 14;
+        w.CalTime.Visibility = clockRoom <= wing ? Visibility.Visible : Visibility.Collapsed;
+        UpdateCalendarClock(w, countdown);
+        w.CalLead.Visibility = Visibility.Visible;
+        w.CalTrail.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>The clock counts every second; mint while the event under way runs out, as upstream.</summary>
+    private static void UpdateCalendarClock(NotchWindow w, CalendarCountdown countdown)
+    {
+        w.CalClock.Text = CalendarSupport.CountdownText(countdown.Target, DateTime.Now);
+        w.CalClock.Foreground = countdown.Ongoing ? Brush(Color.FromRgb(0x63, 0xE6, 0xBE)) : Brushes.White;
+    }
+
     // MARK: Files (drops onto the island and drag-reveal)
 
     private bool FilesAvailable => _shelf is not null && Pages().Contains(NotchModule.Files);
@@ -1317,6 +1408,7 @@ public sealed class IslandService : IFeatureService
         if (!_running) return;
         if (_timer.IsRunning && _timer.FinishIfDue(Now)) OnTimerFinished();
         if (_shown == ClosedContent.Timer && _window is not null) _window.StripText.Text = TimerStripText();
+        if (_shown == ClosedContent.Calendar && _window is not null && _calendar?.Countdown is { } countdown) UpdateCalendarClock(_window, countdown);
         if (_expanded) UpdateLivePages();
     }
 
@@ -1385,7 +1477,8 @@ public sealed class IslandService : IFeatureService
             .Where(m => ImplementedPages.Contains(m) && NotchSupport.IsAvailable(m, Installed)
                         && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
                         && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
-                        && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled)))
+                        && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
+                        && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled)))
             .ToList();
     }
 
@@ -1400,6 +1493,7 @@ public sealed class IslandService : IFeatureService
                 NotchModule.Music => ("", "Music"),
                 NotchModule.Files => ("\uE8B7", "Files"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
+                NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1426,6 +1520,9 @@ public sealed class IslandService : IFeatureService
         if (module == NotchModule.Files && _geometry is { } g) _files?.Layout(g.ContentBudget);
         if (module == NotchModule.Downloads && _geometry is { } dg) _downloadsPage?.Layout(dg.ContentBudget);
         if (_downloadsPage is not null) _downloadsPage.Visible = module == NotchModule.Downloads;
+        _window.CalendarPage.Visibility = module == NotchModule.Calendar ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Calendar && _geometry is { } cg) _calendarPage?.Layout(cg.ContentBudget, cg.ContentWidth);
+        if (_calendarPage is not null) _calendarPage.Visible = module == NotchModule.Calendar && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

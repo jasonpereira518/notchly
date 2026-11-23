@@ -231,7 +231,7 @@ public static class FeatureCatalog
         Add(AppFeature.Notch, g, "Dynamic Island", "Music, notices, timers and controls around the webcam.", Glyph.Island,
             [DefaultsKey.NotchEnabled], true, WindowsStatus.Ported, "M2");
         Add(AppFeature.NotchCalendar, g, "Calendar", "Upcoming events and countdowns in the island.", Glyph.Calendar,
-            [DefaultsKey.NotchCalendarEnabled], true, P, "M3", "Reads ICS calendar feeds.");
+            [DefaultsKey.NotchCalendarEnabled], true, WindowsStatus.Ported, "M3", "Google, Outlook, Canvas and iCloud calendars by their private iCal link; links are encrypted on this PC and events stay in memory.");
         Add(AppFeature.NotchNotifications, g, "Notifications", "Mirror Windows notifications in the island.", Glyph.Bell,
             [DefaultsKey.NotchNotificationsEnabled], true, P, "M3", "Needs package identity (UserNotificationListener).");
         Add(AppFeature.NotchGestures, g, "Island gestures", "Scroll to open or close; swipe to change tracks.", Glyph.Gesture,

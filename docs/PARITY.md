@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**7 ported**, 61 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**8 ported**, 60 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -98,14 +98,14 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
 | `notch` | Dynamic Island | ✅ Ported | M2 |  |
-| `notchCalendar` | Calendar | 🛠️ Planned | M3 | Reads ICS calendar feeds. |
+| `notchCalendar` | Calendar | ✅ Ported | M3 | Google, Outlook, Canvas and iCloud calendars by their private iCal link; links are encrypted on this PC and events stay in memory. |
 | `notchNotifications` | Notifications | 🛠️ Planned | M3 | Needs package identity (UserNotificationListener). |
 | `notchGestures` | Island gestures | ✅ Ported | M2 |  |
 | `notchTimer` | Timer | ✅ Ported | M2 |  |
 | `notchAccessories` | Accessories | 🛠️ Planned | M3 |  |
 | `notchLyrics` | Lyrics | ✅ Ported | M3 | Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup. |
 | `notchQueue` | Play queue | ➖ Not on Windows | - | Windows media controls expose no system-wide queue. |
-| `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Reads the playing app's own audio with Windows process loopback; off until you turn it on. |
+| `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission. |
 | `notchDownloads` | Downloads | ✅ Ported | M3 | Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress. |
 | `notchAgents` | AI agents | 🛠️ Planned | M3 |  |
 | `notchWatch` | Watch | 🛠️ Planned | M3 |  |

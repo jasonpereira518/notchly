@@ -57,10 +57,23 @@ public sealed class MediaSessionService : IDisposable
     private readonly Dispatcher _dispatcher;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
+    // The cover follows the thumbnail's bytes, not the track's name: players often announce a new
+    // title first and swap the thumbnail a moment later, under the same title.
     private string _artworkKey = "";
+    private string _artworkAlbum = "";
+    private byte[]? _artworkBytes;
+    private bool _artworkPending;
+    private long _artworkPendingSince;
+    /// <summary>A thumbnail read was asked for and has not completed: a newer refresh does it instead.</summary>
+    private bool _artworkDirty;
     private BitmapSource? _artwork;
     private Color? _tint;
     private int _refreshVersion;
+
+    /// <summary>After a track change the thumbnail is read again at these delays (ms) to catch a late one.</summary>
+    private static readonly int[] ArtworkRetries = [300, 1000, 2500];
+    /// <summary>A cover still unchanged this long after the track really is the new track's cover.</summary>
+    private const long ArtworkPendingLimit = 2400;
 
     /// <summary>Preferred player app id fragment (upstream notchPreferredPlayer).</summary>
     public string PreferredPlayer { get; set; } = "";
@@ -125,17 +138,19 @@ public sealed class MediaSessionService : IDisposable
                 _session.TimelinePropertiesChanged += OnTimelineChanged;
             }
         }
-        _ = RefreshAsync();
+        _ = RefreshAsync(readArtwork: true);
     }
 
-    private void OnMediaChanged(GlobalSystemMediaTransportControlsSession s, MediaPropertiesChangedEventArgs e) => Post(() => _ = RefreshAsync());
+    // New media properties may carry a new thumbnail even when the title has not changed.
+    private void OnMediaChanged(GlobalSystemMediaTransportControlsSession s, MediaPropertiesChangedEventArgs e) => Post(() => _ = RefreshAsync(readArtwork: true));
     private void OnTimelineChanged(GlobalSystemMediaTransportControlsSession s, TimelinePropertiesChangedEventArgs e) => Post(() => _ = RefreshAsync());
     // Play/pause in another player can make it the one to follow.
     private void OnPlaybackChanged(GlobalSystemMediaTransportControlsSession s, PlaybackInfoChangedEventArgs e) => Post(Reattach);
 
-    private async Task RefreshAsync()
+    private async Task RefreshAsync(bool readArtwork = false)
     {
         var version = ++_refreshVersion;
+        if (readArtwork) _artworkDirty = true;
         var session = _session;
         if (session is null)
         {
@@ -150,11 +165,37 @@ public sealed class MediaSessionService : IDisposable
             var timeline = session.GetTimelineProperties();
             var controls = playback?.Controls;
             var key = $"{session.SourceAppUserModelId}|{properties?.Title}|{properties?.Artist}|{properties?.AlbumTitle}";
-            if (key != _artworkKey)
+            var album = properties?.AlbumTitle ?? "";
+            var trackChanged = key != _artworkKey;
+            if (trackChanged || _artworkDirty || _artworkPending)
             {
-                _artworkKey = key;
-                (_artwork, _tint) = await LoadArtworkAsync(properties?.Thumbnail);
+                var bytes = await ReadThumbnailAsync(properties?.Thumbnail);
                 if (version != _refreshVersion) return;
+                _artworkDirty = false;
+                if (trackChanged)
+                {
+                    // The previous cover under a new album's title is the thumbnail lagging behind: show
+                    // no cover rather than the wrong one until the new thumbnail arrives.
+                    var stale = bytes is not null && _artworkBytes is not null && album != _artworkAlbum
+                                && bytes.AsSpan().SequenceEqual(_artworkBytes);
+                    _artworkKey = key;
+                    _artworkAlbum = album;
+                    _artworkPending = stale;
+                    _artworkPendingSince = Environment.TickCount64;
+                    if (stale) (_artwork, _tint) = (null, null);
+                    else SetArtwork(bytes);
+                    ScheduleArtworkRetries(key);
+                }
+                else if (_artworkPending)
+                {
+                    if (!SameBytes(bytes, _artworkBytes) || Environment.TickCount64 - _artworkPendingSince >= ArtworkPendingLimit)
+                    {
+                        // A new thumbnail arrived, or the same image really is this track's cover.
+                        _artworkPending = false;
+                        SetArtwork(bytes);
+                    }
+                }
+                else if (!SameBytes(bytes, _artworkBytes)) SetArtwork(bytes);
             }
             var title = properties?.Title ?? "";
             if (string.IsNullOrWhiteSpace(title))
@@ -194,16 +235,48 @@ public sealed class MediaSessionService : IDisposable
             TrackChanged?.Invoke(next);
     }
 
-    private static async Task<(BitmapSource?, Color?)> LoadArtworkAsync(Windows.Storage.Streams.IRandomAccessStreamReference? reference)
+    private void ScheduleArtworkRetries(string key)
     {
-        if (reference is null) return (null, null);
+        foreach (var delay in ArtworkRetries)
+            _ = Task.Delay(delay).ContinueWith(_ => Post(() =>
+            {
+                if (_artworkKey == key) _ = RefreshAsync(readArtwork: true);
+            }), TaskScheduler.Default);
+    }
+
+    private static bool SameBytes(byte[]? a, byte[]? b) =>
+        a is null ? b is null : b is not null && a.AsSpan().SequenceEqual(b);
+
+    private void SetArtwork(byte[]? bytes)
+    {
+        _artworkBytes = bytes;
+        (_artwork, _tint) = DecodeArtwork(bytes);
+    }
+
+    private static async Task<byte[]?> ReadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? reference)
+    {
+        if (reference is null) return null;
         try
         {
             using var stream = await reference.OpenReadAsync();
             using var managed = stream.AsStream();
             using var copy = new MemoryStream();
             await managed.CopyToAsync(copy);
-            copy.Position = 0;
+            return copy.Length > 0 ? copy.ToArray() : null;
+        }
+        catch (Exception e)
+        {
+            Log.Debug(e, "Artwork could not be read");
+            return null;
+        }
+    }
+
+    private static (BitmapSource?, Color?) DecodeArtwork(byte[]? bytes)
+    {
+        if (bytes is null) return (null, null);
+        try
+        {
+            using var copy = new MemoryStream(bytes, writable: false);
             var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;

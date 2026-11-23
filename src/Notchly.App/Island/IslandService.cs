@@ -351,8 +351,18 @@ public sealed class IslandService : IFeatureService
         }
         else if (_notice is { } notice)
         {
-            size = g.NoticeSize(notice.Leading, notice.Trailing);
-            shift = g.NoticeShift(notice.Leading, notice.Trailing);
+            if (g.Floats && notice.Level is not null)
+                // A capsule has no camera inside: the level row sets its width (upstream capsuleNoticeSurface).
+                size = g.CapsuleSurface(NotchGeometry.CapsuleLevelContent(LevelReadingWidth), NotchGeometry.CapsuleMaximumNotice);
+            else if (notice.Level is not null)
+                // Both wings as wide as the mark and the widest reading, so the island holds still
+                // as the value gains a digit (upstream NotchNotice.preferredWings).
+                size = g.NoticeSize(LevelWing, LevelWing);
+            else
+            {
+                size = g.NoticeSize(notice.Leading, notice.Trailing);
+                shift = g.NoticeShift(notice.Leading, notice.Trailing);
+            }
             content = ClosedContent.Notice;
         }
         else if (CurrentActivity() is { } activity)
@@ -387,9 +397,11 @@ public sealed class IslandService : IFeatureService
         w.StripIcon.Visibility = Visibility.Collapsed;
         w.StripBars.Visibility = Visibility.Collapsed;
         w.StripText.Visibility = Visibility.Collapsed;
-        w.StripLevel.Visibility = Visibility.Collapsed;
         w.StripLead.Visibility = Visibility.Collapsed;
         w.StripTrail.Visibility = Visibility.Collapsed;
+        w.StripRow.Visibility = Visibility.Collapsed;
+        w.LevelLead.Visibility = Visibility.Collapsed;
+        w.LevelMeter.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
         // A notice's art sits beside the camera; music moves it to the strip's end below.
@@ -424,6 +436,12 @@ public sealed class IslandService : IFeatureService
             case ClosedContent.Download when _downloads?.Current is { } download:
                 ShowDownloadStrip(w, download, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
+            case ClosedContent.Notice when _notice is { Level: { } rowLevel } notice && g.Floats:
+                ShowLevelRow(w, g, notice, rowLevel);
+                break;
+            case ClosedContent.Notice when _notice is { Level: { } wingLevel } notice:
+                ShowLevelWings(w, notice, wingLevel);
+                break;
             case ClosedContent.Notice when _notice is { } notice:
                 if (notice.Art is not null) ShowArt(w, notice.Art, body);
                 else
@@ -432,15 +450,7 @@ public sealed class IslandService : IFeatureService
                     w.StripIcon.Foreground = Brush(notice.Tint ?? Colors.White);
                     w.StripIcon.Visibility = Visibility.Visible;
                 }
-                if (notice.Level is { } level)
-                {
-                    w.StripLevel.Visibility = Visibility.Visible;
-                    w.StripLevelFill.Width = Math.Clamp(level, 0, 1) * w.StripLevel.Width;
-                    w.StripText.Text = Math.Round(level * 100).ToString("0");
-                    w.StripText.Margin = new Thickness(8 + w.StripLevel.Width + 8, 0, 8, 0);
-                    w.StripText.Visibility = Visibility.Visible;
-                }
-                else if (notice.Text is { } text)
+                if (notice.Text is { } text)
                 {
                     w.StripText.Text = text;
                     w.StripText.Foreground = Brush(notice.Tint ?? Colors.White);
@@ -461,9 +471,74 @@ public sealed class IslandService : IFeatureService
         w.StripArt.Height = side;
         w.StripArt.CornerRadius = new CornerRadius(side * 0.28);
         w.StripArtBrush.ImageSource = art;
-        w.StripArt.Background = art is null ? new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF)) : w.StripArt.Background;
+        // A song without a cover shows a plain tile; the next cover goes back on the image brush.
+        w.StripArt.Background = art is null ? NoArtwork : w.StripArtBrush;
         w.StripArt.Visibility = Visibility.Visible;
     }
+
+    /// <summary>Upstream levelRow: the mark, a meter that keeps its place, and the reading in the room of "100%".</summary>
+    private void ShowLevelRow(NotchWindow w, NotchGeometry g, Notice notice, double level)
+    {
+        var tint = notice.Tint ?? Colors.White;
+        var fraction = double.IsFinite(level) ? Math.Clamp(level, 0, 1) : 0;
+        w.StripRow.Margin = new Thickness(g.CapsuleRowLeading, 0, 0, 0);
+        w.StripRowIcon.Text = notice.Glyph;
+        w.StripRowIcon.Foreground = Brush(tint);
+        w.StripRowFill.Width = Math.Max(fraction > 0 ? NotchGeometry.CapsuleMeterHeight : 0, NotchGeometry.CapsuleMeterWidth * fraction);
+        w.StripRowText.Text = $"{Math.Round(fraction * 100):0}%";
+        w.StripRowText.Width = LevelReadingWidth;
+        w.StripRow.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Upstream NotchNoticeView for a level: mark and reading on one side, the meter on the other.</summary>
+    private static void ShowLevelWings(NotchWindow w, Notice notice, double level)
+    {
+        var fraction = double.IsFinite(level) ? Math.Clamp(level, 0, 1) : 0;
+        w.LevelLeadIcon.Text = notice.Glyph;
+        w.LevelLeadIcon.Foreground = Brush(notice.Tint ?? Colors.White);
+        w.LevelLeadText.Text = $"{Math.Round(fraction * 100):0}%";
+        w.LevelLead.Visibility = Visibility.Visible;
+        w.LevelMeterFilled.Width = new GridLength(fraction, GridUnitType.Star);
+        w.LevelMeterEmpty.Width = new GridLength(1 - fraction, GridUnitType.Star);
+        // A level above zero always shows a round end, as upstream's meter does.
+        w.LevelMeterFilled.MinWidth = fraction > 0 ? w.LevelMeter.Height : 0;
+        w.LevelMeter.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Room a level keeps inside its curved ends (upstream NotchNotice.levelInset).</summary>
+    private const double LevelInset = 13;
+
+    private double _levelWing;
+
+    /// <summary>A level notice's wing: inset, mark, gap and the widest reading (upstream preferredWings).</summary>
+    private double LevelWing
+    {
+        get
+        {
+            if (_levelWing > 0 || _window is not { } w) return _levelWing > 0 ? _levelWing : 64;
+            var text = new FormattedText("100%", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                new Typeface(w.LevelLeadText.FontFamily, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+                w.LevelLeadText.FontSize, Brushes.White, VisualTreeHelper.GetDpi(w).PixelsPerDip);
+            return _levelWing = Math.Ceiling(LevelInset + 18 + 8 + text.WidthIncludingTrailingWhitespace);
+        }
+    }
+
+    private double _levelReadingWidth;
+
+    /// <summary>The widest reading, "100%", as the row draws it (upstream levelReadingWidth, with its air).</summary>
+    private double LevelReadingWidth
+    {
+        get
+        {
+            if (_levelReadingWidth > 0 || _window is not { } w) return _levelReadingWidth;
+            var text = new FormattedText("100%", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                new Typeface(w.StripRowText.FontFamily, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal),
+                w.StripRowText.FontSize, Brushes.White, VisualTreeHelper.GetDpi(w).PixelsPerDip);
+            return _levelReadingWidth = Math.Ceiling(text.WidthIncludingTrailingWhitespace) + 2;
+        }
+    }
+
+    private static readonly Brush NoArtwork = Brush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
 
     private static SolidColorBrush Brush(Color color)
     {
@@ -816,6 +891,9 @@ public sealed class IslandService : IFeatureService
 
     private void OnMediaChanged()
     {
+        // A track's notice shows its cover as soon as the player hands it over, often after the title.
+        if (_notice is { Kind: NoticeKind.Track } notice && _media?.Current is { } current && !ReferenceEquals(notice.Art, current.Artwork))
+            _notice = notice with { Art = current.Artwork };
         _lyrics?.PlaybackChanged(CurrentIdentity());
         UpdatePages();
         SyncLyrics();

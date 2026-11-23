@@ -326,6 +326,9 @@ public sealed class IslandService : IFeatureService
         w.StripText.Visibility = Visibility.Collapsed;
         w.StripLevel.Visibility = Visibility.Collapsed;
         w.StripText.Margin = new Thickness(8, 0, 8, 0);
+        // A notice's art sits beside the camera; music moves it to the strip's end below.
+        w.StripArt.HorizontalAlignment = HorizontalAlignment.Right;
+        w.StripArt.Margin = new Thickness(0, 0, 6, 0);
         w.StripIcon.Foreground = Brushes.White;
         w.StripText.Foreground = Brushes.White;
         _barsTimer?.Stop();
@@ -333,7 +336,13 @@ public sealed class IslandService : IFeatureService
         switch (content)
         {
             case ClosedContent.Music when _media?.Current is { } playing:
+                // Upstream's music strip: the cover at the left end, the bars at the right end.
                 ShowArt(w, playing.Artwork, body);
+                w.StripArt.Width = w.StripArt.Height = g.MusicArtworkSide;
+                w.StripArt.CornerRadius = new CornerRadius(g.MusicArtworkRadius);
+                w.StripArt.HorizontalAlignment = HorizontalAlignment.Left;
+                w.StripArt.Margin = new Thickness(g.MusicArtworkLeading, 0, 0, 0);
+                w.StripBars.Margin = new Thickness(0, 0, g.MusicBarsTrailing, 0);
                 w.StripBars.Visibility = Visibility.Visible;
                 foreach (Border bar in w.StripBars.Children) bar.Background = Brush(playing.ArtworkTint ?? Colors.White);
                 _barsTimer?.Start();
@@ -738,7 +747,7 @@ public sealed class IslandService : IFeatureService
     {
         if (_window is null || _shown != ClosedContent.Music) { _barsTimer?.Stop(); return; }
         var playing = _media?.Current?.IsPlaying == true;
-        var max = Math.Max(6, Math.Min(16, (_geometry?.StripBodyHeight ?? 20) - NotchLayout.CompactEdgeGap * 2));
+        var max = _geometry?.MusicBarsHeight ?? 10;
         var t = Now;
         var i = 0;
         foreach (Border bar in _window.StripBars.Children)

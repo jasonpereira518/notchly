@@ -106,6 +106,67 @@ public sealed record NotchGeometry
     public SizeD MusicStrip => StripWithWings(56, 44);
     public double MusicWingWidth => Math.Max(0, (MusicStrip.Width - CameraWidth) / 2);
 
+    // MARK: Closed music strip contents (upstream compactMusicArtwork*/compactMusicBars* and
+    // CapsuleLayout.artworkSide/artworkInset/barsHeight/endPadding): the cover sits at the
+    // strip's left end and the bars at its right end, each an even gap from the outline.
+
+    /// <summary>Gap between the capsule's end and its bars (upstream CapsuleLayout.endPadding).</summary>
+    public const double CapsuleEndPadding = 8;
+
+    /// <summary>The cover's side: the strip's height less an even gap above and below.</summary>
+    public double MusicArtworkSide => Floats
+        ? Math.Max(0, StripBodyHeight - 6)
+        : Math.Max(0, Math.Min(26, StripHeight - NotchLayout.CompactEdgeGap * 2));
+
+    /// <summary>A capsule's cover is round, concentric with the capsule's end.</summary>
+    public double MusicArtworkRadius
+    {
+        get
+        {
+            var side = MusicArtworkSide;
+            if (Floats || !MusicArtworkFills) return Floats ? side / 2 : side * 0.28;
+            var concentric = NotchLayout.SurfaceRadius(MusicStrip.Height) - (StripHeight - side) / 2;
+            return Math.Min(side / 2, Math.Max(side * 0.2, concentric));
+        }
+    }
+
+    /// <summary>From the strip's left edge to the cover's left edge.</summary>
+    public double MusicArtworkLeading => Floats
+        ? NotchLayout.ShoulderFor(StripHeight) + (StripBodyHeight - MusicArtworkSide) / 2
+        : CompactEdgeInset(MusicArtworkSide, MusicArtworkRadius,
+                           MusicArtworkFills ? (StripHeight - MusicArtworkSide) / 2 : NotchLayout.CompactEdgeGap);
+
+    public double MusicBarsHeight => Floats
+        ? Math.Min(16, Math.Max(6, StripBodyHeight - 8))
+        : Math.Min(16, Math.Max(6, StripHeight - NotchLayout.CompactEdgeGap * 2));
+
+    /// <summary>From the bars' right edge to the strip's right edge.</summary>
+    public double MusicBarsTrailing => Floats
+        ? NotchLayout.ShoulderFor(StripHeight) + CapsuleEndPadding
+        : CompactEdgeInset(MusicBarsHeight, NotchLayout.CompactMusicBarWidth / 2, NotchLayout.CompactEdgeGap);
+
+    /// <summary>A cover that nearly fills the strip shares its corners' centre with the strip's.</summary>
+    private bool MusicArtworkFills => StripHeight - MusicArtworkSide <= NotchLayout.CompactEdgeGap * 4;
+
+    /// <summary>
+    /// Upstream compactActivityEdgeInset: how far in from the strip's end a vertically centred
+    /// box `boxHeight` tall, rounded by `radius`, keeps an even `gap` from the outline, whose
+    /// lower half is mostly one long arc.
+    /// </summary>
+    private double CompactEdgeInset(double boxHeight, double radius, double gap)
+    {
+        var size = MusicStrip;
+        var shoulder = NotchLayout.ShoulderFor(size.Height);
+        var corner = Math.Min(NotchLayout.SurfaceRadius(size.Height), (size.Width - shoulder * 2) / 2);
+        var flat = shoulder + gap;
+        var below = (StripHeight - boxHeight) / 2;
+        var reach = corner - radius - gap;
+        var drop = corner - radius - below;
+        if (reach <= 0 || drop <= 0) return Math.Max(0, flat);
+        var span = reach > drop ? Math.Sqrt(reach * reach - drop * drop) : 0;
+        return Math.Max(0, Math.Max(flat, shoulder + corner - radius - span));
+    }
+
     /// <summary>Both timer wings take the width the wider reading needs, 44–64 points.</summary>
     public SizeD TimerStrip(double fittedWing) =>
         StripWithWings(Math.Min(64, Math.Max(44, double.IsFinite(fittedWing) ? Math.Ceiling(fittedWing) : 0)), 64);

@@ -197,8 +197,8 @@
                                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="Collapsed" />
                     </Grid>
                     <Grid x:Name="RightWing" Grid.Column="2" ClipToBounds="True">
-                        <StackPanel x:Name="StripBars" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                    Margin="8,0,0,0" Visibility="Collapsed" />
+                        <StackPanel x:Name="StripBars" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Visibility="Collapsed" />
                         <TextBlock x:Name="StripText" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Left"
                                    VerticalAlignment="Center" Margin="8,0,8,0" Visibility="Collapsed" />
                         <Grid x:Name="StripLevel" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0"

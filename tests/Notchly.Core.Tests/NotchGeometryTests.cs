@@ -31,6 +31,31 @@ public class NotchGeometryTests
     }
 
     [Fact]
+    public void CapsuleMusicStripPutsCoverAndBarsAtItsEnds()
+    {
+        // Upstream CapsuleLayout: a round cover concentric with the capsule's end, bars 8 points
+        // from the other end, both measured past the capsule's side within its surface.
+        var geometry = new NotchGeometry(Omen, silhouette: NotchSilhouette.Capsule) { CompactSideRoom = 500 };
+        var side = NotchLayout.ShoulderFor(geometry.StripHeight);
+        Assert.Equal(geometry.StripBodyHeight - 6, geometry.MusicArtworkSide, 6);
+        Assert.Equal(geometry.MusicArtworkSide / 2, geometry.MusicArtworkRadius, 6);
+        Assert.Equal(side + 3, geometry.MusicArtworkLeading, 6);
+        Assert.Equal(side + 8, geometry.MusicBarsTrailing, 6);
+        Assert.True(geometry.MusicArtworkLeading + geometry.MusicArtworkSide <= geometry.MusicWingWidth);
+    }
+
+    [Fact]
+    public void NotchMusicStripKeepsCoverAndBarsInsideTheCurvedEnds()
+    {
+        var geometry = new NotchGeometry(Omen) { CompactSideRoom = 500 };
+        var shoulder = NotchLayout.ShoulderFor(geometry.StripHeight);
+        Assert.Equal(Math.Min(26, geometry.StripHeight - NotchLayout.CompactEdgeGap * 2), geometry.MusicArtworkSide, 6);
+        Assert.True(geometry.MusicArtworkLeading >= shoulder + NotchLayout.CompactEdgeGap - 1e-9);
+        Assert.True(geometry.MusicBarsTrailing >= shoulder + NotchLayout.CompactEdgeGap - 1e-9);
+        Assert.True(geometry.MusicArtworkLeading + geometry.MusicArtworkSide <= geometry.MusicWingWidth);
+    }
+
+    [Fact]
     public void StandardBarDrawsTheSame20PointCapsule()
     {
         var standard = Capsule(24);

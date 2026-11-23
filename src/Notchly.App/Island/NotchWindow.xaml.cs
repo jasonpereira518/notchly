@@ -67,7 +67,7 @@ public partial class NotchWindow : Window
         ApplyStroke();
     }
 
-    private void ApplyStroke() => Shape.Stroke = _warning ?? _edge;
+    private void ApplyStroke() => Edge.Stroke = _warning ?? _edge;
 
     private static SolidColorBrush Frozen(Color color)
     {
@@ -182,7 +182,8 @@ public partial class NotchWindow : Window
         ContentLayer.Clip = outline;
         // Only the stroke's inner half shows. A hanging island's top is the screen's edge, where an
         // edge would only draw a line along the top: it is left out there.
-        Shape.Clip = geometry.Floats ? outline
+        Edge.Data = outline;
+        Edge.Clip = geometry.Floats ? outline
             : new CombinedGeometry(GeometryCombineMode.Intersect, outline, new RectangleGeometry(new Rect(0, 1.5, size.Width, size.Height)));
 
         // The strip keeps the camera's width in the middle; wings take what is left on each side.

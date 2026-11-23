@@ -409,6 +409,20 @@
                                           Visibility="Collapsed" Margin="0,0,2,0" />
                             <Button x:Name="NotificationsClear" Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Clear All"
                                     Visibility="Collapsed" Margin="0,0,2,0" />
+                            <!-- The camera mirror's chooser (more than one camera) and Stop camera (upstream NotchCameraChooser
+                                 and NotchCameraStopButton in the top row). -->
+                            <Button x:Name="CameraMenu" Style="{StaticResource ChipButton}" Padding="10,4" Margin="0,0,6,0"
+                                    Visibility="Collapsed" AutomationProperties.Name="Camera">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8B8;" FontFamily="{StaticResource IconFont}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock x:Name="CameraMenuName" Text="Camera" FontSize="11" FontWeight="Medium" MaxWidth="140"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="8"
+                                               VerticalAlignment="Center" Margin="6,1,0,0" Foreground="{StaticResource Dim}" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="CameraStop" Style="{StaticResource ChipButton}" Padding="10,4" Margin="0,0,6,0"
+                                    Visibility="Collapsed" Content="Stop camera" FontSize="11" />
                             <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Island settings" />
                             <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Content="&#xE70E;" ToolTip="Close" />
                         </StackPanel>
@@ -672,6 +686,9 @@
 
                         <!-- Notifications (upstream NotchNotificationsView): built in code by NotificationsPage. -->
                         <Grid x:Name="NotificationsPage" Visibility="Collapsed" />
+
+                        <!-- Camera mirror (upstream NotchCameraView): built in code by CameraPage. -->
+                        <Grid x:Name="CameraPage" Visibility="Collapsed" />
 
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">

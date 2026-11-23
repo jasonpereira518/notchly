@@ -3,6 +3,7 @@
   SPDX-License-Identifier: GPL-3.0-or-later
   Notchly's sparse package (Windows-only; upstream needs none). It gives Notchly.exe, where it already is, a
   package identity so Windows lets it read notifications (UserNotificationListener) once you allow it.
+  It also declares the webcam, so the island's camera mirror keeps working once Notchly has that identity.
   Settings → Dynamic Island → Notifications → "Set up notifications" registers it in Developer Mode with
     Add-AppxPackage -Register <this file> -ExternalLocation <the exe's folder>
   and "Remove notification access" undoes it. Nothing here is installed or copied anywhere.
@@ -45,5 +46,7 @@
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
     <uap3:Capability Name="userNotificationListener" />
+    <!-- The island's camera mirror: without it Windows blocks the camera for a registered Notchly. -->
+    <DeviceCapability Name="webcam" />
   </Capabilities>
 </Package>

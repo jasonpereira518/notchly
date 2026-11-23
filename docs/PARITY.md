@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**10 ported**, 58 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**11 ported**, 57 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -84,7 +84,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `homebrew` | Package manager | 🛠️ Planned | M11 | Homebrew becomes winget on Windows. |
 | `appUpdates` | App updates | 🛠️ Planned | M11 |  |
 | `screenshot` | Screenshot | 🛠️ Planned | M10 |  |
-| `cameraPreview` | Camera preview | 🛠️ Planned | M3/M9 |  |
+| `cameraPreview` | Camera preview | ✅ Ported | M3 | Floating mirror window comes with the tools in M9. |
 | `radialMenu` | Radial menu | 🛠️ Planned | M9 |  |
 | `scratchpad` | Scratchpad | 🛠️ Planned | M9 |  |
 | `commandBar` | Command bar | 🛠️ Planned | M9 |  |

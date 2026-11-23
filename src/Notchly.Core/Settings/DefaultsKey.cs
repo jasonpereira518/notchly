@@ -92,6 +92,9 @@ public static class DefaultsKey
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";
     /// <summary>Removes the original from Windows once the island shows it (upstream hides the macOS banner).</summary>
     public const string NotchDismissNativeNotifications = "notchDismissNativeNotifications";
+    public const string NotchCameraEnabled = "notchCameraEnabled";
+    /// <summary>The camera the island's mirror opens, by Windows device id; machine state (upstream lets macOS remember it).</summary>
+    public const string NotchCameraDevice = "notchCameraDevice";
     public const string NotchCalendarEnabled = "notchCalendarEnabled";
     public const string NotchCalendarCountdown = "notchCalendarCountdown";
     /// <summary>Minutes before a start the countdown appears, chosen events included.</summary>

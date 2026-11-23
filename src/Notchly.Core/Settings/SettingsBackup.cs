@@ -19,7 +19,7 @@ public static class SettingsBackup
     public static readonly IReadOnlySet<string> MachineStateKeys = new HashSet<string>(StringComparer.Ordinal)
     {
         DefaultsKey.OnboardingStep, DefaultsKey.LaunchAtLogin, DefaultsKey.PortedFeaturesSeen,
-        DefaultsKey.NotchDownloadsFolderPath,
+        DefaultsKey.NotchDownloadsFolderPath, DefaultsKey.NotchCameraDevice,
     };
 
     public static string Export(SettingsStore store)

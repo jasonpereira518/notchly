@@ -15,6 +15,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Notchly.App.Island.Agents;
 using Notchly.App.Island.Calendar;
+using Notchly.App.Island.Camera;
 using Notchly.App.Island.Downloads;
 using Notchly.App.Island.Files;
 using Notchly.App.Island.Lyrics;
@@ -30,6 +31,7 @@ using Notchly.App.Platform.Windowing;
 using Notchly.App.Shell;
 using Notchly.Core.Agents;
 using Notchly.Core.Calendar;
+using Notchly.Core.Camera;
 using Notchly.Core.Downloads;
 using Notchly.Core.Features;
 using Notchly.Core.MenuBar;
@@ -52,7 +54,7 @@ public sealed class IslandService : IFeatureService
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -76,6 +78,7 @@ public sealed class IslandService : IFeatureService
     private AgentsPage? _agentsPage;
     private NotificationsService? _notifications;
     private NotificationsPage? _notificationsPage;
+    private CameraPage? _cameraPage;
     /// <summary>The shape of the agent reading the strip was sized for; a new shape resizes it.</summary>
     private string _agentShape = "";
     private readonly Dictionary<string, double> _measured = new(StringComparer.Ordinal);
@@ -206,6 +209,8 @@ public sealed class IslandService : IFeatureService
         _notifications.Arrived += OnNotificationArrived;
         _notificationsPage = new NotificationsPage(window, _notifications);
         _notificationsPage.Resized += () => { if (_expanded && _page == NotchModule.Notifications) Refresh(); };
+        _cameraPage = new CameraPage(window, _settings, _dispatcher,
+            () => CameraPreviewSupport.CanPresent(CameraPreviewSupport.IsEnabled(_settings), _expanded, _page), modal => _modalOpen = modal);
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -264,6 +269,7 @@ public sealed class IslandService : IFeatureService
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
         _notifications?.Dispose(); _notifications = null; _notificationsPage = null;
+        _cameraPage?.Dispose(); _cameraPage = null;
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -341,6 +347,7 @@ public sealed class IslandService : IFeatureService
         SyncCalendar();
         SyncAgents();
         SyncNotifications();
+        SyncCamera();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -366,6 +373,7 @@ public sealed class IslandService : IFeatureService
             NotchModule.Calendar => w.CalendarPage,
             NotchModule.Agents => w.AgentsPage,
             NotchModule.Notifications => w.NotificationsPage,
+            NotchModule.Camera => w.CameraPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -829,6 +837,8 @@ public sealed class IslandService : IFeatureService
         if (_calendarPage is not null) _calendarPage.Visible = false;
         if (_agentsPage is not null) _agentsPage.Visible = false;
         if (_notificationsPage is not null) _notificationsPage.Visible = false;
+        // The camera stops the moment the island closes (upstream onDisappear).
+        if (_cameraPage is not null) _cameraPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -1629,6 +1639,16 @@ public sealed class IslandService : IFeatureService
         w.NotifDetail.Visibility = string.IsNullOrEmpty(notice.Detail) ? Visibility.Collapsed : Visibility.Visible;
     }
 
+    // MARK: Camera (upstream CameraPreviewService.syncWithPreferences for the island)
+
+    /// <summary>The page turned off (or its feature uninstalled) stops the camera and leaves the page.</summary>
+    private void SyncCamera()
+    {
+        if (_cameraPage is null || Pages().Contains(NotchModule.Camera)) return;
+        _cameraPage.Visible = false;
+        if (_page == NotchModule.Camera && _expanded) ShowPage(NotchModule.Controls);
+    }
+
     // MARK: Files (drops onto the island and drag-reveal)
 
     private bool FilesAvailable => _shelf is not null && Pages().Contains(NotchModule.Files);
@@ -1867,7 +1887,8 @@ public sealed class IslandService : IFeatureService
                         && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
                         && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
                         && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled))
-                        && (m != NotchModule.Notifications || _settings.GetBool(DefaultsKey.NotchNotificationsEnabled)))
+                        && (m != NotchModule.Notifications || _settings.GetBool(DefaultsKey.NotchNotificationsEnabled))
+                        && (m != NotchModule.Camera || _settings.GetBool(DefaultsKey.NotchCameraEnabled)))
             .ToList();
     }
 
@@ -1885,6 +1906,7 @@ public sealed class IslandService : IFeatureService
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),
                 NotchModule.Notifications => ("\uEA8F", "Notifications"),
+                NotchModule.Camera => ("\uE8B8", "Camera"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -1922,6 +1944,10 @@ public sealed class IslandService : IFeatureService
         if (module == NotchModule.Notifications && _geometry is { } ng) _notificationsPage?.Layout(ng.ContentBudget);
         if (_notificationsPage is not null) _notificationsPage.Visible = module == NotchModule.Notifications && _expanded;
         if (module != NotchModule.Notifications) _window.NotificationsClear.Visibility = Visibility.Collapsed;
+        _window.CameraPage.Visibility = module == NotchModule.Camera ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Camera && _geometry is { } camera) _cameraPage?.Layout(camera.ContentWidth, camera.ContentBudget);
+        // Leaving the page stops the camera; coming back shows the hint until Open camera.
+        if (_cameraPage is not null) _cameraPage.Visible = module == NotchModule.Camera && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

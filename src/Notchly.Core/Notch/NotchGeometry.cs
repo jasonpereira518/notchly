@@ -107,6 +107,9 @@ public sealed record NotchGeometry
 
     /// <summary>A download: both wings as wide as the name needs, 56–160 (upstream compactDownloadGeometry).</summary>
     public SizeD DownloadStrip(double wing) => StripWithWings(wing, 44);
+
+    /// <summary>An event countdown: wings as wide as the title or the clock needs, 72–120 (upstream compactCalendarGeometry).</summary>
+    public SizeD CalendarStrip(double wing) => StripWithWings(Math.Min(120, Math.Max(72, double.IsFinite(wing) ? Math.Ceiling(wing) : 72)), 72);
     public double MusicWingWidth => Math.Max(0, (MusicStrip.Width - CameraWidth) / 2);
 
     // MARK: Closed music strip contents (upstream compactMusicArtwork*/compactMusicBars* and

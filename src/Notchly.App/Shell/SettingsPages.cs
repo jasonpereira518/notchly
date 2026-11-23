@@ -275,6 +275,14 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
                    DefaultsKey.NotchDownloadsEnabled, "\uE896"),
             DownloadsFolderCard(),
 
+            Section("Calendar"),
+            Toggle("Calendar on the island", "Upcoming appointments from your Google, Outlook, Canvas or iCloud calendars, added below by their private iCal link.", DefaultsKey.NotchCalendarEnabled, "\uE787"),
+            CalendarSettings.CalendarList(app.Settings),
+            Toggle("Event countdown", "Show every timed event in the closed island before it starts. To count down to only some, turn this off and right-click them on the island's Calendar page. Titles may appear in screen captures.", DefaultsKey.NotchCalendarCountdown, "\uE916"),
+            Card("Time before event", null, "\uE823", CalendarSettings.LeadChoice(app.Settings)),
+            Toggle("Time left in current event", "Show a timed event in progress in the closed island during the hour before it ends. Its title may appear in screen captures.", DefaultsKey.NotchCalendarTimeLeft, "\uE916"),
+            Toggle("Week numbers", "The month grid numbers its weeks.", DefaultsKey.NotchCalendarWeekNumbers, "\uE8C0"),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

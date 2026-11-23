@@ -89,6 +89,16 @@ public static class DefaultsKey
     public const string NotchDownloadsFolderPath = "notchDownloadsFolderPath";
     public const string NotchNotificationsEnabled = "notchNotificationsEnabled";
     public const string NotchCalendarEnabled = "notchCalendarEnabled";
+    public const string NotchCalendarCountdown = "notchCalendarCountdown";
+    /// <summary>Minutes before a start the countdown appears, chosen events included.</summary>
+    public const string NotchCalendarCountdownLead = "notchCalendarCountdownLead";
+    /// <summary>The event under way counts down to its end.</summary>
+    public const string NotchCalendarTimeLeft = "notchCalendarTimeLeft";
+    public const string NotchCalendarWeekNumbers = "notchCalendarWeekNumbers";
+    /// <summary>Calendars (feed ids) left out of the island; stored as exclusions so new ones start shown.</summary>
+    public const string NotchCalendarExcluded = "notchCalendarExcluded";
+    /// <summary>Countdown keys of events chosen from their menu, each with its end (JSON; upstream keeps a dictionary).</summary>
+    public const string NotchCalendarChosenCountdowns = "notchCalendarChosenCountdowns";
     public const string NotchAgentsEnabled = "notchAgentsEnabled";
     public const string NotchWatchEnabled = "notchWatchEnabled";
     public const string NotchMascotEnabled = "notchMascotEnabled";

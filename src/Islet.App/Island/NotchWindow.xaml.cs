@@ -45,32 +45,41 @@ public partial class NotchWindow : Window
     public IntPtr Handle => _handle;
 
     /// <summary>
-    /// WPF-UI restyles every window in the app when the theme is applied (opening Settings
-    /// triggers it): it sets the themed window background and a Mica backdrop, which paints this
-    /// window's whole envelope as an opaque rectangle behind the Settings window. The island must
-    /// stay fully transparent, so undo that whenever it happens.
+    /// WPF-UI restyles every window in the app whenever a window starts watching the system
+    /// theme (opening Settings does): ApplicationThemeManager.Apply calls
+    /// WindowBackgroundManager.UpdateBackground on each one, which sets a themed background and
+    /// applies a Mica backdrop. On this window that paints the whole envelope as an opaque
+    /// rectangle behind Settings. The island must stay fully transparent, so strip both again
+    /// once the restyle has finished (deferred, as it happens inside the Background change).
     /// </summary>
     private void KeepTransparent()
     {
         var descriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(BackgroundProperty, typeof(Window));
-        EventHandler onBackground = (_, _) => ResetBackground();
-        descriptor.AddValueChanged(this, onBackground);
-        Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
-        Closed += (_, _) =>
+        EventHandler onBackground = (_, _) =>
         {
-            descriptor.RemoveValueChanged(this, onBackground);
-            Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
+            // RemoveBackdrop itself changes Background; ignore those notifications.
+            if (_resettingStyle || _resetQueued) return;
+            _resetQueued = true;
+            Dispatcher.BeginInvoke(ResetStyle);
         };
-        SourceInitialized += (_, _) => ResetBackground();
+        descriptor.AddValueChanged(this, onBackground);
+        Closed += (_, _) => descriptor.RemoveValueChanged(this, onBackground);
     }
 
-    private void OnThemeChanged(Wpf.Ui.Appearance.ApplicationTheme theme, Color accent) =>
-        Dispatcher.BeginInvoke(ResetBackground);
+    private bool _resettingStyle, _resetQueued;
 
-    private void ResetBackground()
+    private void ResetStyle()
     {
-        if (!ReferenceEquals(Background, Brushes.Transparent)) Background = Brushes.Transparent;
-        if (_handle != IntPtr.Zero) Wpf.Ui.Controls.WindowBackdrop.RemoveBackdrop(this);
+        _resetQueued = false;
+        _resettingStyle = true;
+        try
+        {
+            if (_handle != IntPtr.Zero) Wpf.Ui.Controls.WindowBackdrop.RemoveBackdrop(this);
+            Background = Brushes.Transparent;
+            // The layered window's per-pixel alpha needs the composition target clear as well.
+            if (HwndSource.FromHwnd(_handle)?.CompositionTarget is { } target) target.BackgroundColor = Colors.Transparent;
+        }
+        finally { _resettingStyle = false; }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

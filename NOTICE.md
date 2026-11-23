@@ -1,10 +1,10 @@
 # Notice
 
-Islet (working name) is a Windows 11 port of **vorssaint-utils**,
+Notchly is a Windows 11 port of **vorssaint-utils**,
 <https://github.com/vorssaint/vorssaint-utils>, Copyright (C) 2026 Vorssaint,
 licensed under the GNU General Public License v3.0 or later.
 
-Large parts of the pure logic in `src/Islet.Core` are translations of the
+Large parts of the pure logic in `src/Notchly.Core` are translations of the
 upstream Swift sources. The file headers name the upstream file each one came
 from. This port is therefore a derivative work and is distributed under the
 same license, GPL-3.0-or-later (see `LICENSE`).

@@ -216,7 +216,9 @@ public sealed class MediaSessionService : IDisposable
                 controls?.IsPlayPauseToggleEnabled ?? false,
                 controls?.IsNextEnabled ?? false,
                 controls?.IsPreviousEnabled ?? false,
-                controls?.IsPlaybackPositionEnabled ?? false,
+                // Some players (Apple Music) take a seek while saying they cannot: a known timeline is enough.
+                (controls?.IsPlaybackPositionEnabled ?? false)
+                    || (timeline is { } span && span.MaxSeekTime > span.MinSeekTime && span.EndTime > span.StartTime),
                 _artwork,
                 _tint));
         }
@@ -315,7 +317,25 @@ public sealed class MediaSessionService : IDisposable
     public async void TogglePlayPause() { if (_session is { } s) await s.TryTogglePlayPauseAsync(); }
     public async void Next() { if (_session is { } s) await s.TrySkipNextAsync(); }
     public async void Previous() { if (_session is { } s) await s.TrySkipPreviousAsync(); }
-    public async void Seek(TimeSpan position) { if (_session is { } s) await s.TryChangePlaybackPositionAsync(position.Ticks); }
+    public async void Seek(TimeSpan position)
+    {
+        if (_session is not { } s) return;
+        try
+        {
+            var wasPlaying = s.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            if (!await s.TryChangePlaybackPositionAsync(position.Ticks))
+            {
+                Log.Debug("{App} refused a seek", s.SourceAppUserModelId);
+                return;
+            }
+            // Apple Music pauses when it is seeked through the media controls: a scrub keeps playing.
+            if (!wasPlaying) return;
+            await Task.Delay(350);
+            if (s.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused)
+                await s.TryPlayAsync();
+        }
+        catch (Exception e) { Log.Debug(e, "Seek failed"); }
+    }
 
     public void Dispose()
     {

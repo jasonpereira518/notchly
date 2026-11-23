@@ -14,4 +14,9 @@
     <PackageReference Include="Ical.Net" Version="5.2.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The AI agents' price list that ships with the app (upstream Resources/agent-prices.json). -->
+    <EmbeddedResource Include="Agents\agent-prices.json" LogicalName="Notchly.Core.Agents.agent-prices.json" />
+  </ItemGroup>
+
 </Project>

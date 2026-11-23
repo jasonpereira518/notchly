@@ -29,6 +29,7 @@ using Notchly.App.Shell;
 using Notchly.Core.Calendar;
 using Notchly.Core.Downloads;
 using Notchly.Core.Features;
+using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
 using Notchly.Core.Notch.Lyrics;
 using Notchly.Core.Settings;
@@ -86,6 +87,9 @@ public sealed class IslandService : IFeatureService
     private double _scrollFrom, _scrollTo, _scrollStart;
     private AppBarStrip? _strip;
     private MenuBarController? _menuBar;
+    /// <summary>The menu bar's colour, from the app in front; null without a menu bar.</summary>
+    private Rgb? _barTint;
+    private DispatcherTimer? _tintTimer;
     private MediaSessionService? _media;
     private VolumeService? _volume;
     private PowerService? _power;
@@ -192,7 +196,7 @@ public sealed class IslandService : IFeatureService
         _power.BatteryChanged += OnBatteryChanged;
         _power.BrightnessChanged += OnBrightnessChanged;
         _foreground = new ForegroundWatcher();
-        _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); };
+        _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); TintSoon(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
 
         _hoverTimer = NewTimer(OnHoverTimer);
@@ -200,6 +204,9 @@ public sealed class IslandService : IFeatureService
         _noticeTimer = NewTimer(OnNoticeTimer);
         _pollTimer = NewTimer(CheckFullscreen, TimeSpan.FromSeconds(1));
         _tickTimer = NewTimer(OnTick, TimeSpan.FromMilliseconds(250));
+        // Apps change colour without changing focus (a theme, a tab): read the top again now and then.
+        _tintTimer = NewTimer(UpdateTint, TimeSpan.FromSeconds(2));
+        _tintTimer.Start();
         _barsTimer = NewTimer(OnBars, TimeSpan.FromMilliseconds(33));
         _lyricsTimer = NewTimer(OnLyricsTimer);
         _revealTimer = NewTimer(EndReveal, TimeSpan.FromMilliseconds(350));
@@ -212,7 +219,7 @@ public sealed class IslandService : IFeatureService
     {
         _running = false;
         StopFrames();
-        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer }) timer?.Stop();
+        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer, _tintTimer }) timer?.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
         _volumeKeys?.Dispose(); _volumeKeys = null;
         _foreground?.Dispose(); _foreground = null;
@@ -281,6 +288,7 @@ public sealed class IslandService : IFeatureService
         else if (reserve && _strip is not null) _strip.Update(display, geometry.StripHeight + geometry.FloatingDrop);
         else if (!reserve && _strip is not null) { _menuBar?.Dispose(); _menuBar = null; _strip.Close(); _strip = null; }
         _menuBar?.Apply(display, geometry, offset);
+        UpdateTint();
 
         _window.SetShownInCaptures(_settings.GetBool(DefaultsKey.NotchShowInCaptures));
         if (_media is not null) _media.PreferredPlayer = _settings.GetString(DefaultsKey.NotchPreferredPlayer);
@@ -486,6 +494,44 @@ public sealed class IslandService : IFeatureService
         }
     }
 
+    // MARK: Menu bar colour and the island's edge (Windows-only)
+
+    /// <summary>A new app in front: read its colour once its window has settled, and again a little later.</summary>
+    private async void TintSoon()
+    {
+        await Task.Delay(150);
+        UpdateTint();
+        await Task.Delay(450);
+        UpdateTint();
+    }
+
+    /// <summary>
+    /// The menu bar takes the colour along the top of the app in front (black on the desktop, or
+    /// with the switch off), and the island keeps an edge wherever its black would melt in.
+    /// </summary>
+    private void UpdateTint()
+    {
+        if (!_running || _window is null) return;
+        if (_menuBar is null) _barTint = null;
+        else if (!_expanded && !_hiddenInFullscreen) _barTint = ReadBarTint() ?? _barTint ?? Rgb.Black;
+        if (_menuBar is not null && _barTint is { } tint) _menuBar.SetTint(tint);
+        _window.SetEdge(Colors.White, MenuBarTint.EdgeAlpha(_barTint, _expanded));
+    }
+
+    private Rgb? ReadBarTint()
+    {
+        if (!_settings.GetBool(DefaultsKey.NotchStripMatchesApp) || _display is not { } display || _geometry is not { } g) return Rgb.Black;
+        var window = Native.GetForegroundWindow();
+        if (ForegroundApps.Describe(window) is not { } app) return null;
+        switch (ForegroundRules.Classify(app.ClassName, app.ProcessName))
+        {
+            case ForegroundKind.KeepPrevious: return null;
+            case ForegroundKind.Desktop: return Rgb.Black;
+        }
+        var barBottom = display.Bounds.Top + (int)Math.Ceiling((g.StripHeight + g.FloatingDrop) * display.Scale);
+        return WindowColorSampler.Sample(window, display.Bounds, barBottom);
+    }
+
     /// <summary>The live equalizer reads only while the bars it moves are on screen.</summary>
     private void SyncEqualizer() =>
         _equalizer?.SetVisible(_shown == ClosedContent.Music && !_hiddenInFullscreen && !_expanded, _media?.Current);
@@ -611,8 +657,7 @@ public sealed class IslandService : IFeatureService
         var warning = NotchSupport.BatteryWarningFor(battery.HasBattery ? battery.Percent : null, battery.PluggedIn,
             _settings.GetBool(DefaultsKey.NotchLowBatteryTint), _settings.GetInt(DefaultsKey.NotchLowBatteryThreshold, 10),
             _settings.GetBool(DefaultsKey.NotchLowBatteryEarly), _settings.GetInt(DefaultsKey.NotchLowBatteryEarlyThreshold, 20));
-        _window.Shape.Stroke = warning switch { BatteryWarning.Low => Brush(Red), BatteryWarning.Early => Brush(Amber), _ => null };
-        _window.Shape.StrokeThickness = warning == BatteryWarning.None ? 0 : 1.5;
+        _window.SetWarning(warning switch { BatteryWarning.Low => Red, BatteryWarning.Early => Amber, _ => null });
     }
 
     // MARK: Motion (upstream NotchMotion / NotchMotionTimeline, sampled every frame)
@@ -687,6 +732,7 @@ public sealed class IslandService : IFeatureService
         if (!_expanded)
         {
             _expanded = true;
+            UpdateTint();
             _openedByHover = byHover;
             _hoverEmphasized = false;
             _hoverState.Open();
@@ -717,6 +763,7 @@ public sealed class IslandService : IFeatureService
         Log.Debug("Island collapse requested (expanded {Expanded})", _expanded);
         if (!_expanded || _window is null || _geometry is null) return;
         _expanded = false;
+        UpdateTint();
         _openedByHover = false;
         if (_focusTaken)
         {

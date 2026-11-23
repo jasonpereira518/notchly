@@ -47,6 +47,35 @@ public partial class NotchWindow : Window
 
     public IntPtr Handle => _handle;
 
+    private Brush? _edge;
+    private Brush? _warning;
+
+    /// <summary>The island's light edge: `alpha` of `color`, none at zero.</summary>
+    public void SetEdge(Color color, double alpha)
+    {
+        var argb = Color.FromArgb((byte)Math.Round(Math.Clamp(alpha, 0, 1) * 255), color.R, color.G, color.B);
+        if (_edge is SolidColorBrush current ? current.Color == argb : argb.A == 0) return;
+        _edge = argb.A == 0 ? null : Frozen(argb);
+        ApplyStroke();
+    }
+
+    /// <summary>A low battery's tint around the island, over its usual edge; null for none.</summary>
+    public void SetWarning(Color? color)
+    {
+        if (_warning is SolidColorBrush current ? current.Color == color : color is null) return;
+        _warning = color is { } c ? Frozen(c) : null;
+        ApplyStroke();
+    }
+
+    private void ApplyStroke() => Shape.Stroke = _warning ?? _edge;
+
+    private static SolidColorBrush Frozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
     /// <summary>
     /// WPF-UI restyles every window in the app when the theme is applied (opening Settings
     /// triggers it): it sets the themed window background and a Mica backdrop, which painted this
@@ -151,6 +180,10 @@ public partial class NotchWindow : Window
         var outline = ToGeometry(NotchLayout.IslandPath(size, geometry.FloatingGap));
         Shape.Data = outline;
         ContentLayer.Clip = outline;
+        // Only the stroke's inner half shows. A hanging island's top is the screen's edge, where an
+        // edge would only draw a line along the top: it is left out there.
+        Shape.Clip = geometry.Floats ? outline
+            : new CombinedGeometry(GeometryCombineMode.Intersect, outline, new RectangleGeometry(new Rect(0, 1.5, size.Width, size.Height)));
 
         // The strip keeps the camera's width in the middle; wings take what is left on each side.
         var wing = Math.Max(0, (size.Width - cameraWidth) / 2);

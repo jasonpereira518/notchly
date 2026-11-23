@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**8 ported**, 60 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**9 ported**, 59 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -107,7 +107,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `notchQueue` | Play queue | ➖ Not on Windows | - | Windows media controls expose no system-wide queue. |
 | `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission. |
 | `notchDownloads` | Downloads | ✅ Ported | M3 | Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress. |
-| `notchAgents` | AI agents | 🛠️ Planned | M3 |  |
+| `notchAgents` | AI agents | ✅ Ported | M3 | Reads each agent's local logs; Claude limits via its own claude command; Cursor (beyond upstream) via its sign-in. |
 | `notchWatch` | Watch | 🛠️ Planned | M3 |  |
 | `notchMascot` | Companion | 🛠️ Planned | M3 |  |
 

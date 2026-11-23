@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar). See
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -17,7 +17,7 @@ for the porting plan.
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport, volume, battery, output device), **Music** (art, seekable timeline),
-    **Files**, **Downloads**, **Calendar**, **Timer** (timer, Pomodoro, stopwatch).
+    **Files**, **Downloads**, **Calendar**, **AI agents**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - **Live equalizer** (on by default): the closed music strip's bars follow what the PC plays on its default
@@ -32,7 +32,12 @@ for the porting plan.
     The page shows the week strip and the next seven days, with a month grid; the closed island can count down to an
     event before it starts (every event or only those you right-click) and through the last hour of one under way.
     Links are encrypted on this PC and never backed up; events stay in memory.
-  - Live activities in the closed island: music (cover + bars), timer countdown, downloads, event countdown.
+  - **AI agents** (opt in): Claude Code, Codex, OpenCode and GitHub Copilot usage read from their logs on this PC,
+    plus Cursor's plan usage from cursor.com with Cursor's own sign-in. The page shows plan limits per agent, API
+    value, the turns under way, a trend, top models and projects, and thirteen weeks of activity; the closed island
+    shows a working agent's mark with its time, tokens, cost or limit, and notices say when a task finishes, a limit
+    runs low or renews, or a daily budget is reached. Only counters, model names, times and folder names are kept.
+  - Live activities in the closed island: music (cover + bars), timer countdown, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.
   - Gestures: scroll down on it to open, up to close; touchpad sideways swipe changes track.

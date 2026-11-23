@@ -87,6 +87,40 @@ public static class FeatureAvailability
         return adopted;
     }
 
+    // MARK: The island's own switches (Windows-only)
+
+    /// <summary>
+    /// The island's Settings page shows each extension's main switch whether or not the extension
+    /// is installed. Turning one on there means the person wants it, so it installs what it needs.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, AppFeature> IslandSwitches = new Dictionary<string, AppFeature>
+    {
+        [DefaultsKey.NotchDownloadsEnabled] = AppFeature.NotchDownloads,
+        [DefaultsKey.NotchCalendarEnabled] = AppFeature.NotchCalendar,
+        [DefaultsKey.NotchAgentsEnabled] = AppFeature.NotchAgents,
+    };
+
+    /// <summary>Installs the extension behind an island switch that was just turned on; false when nothing changed.</summary>
+    public static bool InstallForSwitch(this SettingsStore store, string key)
+    {
+        if (!IslandSwitches.TryGetValue(key, out var feature) || !store.GetBool(key) || store.IsAvailable(feature)
+            || !FeatureCatalog.Info(feature).CanInstall) return false;
+        store.SetAvailable(feature, true);
+        return true;
+    }
+
+    /// <summary>
+    /// Once: switches turned on before they installed their extension (the AI agents, opt-in on
+    /// Windows) are honoured. After that, uninstalling an extension keeps it uninstalled.
+    /// </summary>
+    public static IReadOnlyList<AppFeature> InstallSwitchedOnExtensions(this SettingsStore store)
+    {
+        if (store.IsSaved(DefaultsKey.IslandSwitchesInstalled)) return [];
+        var installed = IslandSwitches.Where(s => store.IsSaved(s.Key) && store.InstallForSwitch(s.Key)).Select(s => s.Value).ToList();
+        store.Set(DefaultsKey.IslandSwitchesInstalled, true);
+        return installed;
+    }
+
     // MARK: Presets
 
     public static IReadOnlySet<AppFeature> Features(this FeaturePreset preset) => preset switch

@@ -102,6 +102,35 @@ public static class DefaultsKey
     /// <summary>Countdown keys of events chosen from their menu, each with its end (JSON; upstream keeps a dictionary).</summary>
     public const string NotchCalendarChosenCountdowns = "notchCalendarChosenCountdowns";
     public const string NotchAgentsEnabled = "notchAgentsEnabled";
+    // AI agents: the agents read, the page's cards and period, the closed island's reading and the alerts
+    // (upstream Defaults.swift's notchAgents* keys; Cursor is a Windows addition).
+    public const string NotchAgentsClaude = "notchAgentsClaude";
+    public const string NotchAgentsCodex = "notchAgentsCodex";
+    public const string NotchAgentsOpenCode = "notchAgentsOpenCode";
+    public const string NotchAgentsCopilot = "notchAgentsCopilot";
+    public const string NotchAgentsCursor = "notchAgentsCursor";
+    /// <summary>The cards in the person's order, comma-separated raw values.</summary>
+    public const string NotchAgentsCardOrder = "notchAgentsCardOrder";
+    /// <summary>The cards left out, comma-separated raw values.</summary>
+    public const string NotchAgentsHiddenCards = "notchAgentsHiddenCards";
+    /// <summary>"today", "week" (7 days) or "month" (30 days).</summary>
+    public const string NotchAgentsPeriod = "notchAgentsPeriod";
+    /// <summary>"remaining" or "used".</summary>
+    public const string NotchAgentsLimitDisplay = "notchAgentsLimitDisplay";
+    /// <summary>"mostUsed", "session" or "weekly".</summary>
+    public const string NotchAgentsLimitFocus = "notchAgentsLimitFocus";
+    public const string NotchAgentsLiveActivity = "notchAgentsLiveActivity";
+    /// <summary>"elapsed", "tokens", "cost" or "limit".</summary>
+    public const string NotchAgentsReadout = "notchAgentsReadout";
+    public const string NotchAgentsFinishAlert = "notchAgentsFinishAlert";
+    /// <summary>Seconds a turn lasts before its end earns a notice.</summary>
+    public const string NotchAgentsFinishMinimum = "notchAgentsFinishMinimum";
+    public const string NotchAgentsLimitAlert = "notchAgentsLimitAlert";
+    /// <summary>Percent used that earns a warning.</summary>
+    public const string NotchAgentsLimitThreshold = "notchAgentsLimitThreshold";
+    /// <summary>US dollars of API value a day; 0 is off.</summary>
+    public const string NotchAgentsDailyBudget = "notchAgentsDailyBudget";
+    public const string NotchAgentsPriceUpdates = "notchAgentsPriceUpdates";
     public const string NotchWatchEnabled = "notchWatchEnabled";
     public const string NotchMascotEnabled = "notchMascotEnabled";
 

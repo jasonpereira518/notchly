@@ -236,6 +236,9 @@
                             <TextBlock x:Name="StripLeadText" FontSize="11" FontWeight="Medium" Margin="6,0,0,0"
                                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- Working agents: their marks from the wing's outer end (upstream NotchAgentStrip). -->
+                        <StackPanel x:Name="AgentMarks" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Visibility="Collapsed" />
                         <!-- A level beside the camera: its mark and reading from the wing's outer end
                              (upstream NotchNoticeView.leading). -->
                         <StackPanel x:Name="LevelLead" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -277,6 +280,9 @@
                             </Grid>
                             <TextBlock x:Name="StripTrailText" FontSize="10" FontWeight="Medium" VerticalAlignment="Center" />
                         </StackPanel>
+                        <!-- ...and the reading the person chose toward the other end. -->
+                        <TextBlock x:Name="AgentReading" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" TextTrimming="None" Visibility="Collapsed" />
                         <!-- ...and its artist toward the other end. -->
                         <TextBlock x:Name="TrackTrail" FontSize="11" FontWeight="Medium" Foreground="#CCFFFFFF" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" Margin="6,0,12,0" Visibility="Collapsed" />
@@ -558,6 +564,9 @@
 
                         <!-- Calendar (upstream NotchCalendarView): built in code by CalendarPage. -->
                         <Grid x:Name="CalendarPage" Visibility="Collapsed" />
+
+                        <!-- AI agents (upstream NotchAgentsView): built in code by AgentsPage. -->
+                        <Grid x:Name="AgentsPage" Visibility="Collapsed" />
 
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">

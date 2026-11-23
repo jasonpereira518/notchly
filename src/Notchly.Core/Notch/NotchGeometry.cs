@@ -110,6 +110,9 @@ public sealed record NotchGeometry
 
     /// <summary>An event countdown: wings as wide as the title or the clock needs, 72–120 (upstream compactCalendarGeometry).</summary>
     public SizeD CalendarStrip(double wing) => StripWithWings(Math.Min(120, Math.Max(72, double.IsFinite(wing) ? Math.Ceiling(wing) : 72)), 72);
+    /// <summary>Working agents: both wings as wide as the reading or the marks need, 44–80 (upstream compactAgentGeometry).</summary>
+    public SizeD AgentStrip(double wing) =>
+        StripWithWings(Agents.NotchAgentSupport.FittedWing(wing), Agents.NotchAgentSupport.StripWingMinimum);
     public double MusicWingWidth => Math.Max(0, (MusicStrip.Width - CameraWidth) / 2);
 
     // MARK: Closed music strip contents (upstream compactMusicArtwork*/compactMusicBars* and

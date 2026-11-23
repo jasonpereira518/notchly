@@ -317,7 +317,7 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Caption(AgentSettings.Privacy),
 
             Section("Notifications"),
-            Toggle("Notifications in the island", NotificationSettings.Description, DefaultsKey.NotchNotificationsEnabled, ""),
+            IslandSwitch("Notifications in the island", NotificationSettings.Description, DefaultsKey.NotchNotificationsEnabled, ""),
             NotificationSettings.StatusCard(),
             Toggle("Hide the system banner", NotificationSettings.HideBannerHint, DefaultsKey.NotchDismissNativeNotifications, ""),
             Caption(NotificationSettings.Privacy),

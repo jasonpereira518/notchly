@@ -97,6 +97,7 @@ public static class FeatureAvailability
     {
         [DefaultsKey.NotchDownloadsEnabled] = AppFeature.NotchDownloads,
         [DefaultsKey.NotchCalendarEnabled] = AppFeature.NotchCalendar,
+        [DefaultsKey.NotchNotificationsEnabled] = AppFeature.NotchNotifications,
         [DefaultsKey.NotchAgentsEnabled] = AppFeature.NotchAgents,
     };
 

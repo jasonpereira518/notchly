@@ -48,6 +48,11 @@ for the porting plan.
     fills the page, mirrored, with *Stop camera* (and a camera menu when there is more than one) in the top row.
     The camera stops the moment you leave the page, the island closes or the PC locks or sleeps. It opens the camera
     in Windows' shared mode, so a call can use it at the same time; nothing is recorded or saved.
+  - **Accessories**: when headphones, a speaker, a game controller, a keyboard or a mouse connects over Bluetooth, the
+    island shows its icon and name for 4 s, with its battery when Windows reports one; an accessory dropping to 20%
+    warns once, and again only after it has charged past 25%. Phones and computers stay quiet, Do Not Disturb holds
+    the notices back, and clicking one opens Windows' Bluetooth settings. Only names, classes and battery levels
+    Windows already shows are read, in memory.
   - Live activities in the closed island: music (cover + bars), timer countdown, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

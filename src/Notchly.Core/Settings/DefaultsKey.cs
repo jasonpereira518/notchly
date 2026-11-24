@@ -142,6 +142,22 @@ public static class DefaultsKey
     /// <summary>The last rule chosen: changes, settles, contains or reaches.</summary>
     public const string NotchWatchCondition = "notchWatchCondition";
     public const string NotchMascotEnabled = "notchMascotEnabled";
+    /// <summary>Passes through the island now and then.</summary>
+    public const string NotchMascotVisits = "notchMascotVisits";
+    /// <summary>Comes out to react to what the island sees.</summary>
+    public const string NotchMascotReactions = "notchMascotReactions";
+    /// <summary>"minimal" or "robot".</summary>
+    public const string NotchMascotStyle = "notchMascotStyle";
+    /// <summary>"ball", "egg", "squircle" or "pill".</summary>
+    public const string NotchMascotShape = "notchMascotShape";
+    /// <summary>"pearl", "lemon", "peach", "rose", "lilac", "sky" or "mint".</summary>
+    public const string NotchMascotPalette = "notchMascotPalette";
+    /// <summary>"left" or "right" of the camera.</summary>
+    public const string NotchMascotSide = "notchMascotSide";
+    /// <summary>"rare", "normal" or "frequent".</summary>
+    public const string NotchMascotVisitFrequency = "notchMascotVisitFrequency";
+    /// <summary>Hops into the island after a quiet while.</summary>
+    public const string NotchMascotHidesWhenIdle = "notchMascotHidesWhenIdle";
 
     // MARK: Dynamic Island: shape and placement
     public const string NotchDisplay = "notchDisplay";

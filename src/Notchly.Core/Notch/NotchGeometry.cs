@@ -113,6 +113,9 @@ public sealed record NotchGeometry
     /// <summary>Working agents: both wings as wide as the reading or the marks need, 44–80 (upstream compactAgentGeometry).</summary>
     public SizeD AgentStrip(double wing) =>
         StripWithWings(Agents.NotchAgentSupport.FittedWing(wing), Agents.NotchAgentSupport.StripWingMinimum);
+    /// <summary>A watch: both wings as wide as the eye or the reading need, 56–150 (upstream compactWatchGeometry).</summary>
+    public SizeD WatchStrip(double wing) =>
+        StripWithWings(NotchWatchSupport.FittedWing(wing), NotchWatchSupport.StripWingRange.Min);
     public double MusicWingWidth => Math.Max(0, (MusicStrip.Width - CameraWidth) / 2);
 
     // MARK: Closed music strip contents (upstream compactMusicArtwork*/compactMusicBars* and

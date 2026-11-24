@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera). See
+Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, Watch). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -17,7 +17,7 @@ for the porting plan.
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
   - Pages: **Home** (now playing + transport; volume and built-in screen brightness side by side; a speaker menu to switch the output for every app; a battery chip that opens its watts in or out, time left, charge and health), **Music** (art, seekable timeline),
-    **Files**, **Downloads**, **Calendar**, **AI agents**, **Notifications**, **Camera**, **Timer** (timer, Pomodoro, stopwatch).
+    **Files**, **Downloads**, **Calendar**, **AI agents**, **Notifications**, **Camera**, **Watch**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
   - **Live equalizer** (on by default): the closed music strip's bars follow what the PC plays on its default
@@ -53,7 +53,13 @@ for the porting plan.
     warns once, and again only after it has charged past 25%. Phones and computers stay quiet, Do Not Disturb holds
     the notices back, and clicking one opens Windows' Bluetooth settings. Only names, classes and battery levels
     Windows already shows are read, in memory.
-  - Live activities in the closed island: music (cover + bars), timer countdown, downloads, event countdown, working agents.
+  - **Watch**: *Choose Area*, then drag over any part of any window — a progress bar, a build status, a score — and
+    the closed island shows its reading beside an eye. Tell it to speak up when the area changes, stops changing for
+    30 s, shows some text (“Done”) or its number reaches a target; a notice (with an optional sound) says so, and
+    *Watch Again* starts over. The window is read with Windows.Graphics.Capture, so it can move or be covered;
+    minimized or locked pauses watching, and closing it ends the watch. Text comes from Windows' own recognition on
+    this PC; only the chosen area is read, in memory, and nothing is saved or sent.
+  - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.
   - Gestures: scroll down on it to open, up to close; touchpad sideways swipe changes track.

@@ -303,6 +303,9 @@
                         <!-- Working agents: their marks from the wing's outer end (upstream NotchAgentStrip). -->
                         <StackPanel x:Name="AgentMarks" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Visibility="Collapsed" />
+                        <!-- A watch: its eye from the wing's outer end (upstream NotchWatchStrip). -->
+                        <TextBlock x:Name="WatchEye" FontFamily="{StaticResource IconFont}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                   TextTrimming="None" Visibility="Collapsed" />
                         <!-- A level beside the camera: its mark and reading from the wing's outer end
                              (upstream NotchNoticeView.leading). -->
                         <StackPanel x:Name="LevelLead" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -357,6 +360,13 @@
                         <!-- ...and the reading the person chose toward the other end. -->
                         <TextBlock x:Name="AgentReading" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Typography.NumeralAlignment="Tabular" TextTrimming="None" Visibility="Collapsed" />
+                        <!-- ...and what the area reads toward the other end, or the area itself when it has no text. -->
+                        <TextBlock x:Name="WatchReading" FontWeight="Medium" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                        <Border x:Name="WatchThumb" CornerRadius="3" HorizontalAlignment="Right" VerticalAlignment="Center" ClipToBounds="True"
+                                Visibility="Collapsed">
+                            <Image x:Name="WatchThumbImage" Stretch="Uniform" />
+                        </Border>
                         <!-- ...and its artist toward the other end. -->
                         <TextBlock x:Name="TrackTrail" FontSize="11" FontWeight="Medium" Foreground="#CCFFFFFF" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" Margin="6,0,12,0" Visibility="Collapsed" />
@@ -689,6 +699,9 @@
 
                         <!-- Camera mirror (upstream NotchCameraView): built in code by CameraPage. -->
                         <Grid x:Name="CameraPage" Visibility="Collapsed" />
+
+                        <!-- Watch (upstream NotchWatchView): built in code by WatchPage. -->
+                        <Grid x:Name="WatchPage" Visibility="Collapsed" />
 
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">

@@ -138,6 +138,9 @@ public static class DefaultsKey
     public const string NotchAgentsDailyBudget = "notchAgentsDailyBudget";
     public const string NotchAgentsPriceUpdates = "notchAgentsPriceUpdates";
     public const string NotchWatchEnabled = "notchWatchEnabled";
+    public const string NotchWatchSound = "notchWatchSound";
+    /// <summary>The last rule chosen: changes, settles, contains or reaches.</summary>
+    public const string NotchWatchCondition = "notchWatchCondition";
     public const string NotchMascotEnabled = "notchMascotEnabled";
 
     // MARK: Dynamic Island: shape and placement

@@ -326,6 +326,12 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle(Notchly.Core.Camera.CameraPreviewSupport.Title, Notchly.Core.Camera.CameraPreviewSupport.Hint, DefaultsKey.NotchCameraEnabled, ""),
             Caption("The image shows only on the island and is never recorded or saved. The camera runs only after Open camera and stops when you leave the page."),
 
+            Section("Watch"),
+            IslandSwitch(Notchly.App.Island.Watch.WatchPage.Title, Notchly.App.Island.Watch.WatchPage.Description, DefaultsKey.NotchWatchEnabled, ""),
+            Toggle("Play a sound", "When the rule you chose is met, or the watched window closes.", DefaultsKey.NotchWatchSound, ""),
+            Caption("Only the area you choose is read, with Windows' own text recognition on this PC; nothing is saved or sent. " +
+                    "What it reads shows in the closed island, so it may appear in screen captures of the island."),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

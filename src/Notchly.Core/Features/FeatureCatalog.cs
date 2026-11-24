@@ -257,7 +257,8 @@ public static class FeatureCatalog
             [DefaultsKey.NotchAgentsEnabled], false, WindowsStatus.Ported, "M3",
             "Reads each agent's local logs; Claude limits via its own claude command; Cursor (beyond upstream) via its sign-in.");
         Add(AppFeature.NotchWatch, g, "Watch", "Watch part of a window and get told when it changes.", Glyph.Eye,
-            [DefaultsKey.NotchWatchEnabled], true, P, "M3");
+            [DefaultsKey.NotchWatchEnabled], true, WindowsStatus.Ported, "M3",
+            "Windows.Graphics.Capture and Windows' own text recognition, on this PC only.");
         Add(AppFeature.NotchMascot, g, "Companion", "An animated companion beside the island.", Glyph.Smile,
             [DefaultsKey.NotchMascotEnabled], false, P, "M3");
 

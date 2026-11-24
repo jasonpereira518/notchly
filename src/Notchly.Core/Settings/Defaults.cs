@@ -78,6 +78,8 @@ public static class Defaults
         [DefaultsKey.NotchAgentsDailyBudget] = 0.0,
         [DefaultsKey.NotchAgentsPriceUpdates] = true,
         [DefaultsKey.NotchWatchEnabled] = true,
+        [DefaultsKey.NotchWatchSound] = true,
+        [DefaultsKey.NotchWatchCondition] = "changes",
         [DefaultsKey.NotchMascotEnabled] = false,
         [DefaultsKey.NotchEnabled] = false,
 

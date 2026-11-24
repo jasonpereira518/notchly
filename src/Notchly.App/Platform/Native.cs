@@ -300,6 +300,42 @@ public static class Native
         return length > 0 ? new string(buffer, 0, length) : "";
     }
 
+    // MARK: Watch (Windows.Graphics.Capture's Direct3D device and window item, and a plain screen copy)
+
+    public const uint D3D_DRIVER_TYPE_HARDWARE = 1, D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20, D3D11_SDK_VERSION = 7;
+    public const int SRCCOPY = 0x00CC0020;
+
+    [DllImport("d3d11.dll", ExactSpelling = true)]
+    public static extern int D3D11CreateDevice(IntPtr adapter, uint driverType, IntPtr software, uint flags, IntPtr featureLevels,
+                                               uint featureLevelCount, uint sdkVersion, out IntPtr device, out int featureLevel,
+                                               out IntPtr immediateContext);
+    [DllImport("d3d11.dll", ExactSpelling = true)]
+    public static extern int CreateDirect3D11DeviceFromDXGIDevice(IntPtr dxgiDevice, out IntPtr graphicsDevice);
+    [DllImport("combase.dll", ExactSpelling = true)]
+    public static extern int RoGetActivationFactory(IntPtr activatableClassId, in Guid iid, out IntPtr factory);
+    [DllImport("combase.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    public static extern int WindowsCreateString(string source, int length, out IntPtr hstring);
+    [DllImport("combase.dll", ExactSpelling = true)]
+    public static extern int WindowsDeleteString(IntPtr hstring);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER
+    {
+        public int biSize, biWidth, biHeight;
+        public short biPlanes, biBitCount;
+        public int biCompression, biSizeImage, biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant;
+    }
+
+    [DllImport("user32.dll")] public static extern IntPtr GetDC(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+    [DllImport("gdi32.dll")] public static extern IntPtr CreateCompatibleDC(IntPtr dc);
+    [DllImport("gdi32.dll")] public static extern bool DeleteDC(IntPtr dc);
+    [DllImport("gdi32.dll")] public static extern IntPtr SelectObject(IntPtr dc, IntPtr item);
+    [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr item);
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateDIBSection(IntPtr dc, ref BITMAPINFOHEADER info, uint usage, out IntPtr bits, IntPtr section, uint offset);
+    [DllImport("gdi32.dll")] public static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, int rop);
+
     // MARK: Helpers
 
     public static string ClassName(IntPtr hwnd)

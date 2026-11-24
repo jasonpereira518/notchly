@@ -21,6 +21,7 @@ using Notchly.App.Island.Files;
 using Notchly.App.Island.Lyrics;
 using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
+using Notchly.App.Island.Watch;
 using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
 using Notchly.App.Platform.Bluetooth;
@@ -48,14 +49,14 @@ namespace Notchly.App.Island;
 
 public sealed class IslandService : IFeatureService
 {
-    private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Agents, Notice, Drop, Open }
-    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory }
+    private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, Notice, Drop, Open }
+    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory, Watch }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -80,6 +81,8 @@ public sealed class IslandService : IFeatureService
     private NotificationsService? _notifications;
     private NotificationsPage? _notificationsPage;
     private CameraPage? _cameraPage;
+    private WatchService? _watch;
+    private WatchPage? _watchPage;
     private BluetoothAccessories? _accessories;
     /// <summary>Accessory batteries: one alert per low episode, kept across lock and sleep (upstream batteryState).</summary>
     private NotchAccessoryBatteryState _accessoryBattery = new();
@@ -219,6 +222,11 @@ public sealed class IslandService : IFeatureService
         _notificationsPage.Resized += () => { if (_expanded && _page == NotchModule.Notifications) Refresh(); };
         _cameraPage = new CameraPage(window, _settings, _dispatcher,
             () => CameraPreviewSupport.CanPresent(CameraPreviewSupport.IsEnabled(_settings), _expanded, _page), modal => _modalOpen = modal);
+        _watch = new WatchService(_dispatcher, _settings);
+        _watch.Changed += OnWatchChanged;
+        _watch.Finished += OnWatchFinished;
+        _watch.Chosen += OnWatchChosen;
+        _watchPage = new WatchPage(window, _watch, ChooseWatchArea, modal => _modalOpen = modal, () => Open(takeFocus: true));
         _accessories = new BluetoothAccessories(work => _dispatcher.BeginInvoke(work));
         _accessories.Connected += OnAccessoryConnected;
         _accessories.Disconnected += OnAccessoryDisconnected;
@@ -284,6 +292,7 @@ public sealed class IslandService : IFeatureService
         _agents?.Dispose(); _agents = null; _agentsPage = null;
         _notifications?.Dispose(); _notifications = null; _notificationsPage = null;
         _cameraPage?.Dispose(); _cameraPage = null;
+        _watch?.Dispose(); _watch = null; _watchPage = null;
         _accessories?.Dispose(); _accessories = null;
         _accessoriesOn = false;
         _accessoryBattery = new();
@@ -366,6 +375,7 @@ public sealed class IslandService : IFeatureService
         SyncAgents();
         SyncNotifications();
         SyncCamera();
+        SyncWatch();
         SyncAccessories();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
@@ -393,6 +403,7 @@ public sealed class IslandService : IFeatureService
             NotchModule.Agents => w.AgentsPage,
             NotchModule.Notifications => w.NotificationsPage,
             NotchModule.Camera => w.CameraPage,
+            NotchModule.Watch => w.WatchPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -405,6 +416,8 @@ public sealed class IslandService : IFeatureService
         if (_timer.HasSession && _settings.IsAvailable(AppFeature.NotchTimer) && _settings.GetBool(DefaultsKey.NotchTimerEnabled)
             && !_settings.GetBool(DefaultsKey.NotchHideTimerCountdown))
             running.Add(NotchCompactActivity.Timer);
+        if (_watch is { IsActive: true } && NotchWatchSupport.IsEnabled(_settings))
+            running.Add(NotchCompactActivity.Watch);
         if (_downloads?.Current is not null)
             running.Add(NotchCompactActivity.Downloads);
         if (_calendar?.Countdown is not null)
@@ -459,6 +472,7 @@ public sealed class IslandService : IFeatureService
             (size, content) = activity switch
             {
                 NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
+                NotchCompactActivity.Watch => (g.WatchStrip(WatchWing(g)), ClosedContent.Watch),
                 NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
                 NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
                 NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
@@ -499,6 +513,9 @@ public sealed class IslandService : IFeatureService
         w.TrackTrail.Visibility = Visibility.Collapsed;
         w.AgentMarks.Visibility = Visibility.Collapsed;
         w.AgentReading.Visibility = Visibility.Collapsed;
+        w.WatchEye.Visibility = Visibility.Collapsed;
+        w.WatchReading.Visibility = Visibility.Collapsed;
+        w.WatchThumb.Visibility = Visibility.Collapsed;
         w.NotifLead.Visibility = Visibility.Collapsed;
         w.NotifDetail.Visibility = Visibility.Collapsed;
         w.DropPlaceholder.Visibility = content == ClosedContent.Drop ? Visibility.Visible : Visibility.Collapsed;
@@ -552,6 +569,9 @@ public sealed class IslandService : IFeatureService
                 break;
             case ClosedContent.Agents when _agents is not null:
                 ShowAgentStrip(w, g, Math.Max(0, (size.Width - g.CameraWidth) / 2));
+                break;
+            case ClosedContent.Watch when _watch is not null:
+                ShowWatchStrip(w, g, _watch, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
             case ClosedContent.Notice when _notice is { } notice:
                 if (notice.Art is not null) ShowArt(w, notice.Art, body);
@@ -858,6 +878,7 @@ public sealed class IslandService : IFeatureService
         if (_notificationsPage is not null) _notificationsPage.Visible = false;
         // The camera stops the moment the island closes (upstream onDisappear).
         if (_cameraPage is not null) _cameraPage.Visible = false;
+        if (_watchPage is not null) _watchPage.Visible = false;
         _window.ShowOpenLayer(false);
         SyncLyrics();
         Refresh();
@@ -920,6 +941,7 @@ public sealed class IslandService : IFeatureService
                 _calendarPage?.Reveal(countdown.Event);
             }
             if (_shown == ClosedContent.Agents || _notice?.Kind == NoticeKind.Agents) _page = NotchModule.Agents;
+            if (_shown == ClosedContent.Watch || _notice?.Kind == NoticeKind.Watch) _page = NotchModule.Watch;
             if (_notice?.Kind == NoticeKind.Accessory)
             {
                 // Upstream opens its System page; Notchly has none yet, so Windows' own Bluetooth page.
@@ -1581,7 +1603,7 @@ public sealed class IslandService : IFeatureService
     private static int NoticePriority(NoticeKind kind) => kind switch
     {
         NoticeKind.Volume or NoticeKind.Brightness or NoticeKind.Microphone => 3,
-        NoticeKind.Timer => 2,
+        NoticeKind.Timer or NoticeKind.Watch => 2,
         NoticeKind.Battery or NoticeKind.Agents or NoticeKind.Notification or NoticeKind.Accessory => 1,
         _ => 0,
     };
@@ -1674,6 +1696,95 @@ public sealed class IslandService : IFeatureService
         if (_cameraPage is null || Pages().Contains(NotchModule.Camera)) return;
         _cameraPage.Visible = false;
         if (_page == NotchModule.Camera && _expanded) ShowPage(NotchModule.Controls);
+    }
+
+    // MARK: Watch (upstream NotchWatchService hooks, NotchWatchStrip and its notice)
+
+    /// <summary>Watch turned off (or its page hidden) stops watching and leaves the page.</summary>
+    private void SyncWatch()
+    {
+        _watch?.Sync();
+        if (_page == NotchModule.Watch && _expanded && !Pages().Contains(NotchModule.Watch)) ShowPage(NotchModule.Controls);
+    }
+
+    /// <summary>Choose Area: the island closes so the picker sees the windows beneath it.</summary>
+    private void ChooseWatchArea()
+    {
+        if (_watch is null || _display is not { } display) return;
+        Collapse();
+        _watch.ChooseArea(display);
+    }
+
+    /// <summary>A chosen area opens the island on its page, without taking focus.</summary>
+    private void OnWatchChosen()
+    {
+        _page = NotchModule.Watch;
+        Open(takeFocus: false);
+        ShowPage(NotchModule.Watch);
+    }
+
+    private void OnWatchChanged()
+    {
+        if (!_running) return;
+        if (!_expanded || _page == NotchModule.Watch) Refresh();
+    }
+
+    /// <summary>The rule met or the window gone: a notice at the timer's priority for 6 s, unless the page shows it.</summary>
+    private void OnWatchFinished(WatchTarget target, NotchWatchOutcome outcome)
+    {
+        if (!_running || (_expanded && _page == NotchModule.Watch)) return;
+        if (_notice is { } current && NoticePriority(current.Kind) > NoticePriority(NoticeKind.Watch)) return;
+        var text = outcome.Title;
+        var trailing = Math.Clamp(MeasureText(text, 12, FontWeights.SemiBold) + 18, NotchGeometry.NoticeWingRange.Min, 200);
+        _notice = null;
+        ShowNotice(new Notice(NoticeKind.Watch, WatchPage.EyeGlyph, null, text, null, 44, trailing, NotchWatchSupport.NoticeSeconds,
+                              WatchPage.Tint, target.AppName));
+    }
+
+    private static readonly Color WatchEyeTint = Color.FromArgb(0xBF, WatchPage.Tint.R, WatchPage.Tint.G, WatchPage.Tint.B);
+
+    /// <summary>What the strip shows right of the camera: the reading, or a word while there is none yet.</summary>
+    private static string WatchStripText(WatchService watch) =>
+        watch.Headline.Length > 0 ? watch.Headline : watch.State == WatchState.Hidden ? "" : "Watching";
+
+    /// <summary>The wider side: the reading, or the area's own picture when it has no text, with air beside the camera
+    /// (upstream watchStripWing).</summary>
+    private double WatchWing(NotchGeometry g)
+    {
+        if (_watch is not { } watch) return NotchWatchSupport.StripWingRange.Min;
+        var reading = watch.ShowsThumbnail ? NotchWatchSupport.ThumbnailWidth
+            : MeasureText(WatchStripText(watch), AgentTextSize(g), FontWeights.Medium);
+        return reading + AgentInset + NotchAgentSupport.StripCameraGap;
+    }
+
+    /// <summary>The eye at the left end, crossed out while the window is hidden; the reading at the right end.</summary>
+    private static void ShowWatchStrip(NotchWindow w, NotchGeometry g, WatchService watch, double wing)
+    {
+        w.WatchEye.Text = watch.State == WatchState.Hidden ? WatchPage.HiddenGlyph : WatchPage.EyeGlyph;
+        w.WatchEye.FontSize = AgentMarkSize(g, 1);
+        w.WatchEye.Foreground = Brush(WatchEyeTint);
+        w.WatchEye.Margin = new Thickness(AgentInset, 0, 0, 0);
+        w.WatchEye.Visibility = wing >= 28 ? Visibility.Visible : Visibility.Collapsed;
+        if (wing < 36) return;
+        var room = Math.Max(0, wing - AgentInset - NotchAgentSupport.StripCameraGap);
+        if (watch.ShowsThumbnail)
+        {
+            w.WatchThumbImage.Source = watch.Preview;
+            w.WatchThumb.Width = Math.Min(room, NotchWatchSupport.ThumbnailWidth);
+            w.WatchThumb.Height = Math.Max(8, g.StripBodyHeight - 6);
+            w.WatchThumb.Margin = new Thickness(0, 0, AgentInset, 0);
+            w.WatchThumb.Visibility = Visibility.Visible;
+            return;
+        }
+        w.WatchThumbImage.Source = null;
+        var text = WatchStripText(watch);
+        if (text.Length == 0) return;
+        w.WatchReading.Text = text;
+        w.WatchReading.FontSize = AgentTextSize(g);
+        w.WatchReading.Foreground = Brush(watch.Headline.Length > 0 ? WatchPage.Tint : WatchEyeTint);
+        w.WatchReading.Margin = new Thickness(0, 0, AgentInset, 0);
+        w.WatchReading.MaxWidth = room;
+        w.WatchReading.Visibility = Visibility.Visible;
     }
 
     // MARK: Accessories (upstream NotchAccessoryService)
@@ -1997,7 +2108,8 @@ public sealed class IslandService : IFeatureService
                         && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
                         && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled))
                         && (m != NotchModule.Notifications || _settings.GetBool(DefaultsKey.NotchNotificationsEnabled))
-                        && (m != NotchModule.Camera || _settings.GetBool(DefaultsKey.NotchCameraEnabled)))
+                        && (m != NotchModule.Camera || _settings.GetBool(DefaultsKey.NotchCameraEnabled))
+                        && (m != NotchModule.Watch || _settings.GetBool(DefaultsKey.NotchWatchEnabled)))
             .ToList();
     }
 
@@ -2016,6 +2128,7 @@ public sealed class IslandService : IFeatureService
                 NotchModule.Agents => ("\uE99A", "AI agents"),
                 NotchModule.Notifications => ("\uEA8F", "Notifications"),
                 NotchModule.Camera => ("\uE8B8", "Camera"),
+                NotchModule.Watch => (WatchPage.EyeGlyph, "Watch"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
             };
@@ -2057,6 +2170,9 @@ public sealed class IslandService : IFeatureService
         if (module == NotchModule.Camera && _geometry is { } camera) _cameraPage?.Layout(camera.ContentWidth, camera.ContentBudget);
         // Leaving the page stops the camera; coming back shows the hint until Open camera.
         if (_cameraPage is not null) _cameraPage.Visible = module == NotchModule.Camera && _expanded;
+        _window.WatchPage.Visibility = module == NotchModule.Watch ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Watch && _geometry is { } wg) _watchPage?.Layout(wg.ContentBudget);
+        if (_watchPage is not null) _watchPage.Visible = module == NotchModule.Watch && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

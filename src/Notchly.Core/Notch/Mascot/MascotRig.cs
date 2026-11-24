@@ -725,6 +725,26 @@ public sealed class MascotRig
 
     // MARK: Frames
 
+    /// <summary>
+    /// When its frame next changes on its own: now while anything moves, when the next blink or motion begins, or
+    /// null while it keeps still until told otherwise. Windows-specific: the view draws only until then.
+    /// </summary>
+    public double? NextChange()
+    {
+        var now = Now();
+        if (_previousParts is not null) return now;
+        double? next = _blinkEnds;
+        foreach (var change in new[]
+                 {
+                     _position.NextChange(now), _opacity.NextChange(now), _hop.NextChange(now), _squash.NextChange(now),
+                     _tilt.NextChange(now), _attention.NextChange(now), _face.NextChange(now), _leftEye.NextChange(now),
+                     _rightEye.NextChange(now), _leftScale.NextChange(now), _rightScale.NextChange(now),
+                     _bulbLit.NextChange(now), _bulbGlow.NextChange(now),
+                 })
+            next = MascotTime.Earliest(next, change);
+        return next;
+    }
+
     /// <summary>The companion now, ready to draw. Null until it is configured with a size.</summary>
     public MascotFrame? Frame()
     {

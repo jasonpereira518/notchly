@@ -19,6 +19,7 @@ using Notchly.App.Island.Camera;
 using Notchly.App.Island.Downloads;
 using Notchly.App.Island.Files;
 using Notchly.App.Island.Lyrics;
+using Notchly.App.Island.Mascot;
 using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
 using Notchly.App.Island.Watch;
@@ -40,6 +41,7 @@ using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
 using Notchly.Core.Power;
 using Notchly.Core.Notch.Lyrics;
+using Notchly.Core.Notch.Mascot;
 using Notchly.Core.Notifications;
 using Notchly.Core.Settings;
 using Microsoft.Win32;
@@ -47,14 +49,14 @@ using Serilog;
 
 namespace Notchly.App.Island;
 
-public sealed class IslandService : IFeatureService
+public sealed class IslandService : IFeatureService, IMascotIsland
 {
     private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, Notice, Drop, Open }
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory, Watch }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
-                                 uint? NotificationId = null);
+                                 uint? NotificationId = null, MascotReaction? Companion = null);
 
     private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
@@ -143,6 +145,20 @@ public sealed class IslandService : IFeatureService
     private ClosedContent _shown = ClosedContent.Bare;
     private double _startedAt;
 
+    // The companion (upstream NotchMascotTrackView in the closed island, and NotchMascotView in a notice)
+    private MascotService? _mascot;
+    private Canvas? _mascotLayer;
+    private MascotView? _mascotView, _noticeMascot;
+    private Notice? _noticeMascotFor;
+    /// <summary>It was drawn resting in the closed island at the last refresh.</summary>
+    private bool _mascotAtRest;
+    /// <summary>Until then it fades out where it rested, as an activity takes its place.</summary>
+    private double _mascotYieldEnds = double.NegativeInfinity;
+    private DispatcherTimer? _mascotRefreshTimer;
+    private (double Left, double Right) _wingOpacity = (1, 1);
+    /// <summary>The timer's deadline the companion last came out to watch run out.</summary>
+    private double? _watchedDeadline;
+
     // Motion
     private NotchMotionTimeline? _timeline;
     private SizeD _drawn = SizeD.Zero, _target = SizeD.Zero;
@@ -178,8 +194,9 @@ public sealed class IslandService : IFeatureService
         _startedAt = Now;
         var window = new NotchWindow();
         _window = window;
-        window.Surface.MouseEnter += (_, _) => OnPointer(true);
-        window.Surface.MouseLeave += (_, _) => OnPointer(false);
+        window.Surface.MouseEnter += (_, e) => { OnPointer(true); OnMascotPointer(e, MascotPointer.Entered); };
+        window.Surface.MouseLeave += (_, e) => { OnPointer(false); OnMascotPointer(e, MascotPointer.Exited); };
+        window.Surface.MouseMove += (_, e) => OnMascotPointer(e, MascotPointer.Moved);
         window.Surface.MouseLeftButtonUp += OnClick;
         window.Surface.PreviewMouseWheel += OnWheel;
         window.HorizontalWheel += OnHorizontalWheel;
@@ -193,6 +210,7 @@ public sealed class IslandService : IFeatureService
             else Collapse();
         };
         WireControls(window);
+        StartMascot(window);
         window.Show();
 
         _media = new MediaSessionService(_dispatcher);
@@ -206,6 +224,7 @@ public sealed class IslandService : IFeatureService
         _downloads = new DownloadService(_dispatcher);
         _downloads.Changed += OnDownloadsChanged;
         _downloads.Arrived += OnDownloadArrived;
+        _downloads.Failed += () => _mascot?.React(MascotSupport.DownloadReaction(succeeded: false));
         _downloadsPage = new DownloadsPage(window, _downloads, _settings, () => FilesAvailable ? _shelf : null,
             modal => _modalOpen = modal, () => { _page = NotchModule.Downloads; Open(takeFocus: true); ShowPage(NotchModule.Downloads); });
         _calendar = new CalendarService(_dispatcher, _settings);
@@ -255,6 +274,7 @@ public sealed class IslandService : IFeatureService
         _foreground = new ForegroundWatcher();
         _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); TintSoon(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
+        SystemEvents.SessionSwitch += OnSessionSwitch;
 
         _hoverTimer = NewTimer(OnHoverTimer);
         _closeTimer = NewTimer(OnCloseTimer);
@@ -279,6 +299,11 @@ public sealed class IslandService : IFeatureService
         StopFrames();
         foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer, _tintTimer, _accessoryTimer }) timer?.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
+        SystemEvents.SessionSwitch -= OnSessionSwitch;
+        _mascot?.Dispose(); _mascot = null;
+        _mascotRefreshTimer?.Stop();
+        _mascotView = null; _noticeMascot = null; _noticeMascotFor = null; _mascotLayer = null;
+        _mascotAtRest = false; _wingOpacity = (1, 1);
         _volumeKeys?.Dispose(); _volumeKeys = null;
         _foreground?.Dispose(); _foreground = null;
         _media?.Dispose(); _media = null;
@@ -379,6 +404,7 @@ public sealed class IslandService : IFeatureService
         SyncAccessories();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
+        _mascot?.Sync();
         Refresh(animated: _drawn != SizeD.Zero);
     }
 
@@ -434,6 +460,8 @@ public sealed class IslandService : IFeatureService
     private void Refresh(bool animated = true)
     {
         if (!_running || _window is null || _geometry is not { } g) return;
+        _mascot?.BeforeRefresh(_agents is { Running: true } agents && agents.Snapshot.Loaded,
+                               _agents is { Running: true } && _agents.Snapshot.Live.Count > 0);
         var hidden = _hiddenInFullscreen && !_expanded;
         _window.Visibility = hidden ? Visibility.Hidden : Visibility.Visible;
 
@@ -468,30 +496,36 @@ public sealed class IslandService : IFeatureService
             content = ClosedContent.Notice;
         }
         else if (CurrentActivity() is { } activity)
-        {
-            (size, content) = activity switch
-            {
-                NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
-                NotchCompactActivity.Watch => (g.WatchStrip(WatchWing(g)), ClosedContent.Watch),
-                NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
-                NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
-                NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
-                _ => (g.MusicStrip, ClosedContent.Music),
-            };
-        }
+            (size, content) = ActivityStrip(activity, g);
         else
         {
-            size = _settings.GetBool(DefaultsKey.NotchHideUntilHover) && !_inside
-                ? new SizeD(g.CameraWidth, 4) : g.RestingSize(showsContent: false);
+            // The companion at rest, or visiting, opens the wings it stands in (upstream mascotShows(on:)).
+            size = HiddenUntilHover ? new SizeD(g.CameraWidth, 4) : g.RestingSize(showsContent: _mascot?.Shows(g) == true);
             content = ClosedContent.Bare;
         }
         if (_hoverEmphasized && !_expanded && _notice is null && !_dragPlaceholder) size = g.HoverEmphasis(size);
 
         ShowClosedContent(content, g, size);
+        PresentMascot(content, g);
         SyncEqualizer();
         UpdateWarningTint();
         MoveTo(size, shift, animated && !hidden);
+        _mascot?.AfterRefresh();
     }
+
+    /// <summary>An activity's closed strip and what it shows.</summary>
+    private (SizeD Size, ClosedContent Content) ActivityStrip(NotchCompactActivity activity, NotchGeometry g) => activity switch
+    {
+        NotchCompactActivity.Timer => (g.TimerStrip(52), ClosedContent.Timer),
+        NotchCompactActivity.Watch => (g.WatchStrip(WatchWing(g)), ClosedContent.Watch),
+        NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
+        NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
+        NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
+        _ => (g.MusicStrip, ClosedContent.Music),
+    };
+
+    /// <summary>Hidden until hover, the closed island keeps only a thin line while the pointer is away.</summary>
+    private bool HiddenUntilHover => _settings.GetBool(DefaultsKey.NotchHideUntilHover) && !_inside && !_expanded;
 
     private void ShowClosedContent(ClosedContent content, NotchGeometry g, SizeD size)
     {
@@ -574,7 +608,9 @@ public sealed class IslandService : IFeatureService
                 ShowWatchStrip(w, g, _watch, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
             case ClosedContent.Notice when _notice is { } notice:
-                if (notice.Art is not null) ShowArt(w, notice.Art, body);
+                // With the companion on, it stands in for the notice's symbol (upstream NotchNoticeView).
+                if (NoticeShowsCompanion(notice)) { }
+                else if (notice.Art is not null) ShowArt(w, notice.Art, body);
                 else
                 {
                     w.StripIcon.Text = notice.Glyph;
@@ -772,7 +808,7 @@ public sealed class IslandService : IFeatureService
             _timeline = null;
             _drawn = _target = size;
             _shiftFrom = _shiftTo = shift;
-            _window.ApplyFrame(size, shift, _geometry, _geometry.CameraWidth);
+            ApplyFrame(size, shift);
             return;
         }
         if (size == _target && shift == _shiftTo) return;
@@ -784,6 +820,13 @@ public sealed class IslandService : IFeatureService
         _shiftBegin = now;
         _target = size;
         StartFrames();
+    }
+
+    private void ApplyFrame(SizeD size, double shift)
+    {
+        if (_window is null || _geometry is null) return;
+        _window.ApplyFrame(size, shift, _geometry, _geometry.CameraWidth);
+        PlaceMascots(size);
     }
 
     private void StartFrames()
@@ -807,11 +850,11 @@ public sealed class IslandService : IFeatureService
         var size = _timeline.SizeAt(now);
         var shift = CurrentShift(now);
         _drawn = size;
-        _window.ApplyFrame(size, shift, _geometry, _geometry.CameraWidth);
+        ApplyFrame(size, shift);
         if (_timeline.IsSettled(now) && Math.Abs(shift - _shiftTo) < 0.25)
         {
             _drawn = _target;
-            _window.ApplyFrame(_target, _shiftTo, _geometry, _geometry.CameraWidth);
+            ApplyFrame(_target, _shiftTo);
             StopFrames();
         }
     }
@@ -839,6 +882,7 @@ public sealed class IslandService : IFeatureService
             UpdatePages();
             SyncLyrics();
             _window.ShowOpenLayer(true);
+            if (_mascotLayer is not null) NotchWindow.Fade(_mascotLayer, 0, 0.1);
         }
         else if (!byHover) _openedByHover = false;
         if (takeFocus)
@@ -880,6 +924,7 @@ public sealed class IslandService : IFeatureService
         if (_cameraPage is not null) _cameraPage.Visible = false;
         if (_watchPage is not null) _watchPage.Visible = false;
         _window.ShowOpenLayer(false);
+        if (_mascotLayer is not null) NotchWindow.Fade(_mascotLayer, 1, 0.2, delay: 0.14);
         SyncLyrics();
         Refresh();
     }
@@ -1065,9 +1110,13 @@ public sealed class IslandService : IFeatureService
 
     private void OnMicrophoneChanged(bool muted)
     {
-        if (!_settings.GetBool(DefaultsKey.NotchMicrophone) || Starting) return;
-        ShowNotice(new Notice(NoticeKind.Microphone, muted ? "" : "", null, muted ? "Muted" : "Mic on", null,
-                              44, 72, 1.6, muted ? Red : null));
+        if (Starting) return;
+        // The companion hushes or perks up, in the notice or where it is.
+        var reaction = MascotSupport.MicrophoneReaction(muted);
+        if (_settings.GetBool(DefaultsKey.NotchMicrophone))
+            ShowNotice(new Notice(NoticeKind.Microphone, muted ? "" : "", null, muted ? "Muted" : "Mic on", null,
+                                  44, 72, 1.6, muted ? Red : null, Companion: reaction));
+        _mascot?.React(reaction);
     }
 
     private void OnBrightnessChanged(int level)
@@ -1082,17 +1131,30 @@ public sealed class IslandService : IFeatureService
     {
         UpdatePages();
         UpdateWarningTint();
-        if (!current.HasBattery || !_settings.GetBool(DefaultsKey.NotchBattery) || Starting) return;
+        if (!current.HasBattery || Starting) return;
+        // Glad when the charger goes in, cheering once the battery is full, tired when it runs low (upstream powerChanged).
+        var reaction = MascotSupport.PowerReaction(pluggedIn: !previous.PluggedIn && current.PluggedIn,
+            charged: current.PluggedIn && previous.Charging && !current.Charging && current.Percent >= 100,
+            low: current.Percent <= 20 && previous.Percent > 20);
+        ShowBatteryNotice(previous, current, reaction);
+        if (reaction is { } felt) _mascot?.React(felt);
+    }
+
+    private void ShowBatteryNotice(BatteryState previous, BatteryState current, MascotReaction? reaction)
+    {
+        if (!_settings.GetBool(DefaultsKey.NotchBattery)) return;
         if (previous.PluggedIn != current.PluggedIn)
         {
             ShowNotice(new Notice(NoticeKind.Battery, BatteryGlyph(current), null,
                                   current.PluggedIn ? $"{current.Percent}%  Charging" : $"{current.Percent}%",
-                                  null, 44, current.PluggedIn ? 110 : 60, 2.5, current.PluggedIn ? Green : null));
+                                  null, 44, current.PluggedIn ? 110 : 60, 2.5, current.PluggedIn ? Green : null,
+                                  Companion: reaction == MascotReaction.Love ? reaction : null));
             return;
         }
         var threshold = NotchSupport.SanitizedLowBatteryThreshold(_settings.GetInt(DefaultsKey.NotchLowBatteryThreshold, 10));
         if (!current.PluggedIn && previous.Percent > threshold && current.Percent <= threshold)
-            ShowNotice(new Notice(NoticeKind.Battery, BatteryGlyph(current), null, $"{current.Percent}%  Low", null, 44, 96, 4, Red));
+            ShowNotice(new Notice(NoticeKind.Battery, BatteryGlyph(current), null, $"{current.Percent}%  Low", null, 44, 96, 4, Red,
+                                  Companion: reaction == MascotReaction.Yawn ? reaction : null));
     }
 
     private static string BatteryGlyph(BatteryState battery) =>
@@ -1133,6 +1195,7 @@ public sealed class IslandService : IFeatureService
         if (_notice is { Kind: NoticeKind.Track } notice && _media?.Current is { } current && !ReferenceEquals(notice.Art, current.Artwork))
             _notice = notice with { Art = current.Artwork };
         _lyrics?.PlaybackChanged(CurrentIdentity());
+        _mascot?.OnMusic(_media?.Current?.IsPlaying == true);
         UpdatePages();
         SyncLyrics();
         Refresh();
@@ -1370,7 +1433,8 @@ public sealed class IslandService : IFeatureService
         if (Starting) return;
         var trailing = Math.Min(NotchGeometry.NoticeWingRange.Max + 60, 16 + item.Name.Length * 6.5);
         ShowNotice(new Notice(NoticeKind.Download, "\uE930", null, item.Name, null, 44,
-            Math.Max(NotchGeometry.NoticeWingRange.Min, trailing), 6, Green));
+            Math.Max(NotchGeometry.NoticeWingRange.Min, trailing), 6, Green, Companion: MascotReaction.Celebrate));
+        _mascot?.React(MascotSupport.DownloadReaction(succeeded: true));
     }
 
     /// <summary>Wide enough for the arrow and the file's name (upstream NotchDownloadSupport.compactWing).</summary>
@@ -1414,6 +1478,7 @@ public sealed class IslandService : IFeatureService
 
     private void OnCalendarChanged()
     {
+        _mascot?.OnCalendar(_calendar?.Countdown);
         if (_running && !_expanded) Refresh();
     }
 
@@ -1573,7 +1638,11 @@ public sealed class IslandService : IFeatureService
         var art = shown.Provider is { } provider ? agents.Icon(provider) : null;
         var trailing = Math.Max(NotchGeometry.NoticeWingRange.Min, MeasureText(shown.Text, 12, FontWeights.SemiBold) + 18);
         _notice = null;
-        ShowNotice(new Notice(NoticeKind.Agents, shown.Glyph, null, shown.Text, art, 44, trailing, 5, shown.Tint));
+        // Work can go on: the companion is glad of a renewed limit in the notice, and cheers a finished task after it.
+        var renewed = e is AgentUsageEvent.LimitReset;
+        ShowNotice(new Notice(NoticeKind.Agents, shown.Glyph, null, shown.Text, art, 44, trailing, 5, shown.Tint,
+                              Companion: renewed ? MascotReaction.Celebrate : null));
+        if (renewed || e is AgentUsageEvent.Finished) _mascot?.React(MascotSupport.AgentFinished);
     }
 
     // MARK: Notifications (upstream NotchNotificationService hooks and NotchNoticeView for a notification)
@@ -1732,13 +1801,22 @@ public sealed class IslandService : IFeatureService
     /// <summary>The rule met or the window gone: a notice at the timer's priority for 6 s, unless the page shows it.</summary>
     private void OnWatchFinished(WatchTarget target, NotchWatchOutcome outcome)
     {
-        if (!_running || (_expanded && _page == NotchModule.Watch)) return;
+        if (!_running) return;
+        // The companion takes the news in the notice, or where it is when the page shows it.
+        var reaction = MascotSupport.WatchReaction(outcome);
+        ShowWatchNotice(target, outcome, reaction);
+        _mascot?.React(reaction);
+    }
+
+    private void ShowWatchNotice(WatchTarget target, NotchWatchOutcome outcome, MascotReaction reaction)
+    {
+        if (_expanded && _page == NotchModule.Watch) return;
         if (_notice is { } current && NoticePriority(current.Kind) > NoticePriority(NoticeKind.Watch)) return;
         var text = outcome.Title;
         var trailing = Math.Clamp(MeasureText(text, 12, FontWeights.SemiBold) + 18, NotchGeometry.NoticeWingRange.Min, 200);
         _notice = null;
         ShowNotice(new Notice(NoticeKind.Watch, WatchPage.EyeGlyph, null, text, null, 44, trailing, NotchWatchSupport.NoticeSeconds,
-                              WatchPage.Tint, target.AppName));
+                              WatchPage.Tint, target.AppName, Companion: reaction));
     }
 
     private static readonly Color WatchEyeTint = Color.FromArgb(0xBF, WatchPage.Tint.R, WatchPage.Tint.G, WatchPage.Tint.B);
@@ -1813,6 +1891,7 @@ public sealed class IslandService : IFeatureService
         var kind = NotchAccessorySupport.Kind(e.Name, e.MajorClass, e.MinorClass);
         EnqueueAccessory(AccessoryNotice(NotchAccessorySupport.Glyph(kind), NotchAccessorySupport.ConnectedText(e.Name, e.Percent), null),
                          e.Device, isLow: false);
+        _mascot?.React(MascotSupport.AccessoryConnected);
     }
 
     private void OnAccessoryDisconnected(AccessoryEvent.Disconnected e)
@@ -1899,6 +1978,8 @@ public sealed class IslandService : IFeatureService
         _revealTimer?.Stop();
         if (added is not null)
         {
+            // A little hop for the file it watched come in, once the island rests again.
+            _mascot?.React(MascotSupport.FileDropped);
             _page = NotchModule.Files;
             if (_expanded) ShowPage(NotchModule.Files);
             else Open(takeFocus: false, byHover: true);
@@ -1978,6 +2059,210 @@ public sealed class IslandService : IFeatureService
         Refresh();
     }
 
+    // MARK: Companion (upstream NotchMascotTrackView in the closed island, NotchMascotActivityVisit over a strip,
+    // NotchMascotView in a notice, and the window's hooks for it in NotchService)
+
+    private enum MascotPointer { Entered, Moved, Exited }
+
+    /// <summary>The companion's layer over the strip, its view there, and the service that decides what it does.</summary>
+    private void StartMascot(NotchWindow window)
+    {
+        _mascotLayer = new Canvas { IsHitTestVisible = false, ClipToBounds = false };
+        window.ContentLayer.Children.Add(_mascotLayer);
+        _mascotView = new MascotView(new MascotStage(() => Now)) { Visibility = Visibility.Collapsed };
+        _mascotLayer.Children.Add(_mascotView);
+        _mascotRefreshTimer = NewTimer(() => { _mascotRefreshTimer?.Stop(); Refresh(); });
+        _mascot = new MascotService(_settings, this, () => Now, _dispatcher);
+        _mascot.Changed += () => Refresh();
+    }
+
+    /// <summary>Settings asks it to say hello in the island now; false when the island has no room for it.</summary>
+    public bool GreetMascot() => _mascot?.Greet() == true;
+
+    bool IMascotIsland.Running => _running;
+    bool IMascotIsland.Expanded => _expanded;
+    bool IMascotIsland.PointerInside => _inside;
+    bool IMascotIsland.ClosedFree => _running && _window is { IsVisible: true } && !_expanded && !_dragPlaceholder
+                                     && _notice is null && ClosedVisible;
+    bool IMascotIsland.ClosedVisible => ClosedVisible;
+    MascotReaction? IMascotIsland.NoticeReaction => _notice is { } notice && NoticeShowsCompanion(notice) ? notice.Companion : null;
+    NotchCompactActivity? IMascotIsland.Activity => CurrentActivity();
+    SizeD? IMascotIsland.ActivityStrip => _geometry is { } g && CurrentActivity() is { } activity ? ActivityStrip(activity, g).Size : null;
+    NotchGeometry? IMascotIsland.Geometry => _geometry;
+    bool IMascotIsland.MusicPlaying => _media?.Current?.IsPlaying == true;
+    void IMascotIsland.Refresh() => Refresh();
+
+    private bool ClosedVisible => !_hiddenInFullscreen && !HiddenUntilHover;
+
+    /// <summary>A notice that carries a reaction shows the companion in place of its symbol while it is on.</summary>
+    private bool NoticeShowsCompanion(Notice notice) =>
+        notice.Companion is not null && notice.Level is null && MascotSupport.IsEnabled(_settings);
+
+    private static bool IsActivity(ClosedContent content) => content is ClosedContent.Music or ClosedContent.Timer
+        or ClosedContent.Watch or ClosedContent.Download or ClosedContent.Calendar or ClosedContent.Agents;
+
+    /// <summary>
+    /// Draws the companion for what the closed island shows: resting in its wing, or visiting, when the island is
+    /// otherwise bare; out over an activity's strip for a visit that ends out of sight, with what it covers stepping
+    /// aside; fading out as an activity takes its place; in a notice's corner. Never in the open island, a drop
+    /// target or full screen.
+    /// </summary>
+    private void PresentMascot(ClosedContent content, NotchGeometry g)
+    {
+        PresentNoticeMascot(content);
+        if (_mascot is not { } mascot || _mascotView is not { } view || _window is not { } w) return;
+        var now = Now;
+        var reduce = MascotService.ReduceMotion;
+        var activity = IsActivity(content);
+        MascotTrack? track = null;
+        MascotVisit? visit = null;
+        var rests = false;
+        if (content == ClosedContent.Bare && ClosedVisible && mascot.Shows(g))
+        {
+            track = mascot.ClosedTrack(g);
+            rests = mascot.RestsInView;
+            visit = mascot.Visit;
+        }
+        else if (activity && mascot.Visit is { } over && over.Kind.EndsOutOfSight && !(over.Kind.WatchesTimer && g.Floats)
+                 && CurrentActivity() is { } shown && mascot.TrackOverActivity(g, ActivityStrip(shown, g).Size) is { } strip)
+        {
+            // A lap or a homecoming ends where it rests, which a strip has no place for: only what ends out of sight.
+            track = strip;
+            visit = over;
+        }
+
+        // An activity takes its place at rest: it fades out over the first half of the crossfade, and the strip comes
+        // in over the second, unless it stays to react over the strip.
+        var yieldStarts = track is null && activity && _mascotAtRest && mascot.RestedInView && !mascot.Lingers && !reduce;
+        if (yieldStarts)
+        {
+            view.Stage.YieldToActivity();
+            view.Wake();
+            _mascotYieldEnds = now + MascotMotion.RestCrossfade;
+            if (_mascotRefreshTimer is { } timer)
+            {
+                timer.Stop();
+                timer.Interval = TimeSpan.FromSeconds(MascotMotion.RestCrossfade + 0.02);
+                timer.Start();
+            }
+        }
+        var yielding = track is null && activity && now < _mascotYieldEnds;
+
+        if (track is { } placed)
+        {
+            var appearing = view.Visibility != Visibility.Visible;
+            view.Visibility = Visibility.Visible;
+            view.Width = placed.Width;
+            view.Height = placed.Height;
+            view.Stage.Mascot.LowPower = mascot.LowPower;
+            view.Stage.ShowOnTrack(MascotSupport.Look(_settings), placed, rests, visit, MascotMood.Idle,
+                                   rests ? mascot.ReactionEvent : null, reduce);
+            // Back at rest as an activity leaves, it crossfades in.
+            if (appearing && !reduce) { view.Opacity = 0; NotchWindow.Fade(view, 1, MascotMotion.RestCrossfade); }
+            view.Wake();
+        }
+        else if (!yielding) view.Visibility = Visibility.Collapsed;
+        _mascotAtRest = track is not null && content == ClosedContent.Bare && rests;
+        PlaceMascots(_drawn == SizeD.Zero ? g.Collapsed : _drawn);
+
+        // What a visit walks over steps aside: only the wing it stands in for a reaction or a countdown beside a
+        // camera, the whole strip for a stroll from end to end (upstream NotchMascotActivityVisit).
+        double left = 1, right = 1;
+        if (activity && visit is not null && track is { } over2 && mascot.StepsAside)
+        {
+            var ownWing = visit.Kind.TakesOnlyItsWing && over2.Hidden is not null;
+            var rightWing = over2.Mirrored && !visit.Kind.WatchesTimer;
+            left = ownWing && rightWing ? 1 : 0;
+            right = ownWing && !rightWing ? 1 : 0;
+        }
+        if (yieldStarts) SetWings(w, 0, 0, 0);
+        SetWings(w, left, right, yieldStarts ? MascotMotion.RestCrossfade / 2 : 0,
+                 yieldStarts ? MascotMotion.RestCrossfade / 2 : reduce ? 0 : 0.2);
+    }
+
+    /// <summary>The wings' content fades to the opacity it should have, once per change.</summary>
+    private void SetWings(NotchWindow w, double left, double right, double delay = 0, double seconds = 0.2)
+    {
+        if (_wingOpacity == (left, right)) return;
+        _wingOpacity = (left, right);
+        foreach (var (wing, to) in new[] { (w.LeftWing, left), (w.RightWing, right) })
+        {
+            if (seconds <= 0 && delay <= 0)
+            {
+                wing.BeginAnimation(UIElement.OpacityProperty, null);
+                wing.Opacity = to;
+            }
+            else NotchWindow.Fade(wing, to, seconds, delay);
+        }
+    }
+
+    /// <summary>A notice with a reaction shows the companion beside the camera in place of its symbol, playing it
+    /// once as the notice comes in.</summary>
+    private void PresentNoticeMascot(ClosedContent content)
+    {
+        var notice = content == ClosedContent.Notice ? _notice : null;
+        if (notice is null || !NoticeShowsCompanion(notice) || _mascotLayer is null)
+        {
+            if (_noticeMascot is not null) _mascotLayer?.Children.Remove(_noticeMascot);
+            _noticeMascot = null;
+            _noticeMascotFor = null;
+            return;
+        }
+        if (ReferenceEquals(_noticeMascotFor, notice) && _noticeMascot is not null) return;
+        if (_noticeMascot is not null) _mascotLayer.Children.Remove(_noticeMascot);
+        const double size = MascotSupport.NoticeSize;
+        var stage = new MascotStage(() => Now) { ViewSize = new SizeD(size, size) };
+        var view = new MascotView(stage) { Width = size, Height = size };
+        stage.Mascot.LowPower = _mascot?.LowPower == true;
+        stage.ShowAlone(MascotSupport.Look(_settings), size, MascotMood.Idle, idles: true, MascotService.ReduceMotion,
+                        reaction: MascotSupport.Reacts(_settings) ? notice.Companion : null, first: true);
+        _mascotLayer.Children.Add(view);
+        _noticeMascot = view;
+        _noticeMascotFor = notice;
+        PlaceMascots(_drawn == SizeD.Zero ? (_geometry?.Notice ?? SizeD.Zero) : _drawn);
+    }
+
+    /// <summary>Keeps the companion's views on the camera as the island springs: its track centred on it, and a
+    /// notice's companion where the notice's symbol would be, beside the camera on the strip's line.</summary>
+    private void PlaceMascots(SizeD size)
+    {
+        if (_geometry is not { } g) return;
+        if (_mascotView is { } view && !double.IsNaN(view.Width))
+        {
+            Canvas.SetLeft(view, (size.Width - view.Width) / 2);
+            Canvas.SetTop(view, 0);
+        }
+        if (_noticeMascot is { } notice)
+        {
+            const double half = MascotSupport.NoticeSize / 2;
+            Canvas.SetLeft(notice, size.Width / 2 - g.CameraWidth / 2 - 8 - half * 2);
+            // Half a point low, on the line it rests on beside the camera.
+            Canvas.SetTop(notice, (g.FloatingGap ?? 0) + g.StripBodyHeight / 2 + 0.5 - half);
+        }
+    }
+
+    /// <summary>The pointer over the island: the resting companion's eyes follow it, and resting on it pets it.</summary>
+    private void OnMascotPointer(MouseEventArgs e, MascotPointer phase)
+    {
+        if (_mascotView is not { IsVisible: true } view) return;
+        var position = e.GetPosition(view);
+        var point = new PointD(position.X, position.Y);
+        switch (phase)
+        {
+            case MascotPointer.Entered: view.Stage.PointerEntered(point); break;
+            case MascotPointer.Moved: view.Stage.PointerMoved(point); break;
+            default: view.Stage.PointerExited(); break;
+        }
+        view.Wake();
+    }
+
+    /// <summary>The PC unlocked: it slept through the lock and wakes up glad to see you.</summary>
+    private void OnSessionSwitch(object? sender, SessionSwitchEventArgs e)
+    {
+        if (e.Reason != SessionSwitchReason.SessionUnlock) return;
+        _dispatcher.BeginInvoke(() => _mascot?.React(MascotSupport.Unlocked));
+    }
+
     // MARK: Timer (upstream NotchTimerService)
 
     public void StartTimer(int minutes)
@@ -1986,6 +2271,7 @@ public sealed class IslandService : IFeatureService
         _settings.Set(DefaultsKey.NotchTimerMinutes, NotchTimerSupport.TimerMinutes(minutes));
         _settings.Set(DefaultsKey.NotchTimerMode, "timer");
         _timer.Start(NotchTimerMode.Timer, minutes, Now);
+        _mascot?.React(MascotSupport.TimerStarted);
         UpdatePages();
         Refresh();
     }
@@ -2000,13 +2286,23 @@ public sealed class IslandService : IFeatureService
     private void OnTimerPrimary()
     {
         var now = Now;
-        if (_timer.IsRunning) _timer.Pause(now);
+        if (_timer.IsRunning)
+        {
+            _timer.Pause(now);
+            // Paused, the countdown it watched stops: it goes back behind the camera.
+            _mascot?.EndCountdown(retreating: true);
+        }
         else if (_timer.IsPaused) _timer.Resume(now);
-        else if (_timer.CanStartNext) _timer.StartNext(now);
+        else if (_timer.CanStartNext)
+        {
+            _timer.StartNext(now);
+            _mascot?.React(MascotSupport.TimerStarted);
+        }
         else
         {
             _timer.Cancel();
             _timer.Start(SelectedTimerMode, _settings.GetInt(DefaultsKey.NotchTimerMinutes, 15), now, PomodoroConfiguration());
+            _mascot?.React(MascotSupport.TimerStarted);
         }
         UpdatePages();
         Refresh();
@@ -2016,6 +2312,7 @@ public sealed class IslandService : IFeatureService
     {
         if (!_running) return;
         if (_timer.IsRunning && _timer.FinishIfDue(Now)) OnTimerFinished();
+        WatchTimerRunOut();
         if (_shown == ClosedContent.Timer && _window is not null) _window.StripText.Text = TimerStripText();
         if (_shown == ClosedContent.Calendar && _window is not null && _calendar?.Countdown is { } countdown) UpdateCalendarClock(_window, countdown);
         if (_shown == ClosedContent.Agents && _window is not null && _agents is not null && _agents.Readout.AdvancesWithClock()) UpdateAgentReading(_window);
@@ -2026,9 +2323,24 @@ public sealed class IslandService : IFeatureService
     {
         if (_settings.GetBool(DefaultsKey.NotchTimerSoundEnabled)) SystemSounds.Exclamation.Play();
         var title = _timer.Mode == NotchTimerMode.Pomodoro ? NotchTimerSupport.PhaseTitle(_timer.Phase) + " done" : "Time's up";
+        // The notice takes the strip it watched from, and it takes the news there.
+        _mascot?.EndCountdown(retreating: false);
+        var reaction = MascotSupport.TimerReaction(_timer.Phase);
         _notice = null;
-        ShowNotice(new Notice(NoticeKind.Timer, "", null, title, null, 44, 100, 5, Orange));
+        ShowNotice(new Notice(NoticeKind.Timer, "", null, title, null, 44, 100, 5, Orange, Companion: reaction));
+        _mascot?.React(reaction);
         UpdatePages();
+    }
+
+    /// <summary>The last seconds of a countdown: the companion comes out over the timer's mark to watch it run out
+    /// (upstream NotchTimerService.scheduleCountdown).</summary>
+    private void WatchTimerRunOut()
+    {
+        if (_mascot is null || !_timer.IsRunning || _timer.Deadline is not { } deadline || _watchedDeadline == deadline) return;
+        var remaining = deadline - Now;
+        if (remaining > MascotMotion.CountdownLead || remaining <= 1.5) return;
+        _watchedDeadline = deadline;
+        _mascot.WatchCountdown(remaining);
     }
 
     private string TimerStripText() =>
@@ -2080,8 +2392,8 @@ public sealed class IslandService : IFeatureService
         w.LyricsEarlier.Click += (_, _) => _lyrics?.AdjustOffset(-0.25);
         w.LyricsLater.Click += (_, _) => _lyrics?.AdjustOffset(0.25);
         w.LyricsOffset.Click += (_, _) => _lyrics?.ResetOffset();
-        w.TimerNext.Click += (_, _) => { _timer.StartNext(Now); UpdatePages(); Refresh(); };
-        w.TimerReset.Click += (_, _) => { _timer.Cancel(); UpdatePages(); Refresh(); };
+        w.TimerNext.Click += (_, _) => { _timer.StartNext(Now); _mascot?.React(MascotSupport.TimerStarted); UpdatePages(); Refresh(); };
+        w.TimerReset.Click += (_, _) => { _timer.Cancel(); _mascot?.EndCountdown(retreating: false); UpdatePages(); Refresh(); };
         w.ModeTimer.Checked += (_, _) => SelectTimerMode(NotchTimerMode.Timer);
         w.ModePomodoro.Checked += (_, _) => SelectTimerMode(NotchTimerMode.Pomodoro);
         w.ModeStopwatch.Checked += (_, _) => SelectTimerMode(NotchTimerMode.Stopwatch);

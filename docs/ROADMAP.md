@@ -314,6 +314,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
     - **Battery and charging notices.**
     - **Timer / pomodoro / stopwatch.**
 - **M3 Island extensions.** In order: lyrics → live equalizer → file drop/shelf on the island → downloads → calendar (ICS) → agents → notifications (sparse package registered in Developer Mode; the signed package for other PCs, with `makeappx`/`signtool` and a certificate, later) → camera → accessories → watch → mascot.
+  - **Complete:** all eleven extensions are ported. The companion's Command Bar face and its screenshot and Keep Awake reactions wait for those features (M6 and later).
 - **M4 Sound.**
   - Mixer panel section and island page: per-app sessions with icons, volume, mute, meters, pinning and order.
   - Per-app output device, output switcher hotkey, priority auto-switch, quieter on headphone disconnect, mic mute with island indicator.

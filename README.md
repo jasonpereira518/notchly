@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M2 (setup, shell, island core) and the first M3 extensions (lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, Watch). See
+Status: milestones M0–M3 (setup, shell, island core, and the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -59,6 +59,13 @@ for the porting plan.
     *Watch Again* starts over. The window is read with Windows.Graphics.Capture, so it can move or be covered;
     minimized or locked pauses watching, and closing it ends the watch. Text comes from Windows' own recognition on
     this PC; only the chosen area is read, in memory, and nothing is saved or sent.
+  - **Companion** (opt in): a little friend who rests in the closed island's wing beside the camera when nothing else
+    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, follows the pointer
+    with its eyes, answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
+    through the island, and it hides in the island after half a minute of quiet. It comes out to react to music
+    starting, timers, downloads, the microphone, unlocking the PC, agents finishing, events starting, the charger,
+    Watch and files dropped in, standing in for the notice's icon when the notice brings the news. With Windows'
+    animation effects off it only changes face, and Battery Saver keeps it at rest.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

@@ -332,6 +332,18 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Caption("Only the area you choose is read, with Windows' own text recognition on this PC; nothing is saved or sent. " +
                     "What it reads shows in the closed island, so it may appear in screen captures of the island."),
 
+            Section(MascotSettings.Title),
+            IslandSwitch(MascotSettings.Title, MascotSettings.Hint, DefaultsKey.NotchMascotEnabled, "\uE76E"),
+            MascotSettings.IslandNote(settings),
+            MascotSettings.Stage(app),
+            MascotSettings.Appearance(settings),
+            MascotSettings.SideRow(settings),
+            Toggle(MascotSettings.HidesWhenIdle, MascotSettings.HidesWhenIdleHint, DefaultsKey.NotchMascotHidesWhenIdle, "\uED1A"),
+            Toggle(MascotSettings.Visits, MascotSettings.VisitsHint, DefaultsKey.NotchMascotVisits, "\uE805"),
+            MascotSettings.ShowWhen(settings, Choice(MascotSettings.Frequency, null, DefaultsKey.NotchMascotVisitFrequency,
+                MascotSettings.Frequencies, "\uE823"), () => settings.GetBool(DefaultsKey.NotchMascotVisits)),
+            Toggle(MascotSettings.Reactions, MascotSettings.ReactionsHint, DefaultsKey.NotchMascotReactions, "\uE76E"),
+
             Section("Notices"),
             Toggle("Volume", null, DefaultsKey.NotchVolume, ""),
             Toggle("Use the volume keys in the island", "The island handles the volume keys in 2% steps instead of Windows' own volume pop-up.", DefaultsKey.NotchSwallowVolumeKeys, ""),

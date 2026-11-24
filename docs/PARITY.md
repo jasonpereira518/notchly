@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**13 ported**, 55 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**14 ported**, 54 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -109,7 +109,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `notchDownloads` | Downloads | ✅ Ported | M3 | Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress. |
 | `notchAgents` | AI agents | ✅ Ported | M3 | Reads each agent's local logs; Claude limits via its own claude command; Cursor (beyond upstream) via its sign-in. |
 | `notchWatch` | Watch | ✅ Ported | M3 | Windows.Graphics.Capture and Windows' own text recognition, on this PC only. |
-| `notchMascot` | Companion | 🛠️ Planned | M3 |  |
+| `notchMascot` | Companion | ✅ Ported | M3 | Drawn with WPF; Reduce Motion follows Windows' animation effects and Low Power follows Battery Saver. |
 
 ## System Monitor
 

@@ -262,4 +262,27 @@ public class MascotRigTests
         clock.Now += 0.5;
         Assert.Equal(1, rig.Frame()!.BulbGlowOpacity, 6);
     }
+
+    [Fact]
+    public void AStillCompanionWaitsForItsNextBlinkAndAMovingOneDrawsEveryFrame()
+    {
+        var clock = new Clock();
+        var stage = new MascotStage(() => clock.Now, Randoms(0.5), () => 14) { Attached = true };
+        stage.ShowOnTrack(MascotLook.Standard, Notch(), rests: true, visit: null, MascotMood.Idle, reaction: null, reduceMotion: false);
+        stage.Frame();
+        // At rest nothing moves until the next blink begins, 4.5 s from now.
+        Assert.Equal(100 + 4.5, stage.NextChange()!.Value, 6);
+        stage.React(MascotReactionEvent.Now(MascotReaction.Celebrate, clock.Now), 5);
+        Assert.Equal(clock.Now, stage.NextChange()!.Value, 6);
+        clock.Now += MascotReaction.Celebrate.Length() + 0.01;
+        stage.Frame();
+        Assert.True(stage.NextChange() > clock.Now + 1);
+        // Switched off, it sleeps, and once its eyes have shut nothing is due at all.
+        var off = new MascotStage(() => clock.Now, Randoms(0.5), () => 14) { Attached = true };
+        off.ShowOnTrack(MascotLook.Standard, Notch(), rests: true, visit: null, MascotMood.Idle, reaction: null,
+                        reduceMotion: false, awake: false);
+        clock.Now += 2;
+        off.Frame();
+        Assert.Null(off.NextChange());
+    }
 }

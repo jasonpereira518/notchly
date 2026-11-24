@@ -129,6 +129,13 @@ public static class MascotKeyframes
     }
 }
 
+/// <summary>Times on the companion's clock that may not be set.</summary>
+public static class MascotTime
+{
+    /// <summary>The sooner of two times, either of which may be missing.</summary>
+    public static double? Earliest(double? a, double? b) => a is null ? b : b is null ? a : Math.Min(a.Value, b.Value);
+}
+
 /// <summary>
 /// One animation on one property, as a CAAnimation added to a layer: it starts at <see cref="Begin"/> on the
 /// companion's clock and runs <see cref="Duration"/> seconds. <see cref="Apply"/> takes the value below it (the
@@ -191,6 +198,22 @@ internal sealed class MascotChannel<T>
     /// <summary>Takes off what has ended, as Core Animation does after the frame it ends on.</summary>
     public void Prune(double now) =>
         _animations.RemoveAll(entry => entry.Animation.RemovedOnCompletion && entry.Animation.IsOver(now));
+
+    /// <summary>
+    /// When what shows next changes on its own: <paramref name="now"/> while an animation plays, the start of the
+    /// next one waiting, or null when nothing will. Windows-specific: the view draws only until then.
+    /// </summary>
+    public double? NextChange(double now)
+    {
+        double? next = null;
+        foreach (var (_, animation) in _animations)
+        {
+            if (now >= animation.End) continue;
+            var at = Math.Max(now, animation.Begin);
+            if (next is null || at < next) next = at;
+        }
+        return next;
+    }
 
     /// <summary>What shows at <paramref name="now"/>: the presentation value.</summary>
     public T Value(double now)

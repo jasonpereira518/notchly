@@ -321,6 +321,25 @@ public sealed class MascotStage
         }
     }
 
+    /// <summary>The stage's clock now.</summary>
+    public double Now => _clock();
+
+    /// <summary>
+    /// When the frame next changes on its own: now while anything moves, when a blink, a pat on the head, a cameo
+    /// landing or the end of a yield is due, or null while it keeps still. Windows-specific: the view draws only
+    /// until then, and is woken by whatever its owner tells the stage.
+    /// </summary>
+    public double? NextChange()
+    {
+        var now = _clock();
+        var next = Mascot.NextChange();
+        next = MascotTime.Earliest(next, _scale.NextChange(now));
+        next = MascotTime.Earliest(next, _yield.NextChange(now));
+        next = MascotTime.Earliest(next, _pettingDue);
+        next = MascotTime.Earliest(next, _cameoDue?.Due);
+        return MascotTime.Earliest(next, _yieldEnds);
+    }
+
     /// <summary>The companion now, in the view: its frame with the stage's scale and where it can be seen.</summary>
     public MascotFrame? Frame()
     {

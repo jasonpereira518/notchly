@@ -241,7 +241,8 @@ public static class FeatureCatalog
         Add(AppFeature.NotchTimer, g, "Timer", "Timer, Pomodoro and stopwatch in the island.", Glyph.Timer,
             [DefaultsKey.NotchTimerEnabled], true, WindowsStatus.Ported, "M2");
         Add(AppFeature.NotchAccessories, g, "Accessories", "Bluetooth device connections and batteries.", Glyph.Bluetooth,
-            [DefaultsKey.NotchAccessoriesEnabled], true, P, "M3");
+            [DefaultsKey.NotchAccessoriesEnabled], true, WindowsStatus.Ported, "M3",
+            "Battery levels where Windows reports them (DEVPKEY_Bluetooth_Battery).");
         Add(AppFeature.NotchLyrics, g, "Lyrics", "Synced lyrics for the playing song.", Glyph.Quote,
             [DefaultsKey.NotchLyricsEnabled], true, WindowsStatus.Ported, "M3", "Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup.");
         Add(AppFeature.NotchQueue, g, "Play queue", "The player's upcoming songs.", Glyph.List,

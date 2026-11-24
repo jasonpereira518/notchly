@@ -334,6 +334,8 @@ internal sealed class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Battery and charger", null, DefaultsKey.NotchBattery, ""),
             Toggle("Tint when the battery is low", null, DefaultsKey.NotchLowBatteryTint, ""),
             SliderRow("Low battery level", null, DefaultsKey.NotchLowBatteryThreshold, 1, 99, 1, "{0:0} %", ""),
+            IslandSwitch("Bluetooth accessories", "Announce headphones, speakers, controllers and other accessories when they connect, and warn when their battery runs low.",
+                         DefaultsKey.NotchAccessoriesEnabled, ""),
 
             Section("Timer"),
             Toggle("Timer", "Timer, Pomodoro and stopwatch in the island.", DefaultsKey.NotchTimerEnabled, ""),

@@ -23,6 +23,7 @@ using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
 using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
+using Notchly.App.Platform.Bluetooth;
 using Notchly.App.Platform.Input;
 using Notchly.App.Platform.Media;
 using Notchly.App.Platform.Power;
@@ -48,7 +49,7 @@ namespace Notchly.App.Island;
 public sealed class IslandService : IFeatureService
 {
     private enum ClosedContent { Bare, Music, Timer, Download, Calendar, Agents, Notice, Drop, Open }
-    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification }
+    private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
@@ -79,6 +80,13 @@ public sealed class IslandService : IFeatureService
     private NotificationsService? _notifications;
     private NotificationsPage? _notificationsPage;
     private CameraPage? _cameraPage;
+    private BluetoothAccessories? _accessories;
+    /// <summary>Accessory batteries: one alert per low episode, kept across lock and sleep (upstream batteryState).</summary>
+    private NotchAccessoryBatteryState _accessoryBattery = new();
+    private readonly NotchAccessoryNoticeQueue<Notice> _accessoryNotices = new();
+    private DispatcherTimer? _accessoryTimer;
+    private double _accessoryActivation;
+    private bool _accessoriesOn;
     /// <summary>The shape of the agent reading the strip was sized for; a new shape resizes it.</summary>
     private string _agentShape = "";
     private readonly Dictionary<string, double> _measured = new(StringComparer.Ordinal);
@@ -211,6 +219,11 @@ public sealed class IslandService : IFeatureService
         _notificationsPage.Resized += () => { if (_expanded && _page == NotchModule.Notifications) Refresh(); };
         _cameraPage = new CameraPage(window, _settings, _dispatcher,
             () => CameraPreviewSupport.CanPresent(CameraPreviewSupport.IsEnabled(_settings), _expanded, _page), modal => _modalOpen = modal);
+        _accessories = new BluetoothAccessories(work => _dispatcher.BeginInvoke(work));
+        _accessories.Connected += OnAccessoryConnected;
+        _accessories.Disconnected += OnAccessoryDisconnected;
+        _accessories.Battery += OnAccessoryBattery;
+        _accessories.Paused += _accessoryNotices.Clear;
         window.Surface.AllowDrop = true;
         window.Surface.DragEnter += OnDragOver;
         window.Surface.DragOver += OnDragOver;
@@ -247,6 +260,7 @@ public sealed class IslandService : IFeatureService
         _lyricsTimer = NewTimer(OnLyricsTimer);
         _revealTimer = NewTimer(EndReveal, TimeSpan.FromMilliseconds(350));
         _scrollTimer = NewTimer(OnScrollFrame, TimeSpan.FromMilliseconds(15));
+        _accessoryTimer = NewTimer(PresentAccessoryNotice, TimeSpan.FromSeconds(NotchAccessorySupport.NoticeSeconds + 0.1));
         _tickTimer.Start();
         Log.Information("Island started");
     }
@@ -255,7 +269,7 @@ public sealed class IslandService : IFeatureService
     {
         _running = false;
         StopFrames();
-        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer, _tintTimer }) timer?.Stop();
+        foreach (var timer in new[] { _hoverTimer, _closeTimer, _noticeTimer, _pollTimer, _tickTimer, _barsTimer, _lyricsTimer, _scrollTimer, _revealTimer, _tintTimer, _accessoryTimer }) timer?.Stop();
         SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged;
         _volumeKeys?.Dispose(); _volumeKeys = null;
         _foreground?.Dispose(); _foreground = null;
@@ -270,6 +284,10 @@ public sealed class IslandService : IFeatureService
         _agents?.Dispose(); _agents = null; _agentsPage = null;
         _notifications?.Dispose(); _notifications = null; _notificationsPage = null;
         _cameraPage?.Dispose(); _cameraPage = null;
+        _accessories?.Dispose(); _accessories = null;
+        _accessoriesOn = false;
+        _accessoryBattery = new();
+        _accessoryNotices.Clear();
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
         _power?.Dispose(); _power = null;
@@ -348,6 +366,7 @@ public sealed class IslandService : IFeatureService
         SyncAgents();
         SyncNotifications();
         SyncCamera();
+        SyncAccessories();
         UpdateRevealZone(display, geometry, offset);
         SyncDragReveal();
         Refresh(animated: _drawn != SizeD.Zero);
@@ -901,6 +920,14 @@ public sealed class IslandService : IFeatureService
                 _calendarPage?.Reveal(countdown.Event);
             }
             if (_shown == ClosedContent.Agents || _notice?.Kind == NoticeKind.Agents) _page = NotchModule.Agents;
+            if (_notice?.Kind == NoticeKind.Accessory)
+            {
+                // Upstream opens its System page; Notchly has none yet, so Windows' own Bluetooth page.
+                OnNoticeTimer();
+                ShellActions.Open("ms-settings:bluetooth");
+                e.Handled = true;
+                return;
+            }
             if (_notice is { Kind: NoticeKind.Notification, NotificationId: { } notification })
             {
                 _page = NotchModule.Notifications;
@@ -1555,7 +1582,7 @@ public sealed class IslandService : IFeatureService
     {
         NoticeKind.Volume or NoticeKind.Brightness or NoticeKind.Microphone => 3,
         NoticeKind.Timer => 2,
-        NoticeKind.Battery or NoticeKind.Agents or NoticeKind.Notification => 1,
+        NoticeKind.Battery or NoticeKind.Agents or NoticeKind.Notification or NoticeKind.Accessory => 1,
         _ => 0,
     };
 
@@ -1647,6 +1674,88 @@ public sealed class IslandService : IFeatureService
         if (_cameraPage is null || Pages().Contains(NotchModule.Camera)) return;
         _cameraPage.Visible = false;
         if (_page == NotchModule.Camera && _expanded) ShowPage(NotchModule.Controls);
+    }
+
+    // MARK: Accessories (upstream NotchAccessoryService)
+
+    /// <summary>
+    /// Bluetooth accessories are watched while the island announces them. Turning it off forgets their battery
+    /// episodes (upstream stop); a lock or sleep only rebuilds the connection baseline.
+    /// </summary>
+    private void SyncAccessories()
+    {
+        var enabled = NotchAccessorySupport.IsEnabled(_settings);
+        if (enabled && !_accessoriesOn) _accessoryActivation = NotchAccessorySupport.Now;
+        else if (!enabled && _accessoriesOn)
+        {
+            _accessoryBattery = new();
+            _accessoryNotices.Clear();
+            _accessoryTimer?.Stop();
+        }
+        _accessoriesOn = enabled;
+        _accessories?.Sync(enabled);
+    }
+
+    private void OnAccessoryConnected(AccessoryEvent.Connected e)
+    {
+        if (!_accessoriesOn) return;
+        var kind = NotchAccessorySupport.Kind(e.Name, e.MajorClass, e.MinorClass);
+        EnqueueAccessory(AccessoryNotice(NotchAccessorySupport.Glyph(kind), NotchAccessorySupport.ConnectedText(e.Name, e.Percent), null),
+                         e.Device, isLow: false);
+    }
+
+    private void OnAccessoryDisconnected(AccessoryEvent.Disconnected e)
+    {
+        if (_accessoriesOn) _accessoryNotices.RemoveDevice(e.Device);
+    }
+
+    /// <summary>A fresh reading: a measured recharge withdraws a waiting warning, and a new low episode warns once.</summary>
+    private void OnAccessoryBattery(AccessoryEvent.Battery e)
+    {
+        if (!_accessoriesOn) return;
+        var device = new PeripheralBatteryDevice(e.Device, e.Name, e.Percent, NotchAccessorySupport.BatteryKind(e.Name, e.MajorClass, e.MinorClass));
+        var sample = new PeripheralBatterySample([device], new Dictionary<string, double> { [e.Device] = e.ObservedAt });
+        if (_accessoryBattery.IsFresh(device, sample, _accessoryActivation) && e.Percent >= NotchAccessorySupport.RecoveryThreshold)
+            _accessoryNotices.RemoveLow(e.Device);
+        foreach (var low in _accessoryBattery.Consume(sample, _accessoryActivation))
+        {
+            var kind = NotchAccessorySupport.Kind(e.Name, e.MajorClass, e.MinorClass);
+            EnqueueAccessory(AccessoryNotice(NotchAccessorySupport.Glyph(kind), NotchAccessorySupport.LowText(low.Name, low.Percent), Red),
+                             e.Device, isLow: true);
+        }
+    }
+
+    /// <summary>The accessory's icon beside the camera and its words on the other side, for 4 s.</summary>
+    private Notice AccessoryNotice(string glyph, string text, Color? tint)
+    {
+        var trailing = Math.Clamp(MeasureText(text, 12, FontWeights.SemiBold) + 18, NotchGeometry.NoticeWingRange.Min, 200);
+        return new Notice(NoticeKind.Accessory, glyph, null, text, null, 44, trailing, NotchAccessorySupport.NoticeSeconds, tint);
+    }
+
+    /// <summary>Do Not Disturb holds accessory notices back, as it does notification banners.</summary>
+    private void EnqueueAccessory(Notice notice, string device, bool isLow)
+    {
+        if (BannersHeldBack()) return;
+        _accessoryNotices.Enqueue(notice, device, isLow, Now);
+        if (_accessoryTimer is { IsEnabled: false }) PresentAccessoryNotice();
+    }
+
+    /// <summary>
+    /// Shows the next waiting notice when the island is closed and nothing more urgent is on show, then looks again
+    /// once it has had its time (upstream presentNext).
+    /// </summary>
+    private void PresentAccessoryNotice()
+    {
+        _accessoryTimer?.Stop();
+        if (!_running || !_accessoriesOn || !_accessoryNotices.TryPeek(Now, out var next)) return;
+        var free = !_expanded && !_hiddenInFullscreen
+                   && (_notice is not { } current || NoticePriority(current.Kind) <= NotchAccessorySupport.NoticePriority);
+        if (free && !BannersHeldBack())
+        {
+            _accessoryNotices.Dequeue();
+            ShowNotice(next);
+        }
+        _accessoryTimer?.Start();
     }
 
     // MARK: Files (drops onto the island and drag-reveal)

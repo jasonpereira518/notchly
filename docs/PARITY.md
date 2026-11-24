@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**11 ported**, 57 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**12 ported**, 56 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -102,7 +102,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `notchNotifications` | Notifications | ✅ Ported | M3 | Through Windows' notification listener; needs a one-time setup (Developer Mode) and your permission. |
 | `notchGestures` | Island gestures | ✅ Ported | M2 |  |
 | `notchTimer` | Timer | ✅ Ported | M2 |  |
-| `notchAccessories` | Accessories | 🛠️ Planned | M3 |  |
+| `notchAccessories` | Accessories | ✅ Ported | M3 | Battery levels where Windows reports them (DEVPKEY_Bluetooth_Battery). |
 | `notchLyrics` | Lyrics | ✅ Ported | M3 | Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup. |
 | `notchQueue` | Play queue | ➖ Not on Windows | - | Windows media controls expose no system-wide queue. |
 | `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission. |

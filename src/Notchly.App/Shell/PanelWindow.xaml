@@ -49,6 +49,8 @@
                 </ui:Card>
             </StackPanel>
 
+            <StackPanel x:Name="MixerSection" />
+
             <TextBlock x:Name="ComingSoon" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="2,4,2,10" />
 
             <Grid>

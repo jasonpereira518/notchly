@@ -34,6 +34,8 @@ public sealed class MicMuteService : IFeatureService
     public bool ShortcutUnavailable { get; private set; }
     /// <summary>Muted or unmuted; false means some microphones could not be reached (partial).</summary>
     public event Action<bool, bool>? StateChanged;
+    /// <summary>The mute turned on or off (also when it was found on at start): what the tray's badge follows.</summary>
+    public static event Action<bool>? ActiveChanged;
 
     public MicMuteService(SettingsStore settings, HotkeyService hotkeys, Dispatcher dispatcher)
     {
@@ -62,7 +64,7 @@ public sealed class MicMuteService : IFeatureService
             }
         }
         // A mute that survived a restart is held again.
-        if (Active && _listened.Count == 0) { Listen(); Reassert(); }
+        if (Active && _listened.Count == 0) { Listen(); Reassert(); ActiveChanged?.Invoke(true); }
     }
 
     /// <summary>Mutes every microphone, or gives them back. False when some could not be reached.</summary>
@@ -74,6 +76,7 @@ public sealed class MicMuteService : IFeatureService
         _settings.Set(DefaultsKey.MicMuteActive, true);
         Listen();
         StateChanged?.Invoke(true, complete);
+        ActiveChanged?.Invoke(true);
         return complete;
     }
 
@@ -84,6 +87,7 @@ public sealed class MicMuteService : IFeatureService
         var complete = Restore();
         _settings.Set(DefaultsKey.MicMuteActive, false);
         StateChanged?.Invoke(false, complete);
+        ActiveChanged?.Invoke(false);
         return complete;
     }
 
@@ -251,6 +255,7 @@ public sealed class MicMuteService : IFeatureService
         {
             Restore();
             _settings.Set(DefaultsKey.MicMuteActive, false);
+            ActiveChanged?.Invoke(false);
         }
     }
 }

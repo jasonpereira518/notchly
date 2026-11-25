@@ -315,7 +315,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
     - **Timer / pomodoro / stopwatch.**
 - **M3 Island extensions.** In order: lyrics → live equalizer → file drop/shelf on the island → downloads → calendar (ICS) → agents → notifications (sparse package registered in Developer Mode; the signed package for other PCs, with `makeappx`/`signtool` and a certificate, later) → camera → accessories → watch → mascot.
   - **Complete:** all eleven extensions are ported. The companion's Command Bar face and its screenshot and Keep Awake reactions wait for those features (M6 and later).
-- **M4 Sound.**
+- **M4 Sound.** Mixer, output switcher, device priority, headphone guard and mic mute are ported (Windows' session API for per-app volume; the undocumented audio policy interface for per-app output, hidden where missing). **Boost above 100% is not done:** a session cannot be played louder than it is rendered without capturing and re-rendering its audio through a virtual device, so the model keeps upstream's 0…2 scale and gain curve and the app caps at 100%.
   - Mixer panel section and island page: per-app sessions with icons, volume, mute, meters, pinning and order.
   - Per-app output device, output switcher hotkey, priority auto-switch, quieter on headphone disconnect, mic mute with island indicator.
   - Boost above 100% last, as an experiment.

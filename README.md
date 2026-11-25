@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M3 (setup, shell, island core, and the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion). See
+Status: milestones M0–M4 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; and sound: mixer, output switcher, device priority, microphone mute) and M4 (sound: mixer, output switcher, device priority, microphone mute). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -66,6 +66,14 @@ for the porting plan.
     starting, timers, downloads, the microphone, unlocking the PC, agents finishing, events starting, the charger,
     Watch and files dropped in, standing in for the notice's icon when the notice brings the news. With Windows'
     animation effects off it only changes face, and Battery Saver keeps it at rest.
+  - **Sound** (M4): a **Volume mixer** page on the island and a section in the panel list every app that uses audio, with
+    its icon, a level slider with a live meter, mute, reset, pinning, order, and (through Windows' own per-app output)
+    the speaker or headphones it plays to; call apps, Zoom and music-production apps keep their own volume. Windows plays
+    an app up to 100%, so there is no boost. The **output switcher** steps through the outputs you tick with a shortcut
+    (Ctrl+Alt+Win+S); **device priority** makes the first connected device in your list the default as devices come and
+    go; **lower volume when headphones disconnect** drops the speakers to a level you pick and restores it when the
+    headphones return; **mute microphone** (Ctrl+Alt+Win+M, the tray menu or Settings → Sound) mutes every microphone and
+    gives each back exactly what it had, with a badge on the tray icon.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

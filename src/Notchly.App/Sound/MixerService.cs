@@ -64,17 +64,24 @@ public sealed class MixerService : IFeatureService
         _sessions.SessionCreated += () => _dispatcher.BeginInvoke(() => { if (!_eventTimer.IsEnabled) _eventTimer.Start(); });
     }
 
+    private string _shown = "";
+
+    /// <summary>Settings changed somewhere: rows are rebuilt only when a choice that shapes the list did, not on every slider tick.</summary>
     public void Sync()
     {
         _sessions.AllowCallAppVolume = _settings.GetBool(DefaultsKey.MixerCallAppVolumeEnabled);
+        var signature = string.Join('|', _settings.GetBool(DefaultsKey.MixerHideInactiveApps), _settings.GetBool(DefaultsKey.MixerShowSystemSounds),
+            _settings.GetBool(DefaultsKey.MixerCallAppVolumeEnabled), _settings.GetString(DefaultsKey.MixerAppArrangement),
+            string.Join(',', Hidden().Keys.Order(StringComparer.Ordinal)));
+        if (_started && signature == _shown) return;
+        _shown = signature;
         if (!_started)
         {
             _started = true;
             _previousOutputs = Snapshot(AudioDevices.List(false));
             _previousDefault = AudioDevices.DefaultId(false);
-            Refresh();
         }
-        else Refresh();
+        Refresh();
     }
 
     // MARK: Viewing
@@ -323,6 +330,13 @@ public sealed class MixerService : IFeatureService
     public void SetOutputMuted(bool muted)
     {
         if (AudioDevices.DefaultId(false) is { } id) _control.SetMuted(id, muted);
+    }
+
+    public bool InputMuted => AudioDevices.WithEndpoint<bool?>(AudioDevices.DefaultId(true) ?? "", d => d.AudioEndpointVolume.Mute) ?? false;
+
+    public void SetInputMuted(bool muted)
+    {
+        if (AudioDevices.DefaultId(true) is { } id) _control.SetMuted(id, muted);
     }
 
     public void SetInputVolume(double volume)

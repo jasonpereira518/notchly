@@ -703,6 +703,9 @@
                         <!-- Watch (upstream NotchWatchView): built in code by WatchPage. -->
                         <Grid x:Name="WatchPage" Visibility="Collapsed" />
 
+                        <!-- Volume mixer (upstream NotchMixerView): built in code by MixerPage. -->
+                        <Grid x:Name="MixerPage" Visibility="Collapsed" />
+
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">
                             <Grid.RowDefinitions>

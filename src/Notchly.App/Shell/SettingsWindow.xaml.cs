@@ -7,7 +7,7 @@ using Wpf.Ui.Controls;
 
 namespace Notchly.App.Shell;
 
-public enum SettingsPage { General, Features, Island, About }
+public enum SettingsPage { General, Features, Island, Sound, About }
 
 public partial class SettingsWindow : FluentWindow
 {
@@ -18,6 +18,7 @@ public partial class SettingsWindow : FluentWindow
         new(SettingsPage.General, "General", ""),
         new(SettingsPage.Features, "Features", ""),
         new(SettingsPage.Island, "Dynamic Island", ""),
+        new(SettingsPage.Sound, "Sound", ""),
         new(SettingsPage.About, "About", ""),
     ];
 

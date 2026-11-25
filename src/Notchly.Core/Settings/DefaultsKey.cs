@@ -382,4 +382,8 @@ public static class DefaultsKey
     // Startup (M6)
     /// <summary>Windows-only: the logon task that starts Notchly with administrator rights; machine state.</summary>
     public const string RunElevatedAtLogin = "runElevatedAtLogin";
+
+    // Input (M7)
+    /// <summary>Windows-only: the input features step aside while a full-screen app or game covers a display.</summary>
+    public const string InputPauseInGames = "inputPauseInGames";
 }

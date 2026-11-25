@@ -307,5 +307,8 @@ public static class Defaults
         [DefaultsKey.FocusFollowsMouseOriginal] = "",
         [DefaultsKey.MouseAccelerationOriginal] = "",
         [DefaultsKey.RunElevatedAtLogin] = false,
+
+        // Input (M7)
+        [DefaultsKey.InputPauseInGames] = true,
     };
 }

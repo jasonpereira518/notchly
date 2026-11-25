@@ -22,6 +22,12 @@ public partial class App : Application
     public SettingsStore Settings { get; private set; } = null!;
     public InputHookService Input { get; private set; } = null!;
     public HotkeyService Hotkeys { get; private set; } = null!;
+    /// <summary>When the input features step aside (a full-screen game, an administrator window).</summary>
+    public InputGate InputGate { get; private set; } = null!;
+    /// <summary>Everything the input features send goes through this, marked as Notchly's own.</summary>
+    public Notchly.Core.Input.IInputInjector Injector { get; private set; } = null!;
+    /// <summary>Whether the focus is in a password field.</summary>
+    public PasswordFieldProbe Passwords { get; private set; } = null!;
     public Monitor.SystemMonitor Monitor { get; private set; } = null!;
     public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
     public TrayReadoutService TrayReadouts { get; private set; } = null!;
@@ -69,6 +75,9 @@ public partial class App : Application
 
         Input = new InputHookService();
         Hotkeys = new HotkeyService();
+        InputGate = new InputGate(Settings, Dispatcher);
+        Injector = new SendInputInjector();
+        Passwords = new PasswordFieldProbe();
         Features = new FeatureRuntime(Settings);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
         Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
@@ -269,6 +278,8 @@ public partial class App : Application
             MonitorAlerts?.Dispose();
             Monitor?.Dispose();
             Tray?.Dispose();
+            Passwords?.Dispose();
+            InputGate?.Dispose();
             Hotkeys?.Dispose();
             Input?.Dispose();
             Settings?.Dispose();

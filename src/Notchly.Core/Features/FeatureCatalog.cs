@@ -266,13 +266,13 @@ public static class FeatureCatalog
 
         // System monitor
         g = FeatureGroup.Monitor;
-        Add(AppFeature.MonitorCPU, g, "Processor", "CPU load per core, temperature and top processes.", Glyph.Cpu, none, true, P, "M5");
-        Add(AppFeature.MonitorGPU, g, "Graphics", "GPU load for the Intel and NVIDIA GPUs.", Glyph.Gpu, none, true, P, "M5");
-        Add(AppFeature.MonitorMemory, g, "Memory", "Memory use and pressure.", Glyph.Memory, none, true, P, "M5");
-        Add(AppFeature.MonitorNetwork, g, "Network", "Live traffic, totals, local IP and speed test.", Glyph.Network, none, true, P, "M5");
-        Add(AppFeature.MonitorDisk, g, "Disk", "Disk space and activity.", Glyph.Disk2, none, true, P, "M5");
-        Add(AppFeature.MonitorPower, g, "Power", "Battery health, charge rate and power use.", Glyph.Power, none, true, P, "M5");
-        Add(AppFeature.ConnectedDevices, g, "Connected devices", "USB devices and peripheral batteries.", Glyph.Usb, none, true, P, "M5");
+        Add(AppFeature.MonitorCPU, g, "Processor", "CPU load per core, temperature and top processes.", Glyph.Cpu, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorGPU, g, "Graphics", "GPU load for the Intel and NVIDIA GPUs.", Glyph.Gpu, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorMemory, g, "Memory", "Memory use and pressure.", Glyph.Memory, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorNetwork, g, "Network", "Live traffic, totals, local IP and speed test.", Glyph.Network, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorDisk, g, "Disk", "Disk space and activity.", Glyph.Disk2, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorPower, g, "Power", "Battery health, charge rate and power use.", Glyph.Power, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.ConnectedDevices, g, "Connected devices", "USB devices and peripheral batteries.", Glyph.Usb, none, true, WindowsStatus.Ported, "M5");
         Add(AppFeature.FanControl, g, "Fan control", "OMEN fan speeds and curves (beta, needs admin helper).", Glyph.Fan, none, false, P, "M12");
 
         return list;

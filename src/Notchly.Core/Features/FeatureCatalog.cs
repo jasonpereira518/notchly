@@ -260,7 +260,8 @@ public static class FeatureCatalog
             [DefaultsKey.NotchWatchEnabled], true, WindowsStatus.Ported, "M3",
             "Windows.Graphics.Capture and Windows' own text recognition, on this PC only.");
         Add(AppFeature.NotchMascot, g, "Companion", "An animated companion beside the island.", Glyph.Smile,
-            [DefaultsKey.NotchMascotEnabled], false, P, "M3");
+            [DefaultsKey.NotchMascotEnabled], false, WindowsStatus.Ported, "M3",
+            "Drawn with WPF; Reduce Motion follows Windows' animation effects and Low Power follows Battery Saver.");
 
         // System monitor
         g = FeatureGroup.Monitor;

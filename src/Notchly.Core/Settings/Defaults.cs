@@ -81,6 +81,14 @@ public static class Defaults
         [DefaultsKey.NotchWatchSound] = true,
         [DefaultsKey.NotchWatchCondition] = "changes",
         [DefaultsKey.NotchMascotEnabled] = false,
+        [DefaultsKey.NotchMascotVisits] = true,
+        [DefaultsKey.NotchMascotReactions] = true,
+        [DefaultsKey.NotchMascotStyle] = "minimal",
+        [DefaultsKey.NotchMascotShape] = "ball",
+        [DefaultsKey.NotchMascotPalette] = "pearl",
+        [DefaultsKey.NotchMascotSide] = "left",
+        [DefaultsKey.NotchMascotVisitFrequency] = "normal",
+        [DefaultsKey.NotchMascotHidesWhenIdle] = true,
         [DefaultsKey.NotchEnabled] = false,
 
         // Shape and placement

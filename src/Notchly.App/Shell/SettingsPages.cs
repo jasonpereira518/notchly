@@ -32,6 +32,7 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         SettingsPage.Processes => ProcessesPage(),
         SettingsPage.Mouse => MousePage(),
         SettingsPage.Keyboard => KeyboardPage(),
+        SettingsPage.Clipboard => ClipboardFilesPage(),
         SettingsPage.About => AboutPage(),
         _ => GeneralPage(),
     };

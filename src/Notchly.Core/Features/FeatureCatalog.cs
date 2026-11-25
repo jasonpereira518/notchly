@@ -162,17 +162,17 @@ public static class FeatureCatalog
         // Clipboard and files
         g = FeatureGroup.ClipboardFiles;
         Add(AppFeature.ClipboardHistory, g, "Clipboard history", "Search text, image and file history; pin favorites.", Glyph.Clipboard,
-            [DefaultsKey.ClipboardHistoryEnabled], true, P, "M8");
+            [DefaultsKey.ClipboardHistoryEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.PastePlain, g, "Paste as plain text", "Paste without formatting.", Glyph.Paste,
-            [DefaultsKey.PastePlainEnabled], true, P, "M8");
+            [DefaultsKey.PastePlainEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.FinderCutPaste, g, "Explorer image paste", "Paste a copied image into Explorer as a PNG file.", Glyph.Cut,
-            [DefaultsKey.FinderCutPasteEnabled, DefaultsKey.FinderPasteImageAsFile], true, P, "M8", "Cut/paste of files is built into Explorer.");
+            [DefaultsKey.FinderPasteImageAsFile], true, WindowsStatus.Ported, "M8", "Cut and paste of files is built into Explorer; this adds pasting a copied image as a PNG file.");
         Add(AppFeature.FinderRename, g, "Rename with F2", "Rename files with F2.", Glyph.Rename,
             [DefaultsKey.FinderRenameEnabled], true, N, "-", "Explorer already renames with F2.");
         Add(AppFeature.Shelf, g, "Shelf", "Park files, text and links while dragging.", Glyph.Tray,
-            [DefaultsKey.ShelfEnabled], true, WindowsStatus.Ported, "M3", "Files page on the island; the floating shelf window comes in M8.");
+            [DefaultsKey.ShelfEnabled], true, WindowsStatus.Ported, "M3", "Files page on the island, and a floating card with a shortcut, shake, drop zone and edge peek (M8).");
         Add(AppFeature.UrlCleaner, g, "Clean URL", "Remove tracking parameters from links.", Glyph.Link,
-            [DefaultsKey.UrlCleanerEnabled], true, P, "M8");
+            [DefaultsKey.UrlCleanerEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.DiskImageInstaller, g, "Disk image installer", "Install apps from mounted disk images.", Glyph.Disk,
             none, false, D, "-", "macOS disk images have no Windows equivalent.");
 

@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**48 ported**, 20 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**52 ported**, 16 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -41,12 +41,12 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `clipboardHistory` | Clipboard history | 🛠️ Planned | M8 |  |
-| `pastePlain` | Paste as plain text | 🛠️ Planned | M8 |  |
-| `finderCutPaste` | Explorer image paste | 🛠️ Planned | M8 | Cut/paste of files is built into Explorer. |
+| `clipboardHistory` | Clipboard history | ✅ Ported | M8 |  |
+| `pastePlain` | Paste as plain text | ✅ Ported | M8 |  |
+| `finderCutPaste` | Explorer image paste | ✅ Ported | M8 | Cut and paste of files is built into Explorer; this adds pasting a copied image as a PNG file. |
 | `finderRename` | Rename with F2 | 🪟 Built into Windows | - | Explorer already renames with F2. |
-| `shelf` | Shelf | ✅ Ported | M3 | Files page on the island; the floating shelf window comes in M8. |
-| `urlCleaner` | Clean URL | 🛠️ Planned | M8 |  |
+| `shelf` | Shelf | ✅ Ported | M3 | Files page on the island, and a floating card with a shortcut, shake, drop zone and edge peek (M8). |
+| `urlCleaner` | Clean URL | ✅ Ported | M8 |  |
 | `diskImageInstaller` | Disk image installer | ➖ Not on Windows | - | macOS disk images have no Windows equivalent. |
 
 ## Sound

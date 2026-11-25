@@ -17,6 +17,7 @@ public enum InputSource : uint
     Switcher = 7,
     Layout = 8,
     Other = 9,
+    Clipboard = 10,
 }
 
 public static class InputMarker

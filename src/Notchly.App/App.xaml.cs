@@ -30,6 +30,11 @@ public partial class App : Application
     public Notchly.Core.Input.IInputInjector Injector { get; private set; } = null!;
     /// <summary>Whether the focus is in a password field.</summary>
     public PasswordFieldProbe Passwords { get; private set; } = null!;
+    /// <summary>The one clipboard watcher the clipboard features share; it listens only while one of them is on.</summary>
+    public Pasteboard.ClipboardMonitor ClipboardWatch { get; private set; } = null!;
+    private Island.Files.ShelfService? _shelf;
+    /// <summary>The one shelf, shared by the island's Files page and the floating Shelf card.</summary>
+    public Island.Files.ShelfService Shelf => _shelf ??= new Island.Files.ShelfService(Dispatcher);
     public Monitor.SystemMonitor Monitor { get; private set; } = null!;
     public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
     public TrayReadoutService TrayReadouts { get; private set; } = null!;
@@ -82,6 +87,7 @@ public partial class App : Application
         Passwords = new PasswordFieldProbe();
         Scroll = new MouseInput.ScrollPipeline(this);
         Features = new FeatureRuntime(Settings);
+        ClipboardWatch = new Pasteboard.ClipboardMonitor(new Pasteboard.Win32ClipboardAccess(), Dispatcher);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
         Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
         TrayReadouts = new TrayReadoutService(this);
@@ -112,6 +118,14 @@ public partial class App : Application
         Features.Bind(AppFeature.SuperKey, () => new KeyboardInput.SuperKeyService(this));
         Features.Bind(AppFeature.TextSnippets, () => new KeyboardInput.SnippetService(this));
         Features.Bind(AppFeature.QuitWindowProtection, () => new KeyboardInput.QuitProtectionService(this));
+        Features.Bind(AppFeature.ClipboardHistory, () => new Pasteboard.ClipboardHistoryService(Settings, ClipboardWatch, Dispatcher)
+        {
+            RegisterHotkey = Hotkeys.Register, ShortcutPressed = ClipboardShortcut,
+        });
+        Features.Bind(AppFeature.PastePlain, () => new Pasteboard.PastePlainService(this));
+        Features.Bind(AppFeature.FinderCutPaste, () => new Pasteboard.ExplorerImagePasteService(this));
+        Features.Bind(AppFeature.Shelf, () => new ShelfCard.ShelfSummonService(this));
+        Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));
@@ -257,6 +271,28 @@ public partial class App : Application
     /// <summary>Builds the open settings page again (a reorder, say).</summary>
     public void RefreshSettingsPage() => _settingsWindow?.Rebuild();
 
+    private Pasteboard.ClipboardQuickWindow? _clipboardWindow;
+
+    /// <summary>The history in a window over the app you are in; a second call brings the open one forward.</summary>
+    public void ShowClipboardWindow()
+    {
+        if (Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory) is not { } history) return;
+        if (_clipboardWindow is { IsVisible: true } open) { open.Activate(); return; }
+        var front = Platform.Windowing.WindowInventory.Foreground();
+        var target = front != IntPtr.Zero && Platform.Windowing.ForegroundApps.Describe(front)?.ProcessId != (uint)Environment.ProcessId ? front : IntPtr.Zero;
+        _clipboardWindow = new Pasteboard.ClipboardQuickWindow(history, Settings, new Pasteboard.ClipboardPaster(Injector), target);
+        _clipboardWindow.Closed += (_, _) => _clipboardWindow = null;
+        _clipboardWindow.Show();
+    }
+
+    /// <summary>The history shortcut: the island's Clipboard page when it is there and wanted, else the window.</summary>
+    private void ClipboardShortcut()
+    {
+        var island = Features.Get<IslandService>(AppFeature.Notch);
+        if (Settings.GetBool(DefaultsKey.NotchClipboardWindow) && island?.OpenPage(Notchly.Core.Notch.NotchModule.Clipboard) == true) return;
+        ShowClipboardWindow();
+    }
+
     public void ShowSettings(SettingsPage page)
     {
         if (_settingsWindow is null)
@@ -287,6 +323,8 @@ public partial class App : Application
         try
         {
             Features?.Dispose();
+            _shelf?.Dispose();
+            ClipboardWatch?.Dispose();
             TrayReadouts?.Dispose();
             MonitorAlerts?.Dispose();
             Monitor?.Dispose();

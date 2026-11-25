@@ -465,4 +465,39 @@ public static class DefaultsKey
     public const string QuitProtectionCloseScope = "quitProtectionCloseScope";
     public const string QuitProtectionCloseExceptions = "quitProtectionCloseExceptions";
     public const string QuitProtectionCloseShowFeedback = "quitProtectionCloseShowFeedback";
+
+    // MARK: Clipboard and files (M8). Upstream spellings; the shortcuts are Windows chords.
+    public const string ClipboardHistoryLimit = "clipboardHistoryLimit";
+    public const string ClipboardHistoryRetentionDays = "clipboardHistoryRetentionDays";
+    public const string ClipboardHistoryFilterSensitiveText = "clipboardHistoryFilterSensitiveText";
+    public const string ClipboardHistoryIncludeImagesFiles = "clipboardHistoryIncludeImagesFiles";
+    public const string ClipboardHistoryIgnoredApps = "clipboardHistoryIgnoredApps";
+    public const string ClipboardHistoryQuickPreview = "clipboardHistoryQuickPreview";
+    public const string ClipboardHistoryShowSourceAppIcons = "clipboardHistoryShowSourceAppIcons";
+    public const string ClipboardHistoryLayout = "clipboardHistoryLayout";
+    public const string ClipboardHistoryShortcutEnabled = "clipboardHistoryShortcutEnabled";
+    public const string ClipboardHistoryShortcut = "clipboardHistoryShortcut";
+    public const string ClipboardHistoryWindowWidth = "clipboardHistoryWindowWidth";
+    public const string ClipboardHistoryWindowHeight = "clipboardHistoryWindowHeight";
+    public const string NotchClipboard = "notchClipboard";
+    public const string NotchClipboardWindow = "notchClipboardWindow";
+    public const string NotchClipboardCardSize = "notchClipboardCardSize";
+    public const string ClipboardAutoClearOnDelay = "clipboardAutoClearOnDelay";
+    public const string ClipboardAutoClearDelaySeconds = "clipboardAutoClearDelaySeconds";
+    public const string ClipboardAutoClearOnSleep = "clipboardAutoClearOnSleep";
+    public const string ClipboardAutoClearOnDisplaySleep = "clipboardAutoClearOnDisplaySleep";
+    public const string ClipboardAutoClearOnScreenLock = "clipboardAutoClearOnScreenLock";
+    public const string PastePlainShortcut = "pastePlainShortcut";
+    public const string UrlCleanerCustomParameters = "urlCleanerCustomParameters";
+    public const string UrlCleanerSiteParameters = "urlCleanerSiteParameters";
+    public const string UrlCleanerDisabledParameters = "urlCleanerDisabledParameters";
+    public const string ShelfShortcutEnabled = "shelfShortcutEnabled";
+    public const string ShelfShortcut = "shelfShortcut";
+    public const string ShelfShakeToOpen = "shelfShakeToOpen";
+    public const string ShelfDropZoneEnabled = "shelfDropZoneEnabled";
+    public const string ShelfDockPlacement = "shelfDockPlacement";
+    public const string ShelfEdgeDragEnabled = "shelfEdgeDragEnabled";
+    public const string ShelfClearOnClose = "shelfClearOnClose";
+    public const string ShelfShortcutAddsSelection = "shelfShortcutAddsFinderSelection";
+    public const string ShelfAutomaticExclusions = "shelfAutomaticExclusions";
 }

@@ -247,7 +247,8 @@ public static class FeatureCatalog
         Add(AppFeature.NotchLyrics, g, "Lyrics", "Synced lyrics for the playing song.", Glyph.Quote,
             [DefaultsKey.NotchLyricsEnabled], true, WindowsStatus.Ported, "M3", "Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup.");
         Add(AppFeature.NotchQueue, g, "Play queue", "The player's upcoming songs.", Glyph.List,
-            [DefaultsKey.NotchQueueEnabled], true, D, "-", "Windows media controls expose no system-wide queue.");
+            [DefaultsKey.NotchQueueEnabled], true, WindowsStatus.Ported, "M3",
+            "Spotify only: Windows media controls expose no queue, so the next songs come from Spotify's web API after a one-time sign-in with your own developer app (Premium). Windows additions on the same page: shuffle and loop for any player, a star (Spotify Liked Songs, or a local list), and a playlist picker when nothing is playing.");
         Add(AppFeature.NotchLiveEqualizer, g, "Live equalizer", "Bars that follow the music's real levels.", Glyph.Wave,
             [DefaultsKey.NotchLiveEqualizer], true, WindowsStatus.Ported, "M3", "Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission.");
         Add(AppFeature.NotchDownloads, g, "Downloads", "Downloads in progress in the island.", Glyph.Download,

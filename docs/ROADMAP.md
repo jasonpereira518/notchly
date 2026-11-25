@@ -189,7 +189,7 @@ Legend: **P** = port, **T** = toggle the built-in Windows setting, **N** = Windo
 | accessories | P | `DeviceWatcher` + Bluetooth battery property |
 | watch | P | Windows.Graphics.Capture + `Windows.Media.Ocr` |
 | mascot | P | |
-| queue | D | no system-wide queue on Windows |
+| queue | P | no system-wide queue on Windows, so Spotify only: the web API (Authorization Code + PKCE through a loopback address, the user's own developer app, Premium), refresh token sealed with DPAPI. The Music page also gains shuffle and loop (media controls), a star (Spotify Liked Songs or a local list) and a playlist picker when nothing plays: Windows additions with no upstream counterpart |
 
 The island lock-screen overlay is also **D**: no app can draw over the Windows lock screen.
 

@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**18 ported**, 50 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**19 ported**, 50 planned, 5 built into Windows, 6 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -104,7 +104,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `notchTimer` | Timer | ✅ Ported | M2 |  |
 | `notchAccessories` | Accessories | ✅ Ported | M3 | Battery levels where Windows reports them (DEVPKEY_Bluetooth_Battery). |
 | `notchLyrics` | Lyrics | ✅ Ported | M3 | Synced lyrics from an imported .lrc file, or from lrclib.net once you allow online lookup. |
-| `notchQueue` | Play queue | ➖ Not on Windows | - | Windows media controls expose no system-wide queue. |
+| `notchQueue` | Play queue | ✅ Ported | M3 | Spotify only: Windows media controls expose no queue, so the next songs come from Spotify's web API after a one-time sign-in with your own developer app (Premium). Windows additions on the same page: shuffle and loop for any player, a star (Spotify Liked Songs, or a local list), and a playlist picker when nothing is playing. |
 | `notchLiveEqualizer` | Live equalizer | ✅ Ported | M3 | Follows the system output (WASAPI loopback) instead of tapping the player's process; on by default, as Windows asks no permission. |
 | `notchDownloads` | Downloads | ✅ Ported | M3 | Watches your Downloads folder (or one you choose); shows size and speed because Windows browsers don't publish progress. |
 | `notchAgents` | AI agents | ✅ Ported | M3 | Reads each agent's local logs; Claude limits via its own claude command; Cursor (beyond upstream) via its sign-in. |

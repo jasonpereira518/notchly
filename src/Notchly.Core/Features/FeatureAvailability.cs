@@ -46,6 +46,9 @@ public static class FeatureAvailability
         AppFeature.AudioPriority => info.EnabledKeys,
         // The live equalizer starts off: only the user's own switch turns it on.
         AppFeature.NotchLiveEqualizer => [],
+        // These two change how the PC behaves without being asked (Bluetooth off at every sleep, pointer acceleration
+        // off): they install with their switch off, and only the user's own switch turns them on.
+        AppFeature.BluetoothSleep or AppFeature.MouseAcceleration => [],
         _ => info.EnabledKeys.Take(1),
     };
 

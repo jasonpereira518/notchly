@@ -24,6 +24,7 @@ using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
 using Notchly.App.Island.Metrics;
 using Notchly.App.Island.Mixer;
+using Notchly.App.Energy;
 using Notchly.App.Island.Watch;
 using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
@@ -38,6 +39,7 @@ using Notchly.Core.Agents;
 using Notchly.Core.Calendar;
 using Notchly.Core.Camera;
 using Notchly.Core.Downloads;
+using Notchly.Core.Energy;
 using Notchly.Core.Features;
 using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
@@ -53,7 +55,7 @@ namespace Notchly.App.Island;
 
 public sealed class IslandService : IFeatureService, IMascotIsland
 {
-    private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, Notice, Drop, Open }
+    private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, KeepAwake, Notice, Drop, Open }
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory, Watch }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
@@ -272,6 +274,10 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             _volume.OutputsChanged += UpdateVolumeControls;
         }
         catch (Exception e) { Log.Warning(e, "Audio endpoints unavailable"); }
+        KeepAwakeService.AnyChanged += OnKeepAwakeChanged;
+        KeepAwakeService.ActiveChanged += OnKeepAwakeActive;
+        BrightnessService.AnyChanged += OnBrightnessServiceChanged;
+        BrightnessService.Stepped += OnBrightnessStepped;
         _power = new PowerService(_dispatcher);
         _power.BatteryChanged += OnBatteryChanged;
         _power.BrightnessChanged += OnBrightnessChanged;
@@ -335,6 +341,11 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _accessoryNotices.Clear();
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
+        KeepAwakeService.AnyChanged -= OnKeepAwakeChanged;
+        KeepAwakeService.ActiveChanged -= OnKeepAwakeActive;
+        BrightnessService.AnyChanged -= OnBrightnessServiceChanged;
+        BrightnessService.Stepped -= OnBrightnessStepped;
+        _keepAwakeTick?.Stop();
         _power?.Dispose(); _power = null;
         _menuBar?.Dispose(); _menuBar = null;
         _strip?.Close(); _strip = null;
@@ -467,6 +478,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_media?.Current is { IsPlaying: true } && _settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             && _settings.GetString(DefaultsKey.NotchIdleContent, "music") == "music")
             running.Add(NotchCompactActivity.Music);
+        if (KeepAwakeLive is { Active: true }
+            && NotchKeepAwakeSupport.ShowsActivity(true, true, _settings.GetBool(DefaultsKey.NotchKeepAwakeActivity)))
+            running.Add(NotchCompactActivity.KeepAwake);
         return NotchActivities.Prioritized(running).Cast<NotchCompactActivity?>().FirstOrDefault();
     }
 
@@ -535,6 +549,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
         NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
         NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
+        NotchCompactActivity.KeepAwake => (g.TimerStrip(52), ClosedContent.KeepAwake),
         _ => (g.MusicStrip, ClosedContent.Music),
     };
 
@@ -595,6 +610,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 w.StripIcon.Visibility = Visibility.Visible;
                 w.StripText.Text = TimerStripText();
                 w.StripText.Foreground = Brush(_timer.IsRunning ? Orange : Colors.White);
+                w.StripText.Visibility = Visibility.Visible;
+                break;
+            case ClosedContent.KeepAwake when KeepAwakeLive is { } awake:
+                // Upstream's mark is a yellow cup; endless sessions show the infinity mark in its place.
+                w.StripIcon.Text = "\uE706";
+                w.StripIcon.Foreground = Brush(Color.FromRgb(0xFF, 0xD6, 0x0A));
+                w.StripIcon.Visibility = Visibility.Visible;
+                w.StripText.Text = awake.RemainingSeconds is { } left ? NotchKeepAwakeSupport.CompactText(left) : "\u221E";
+                w.StripText.Foreground = Brush(Color.FromRgb(0xFF, 0xD6, 0x0A));
                 w.StripText.Visibility = Visibility.Visible;
                 break;
             case ClosedContent.Download when _downloads?.Current is { } download:
@@ -1137,6 +1161,71 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             ShowNotice(new Notice(NoticeKind.Microphone, muted ? "" : "", null, muted ? "Muted" : "Mic on", null,
                                   44, 72, 1.6, muted ? Red : null, Companion: reaction));
         _mascot?.React(reaction);
+    }
+
+    // MARK: Keep awake and display brightness (M6)
+
+    private static KeepAwakeService? KeepAwakeLive => (Application.Current as App)?.Features.Get<KeepAwakeService>(AppFeature.KeepAwake);
+    private static BrightnessService? BrightnessLive =>
+        (Application.Current as App) is { } app && app.Settings.IsEngaged(AppFeature.Brightness) ? app.Features.Get<BrightnessService>(AppFeature.Brightness) : null;
+    private DispatcherTimer? _keepAwakeTick;
+
+    private void OnKeepAwakeActive(bool active) => _dispatcher.BeginInvoke(() => { if (_running && !Starting) _mascot?.React(MascotSupport.KeepAwakeReaction(active)); });
+
+    private void OnKeepAwakeChanged() => _dispatcher.BeginInvoke(() =>
+    {
+        if (!_running) return;
+        UpdateAwakeChip();
+        Refresh();
+        ScheduleKeepAwakeTick();
+    });
+
+    /// <summary>The strip's reading changes once a minute, on the minute (the tick start), so a timer wakes it exactly then.</summary>
+    private void ScheduleKeepAwakeTick()
+    {
+        _keepAwakeTick?.Stop();
+        if (KeepAwakeLive is not { Active: true, Paused: false, End: { } end } || !_settings.GetBool(DefaultsKey.NotchKeepAwakeActivity)) return;
+        var now = DateTimeOffset.Now.ToUnixTimeMilliseconds() / 1000.0;
+        var endSeconds = new DateTimeOffset(end).ToUnixTimeMilliseconds() / 1000.0;
+        var next = NotchKeepAwakeSupport.TickStart(endSeconds, now) + 60 - now;
+        _keepAwakeTick ??= new DispatcherTimer(DispatcherPriority.Background, _dispatcher);
+        _keepAwakeTick.Interval = TimeSpan.FromSeconds(Math.Clamp(next + 0.2, 0.5, 61));
+        _keepAwakeTick.Tick -= OnKeepAwakeTick;
+        _keepAwakeTick.Tick += OnKeepAwakeTick;
+        _keepAwakeTick.Start();
+    }
+
+    private void OnKeepAwakeTick(object? sender, EventArgs e)
+    {
+        _keepAwakeTick?.Stop();
+        if (!_running) return;
+        UpdateAwakeChip();
+        if (_shown == ClosedContent.KeepAwake) Refresh();
+        ScheduleKeepAwakeTick();
+    }
+
+    private void UpdateAwakeChip()
+    {
+        if (_window is not { } w) return;
+        var service = KeepAwakeLive;
+        w.HomeAwakeChip.Visibility = service is null ? Visibility.Collapsed : Visibility.Visible;
+        if (service is null) return;
+        var on = service.Active;
+        w.HomeAwakeText.Text = on ? (service.RemainingSeconds is { } left ? "Awake " + NotchKeepAwakeSupport.CompactText(left) : "Awake \u221E") : "Awake";
+        w.HomeAwakeIcon.Foreground = on ? Brush(Color.FromRgb(0xFF, 0xD6, 0x0A)) : Brushes.White;
+    }
+
+    private void OnBrightnessServiceChanged() => _dispatcher.BeginInvoke(() => { if (_running) UpdateBrightnessControl(); });
+
+    /// <summary>A shortcut stepped an external or dimmed display: the built-in panel's own brightness events show their notice.</summary>
+    private void OnBrightnessStepped(BrightnessDisplay display)
+    {
+        if (display.Kind == DisplayRouteKind.Internal) return;
+        _dispatcher.BeginInvoke(() =>
+        {
+            if (!_running || !_settings.GetBool(DefaultsKey.NotchBrightness) || Starting) return;
+            ShowNotice(new Notice(NoticeKind.Brightness, "\uE706", display.Level, null, null, 44, 108, 1.6));
+        });
     }
 
     private void OnBrightnessChanged(int level)
@@ -2382,9 +2471,12 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
+        w.HomeAwakeChip.Click += (_, _) => KeepAwakeLive?.Toggle();
         w.HomeBrightness.ValueChanged += (_, e) =>
         {
-            if (_updatingControls || _power is null) return;
+            if (_updatingControls) return;
+            if (BrightnessLive is { Focus: { } focus } service) { service.SetLevel(focus.Id, e.NewValue / 100); return; }
+            if (_power is null) return;
             _brightness = (int)Math.Round(e.NewValue);
             _power.SetBrightness(_brightness.Value);
         };
@@ -2571,6 +2663,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
         UpdateBatteryControls();
         UpdateBrightnessControl();
+        UpdateAwakeChip();
 
         var mode = _timer.HasSession ? _timer.Mode : SelectedTimerMode;
         w.ModeTimer.IsChecked = mode == NotchTimerMode.Timer;
@@ -2594,10 +2687,13 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private void UpdateBrightnessControl()
     {
         if (_window is not { } w) return;
-        var available = _brightness is not null;
+        var service = BrightnessLive?.Focus;
+        var available = service is not null || _brightness is not null;
         w.HomeBrightnessHalf.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
         Grid.SetColumnSpan(w.HomeVolumeHalf, available ? 1 : 2);
-        if (_brightness is not { } level || w.HomeBrightness.IsMouseCaptureWithin) return;
+        if (w.HomeBrightness.IsMouseCaptureWithin) return;
+        double? shown = service is not null ? service.Level * 100 : _brightness;
+        if (shown is not { } level) return;
         var updating = _updatingControls;
         _updatingControls = true;
         w.HomeBrightness.Value = level;

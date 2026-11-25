@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**25 ported**, 43 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**34 ported**, 34 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -23,11 +23,11 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `scrollInverter` | Scroll direction | 🛠️ Planned | M7 |  |
 | `scrollHorizontal` | Scroll sideways | 🛠️ Planned | M7 |  |
 | `scrollZoom` | Scroll zoom | 🛠️ Planned | M7 | Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps. |
-| `focusFollowsMouse` | Focus follows mouse | 🔁 Windows-setting toggle | M6 | Flips Windows' own 'activate window on hover' setting. |
+| `focusFollowsMouse` | Focus follows mouse | ✅ Ported | M6 | Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off. |
 | `smoothScroll` | Smooth scrolling | 🛠️ Planned | M7 |  |
 | `linearScroll` | Linear scrolling | 🛠️ Planned | M7 |  |
 | `scrollSpeed` | Scroll speed | 🛠️ Planned | M7 |  |
-| `mouseAcceleration` | Pointer acceleration | 🔁 Windows-setting toggle | M6 | Flips 'Enhance pointer precision'. |
+| `mouseAcceleration` | Pointer acceleration | ✅ Ported | M6 | Turns off 'Enhance pointer precision', and puts yours back when you turn it off. |
 | `mouseNavigation` | Side buttons | 🪟 Built into Windows | - | Windows apps handle side buttons natively. |
 | `mouseButtonShortcuts` | Mouse button shortcuts | 🛠️ Planned | M7 |  |
 | `middleClick` | Middle click | 🪟 Built into Windows | - | Built into Precision Touchpad settings (three-finger tap). |
@@ -63,18 +63,18 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `keepAwake` | Keep awake | 🛠️ Planned | M6 |  |
-| `brightness` | Displays | 🛠️ Planned | M6 |  |
+| `keepAwake` | Keep awake | ✅ Ported | M6 |  |
+| `brightness` | Displays | ✅ Ported | M6 |  |
 | `extraBrightness` | Extra brightness | ➖ Not on Windows | - | Needs an XDR/HDR panel. |
-| `bluetoothSleep` | Bluetooth on sleep | 🛠️ Planned | M6 |  |
+| `bluetoothSleep` | Bluetooth on sleep | ✅ Ported | M6 |  |
 
 ## Tools
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
 | `quickLauncher` | Quick panel | 🛠️ Planned | M9 |  |
-| `quickToggles` | Quick toggles | 🛠️ Planned | M6 |  |
-| `quitApps` | Quit apps | 🛠️ Planned | M6 |  |
+| `quickToggles` | Quick toggles | ✅ Ported | M6 |  |
+| `quitApps` | Quit apps | ✅ Ported | M6 |  |
 | `colorPicker` | Color picker | 🛠️ Planned | M9 |  |
 | `screenOCR` | Copy text from screen | 🛠️ Planned | M9 |  |
 | `cleaningMode` | Cleaning mode | 🛠️ Planned | M9 |  |
@@ -90,8 +90,8 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `commandBar` | Command bar | 🛠️ Planned | M9 |  |
 | `screenRecorder` | Screen recording | 🛠️ Planned | M10 |  |
 | `wallpaper` | Wallpaper | 🛠️ Planned | M9 |  |
-| `killProcess` | Kill process | 🛠️ Planned | M6 |  |
-| `portManager` | Port manager | 🛠️ Planned | M6 |  |
+| `killProcess` | Kill process | ✅ Ported | M6 |  |
+| `portManager` | Port manager | ✅ Ported | M6 |  |
 
 ## Dynamic Island
 

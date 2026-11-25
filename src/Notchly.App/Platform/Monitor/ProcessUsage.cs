@@ -50,6 +50,22 @@ public sealed class ProcessUsageSampler
 
     public void Reset() { _previousCpu = []; _cpuPercent = new Dictionary<int, double>(); _entries = []; }
 
+    /// <summary>One process as the last reading saw it.</summary>
+    public sealed record ProcessInfo(int Pid, int Parent, string Name, double Cpu, ulong PrivateBytes);
+
+    /// <summary>Every process of the last reading, unfolded (the kill list's rows).</summary>
+    public IReadOnlyList<ProcessInfo> Snapshot() =>
+        _entries.Where(e => e.Pid != 0).Select(e => new ProcessInfo(e.Pid, e.Parent, e.Name, _cpuPercent.GetValueOrDefault(e.Pid), e.PrivateBytes)).ToList();
+
+    /// <summary>The app a process belongs to, by the same walk the top lists use: its nearest ancestor with a window.</summary>
+    public IReadOnlyDictionary<int, int> Owners()
+    {
+        var parents = _entries.ToDictionary(e => e.Pid, e => e.Parent);
+        var windowed = WindowedProcesses();
+        return _entries.Where(e => e.Pid != 0).ToDictionary(e => e.Pid,
+            e => MixerSupport.OwningAppPid(e.Pid, pid => windowed.Contains(pid), pid => parents.GetValueOrDefault(pid, 0)) ?? e.Pid);
+    }
+
     /// <summary>The top apps for a kind, helpers folded under their app.</summary>
     public IReadOnlyList<ProcessRow> Top(ProcessKind kind, int limit, IReadOnlyDictionary<int, double>? gpuByPid = null)
     {

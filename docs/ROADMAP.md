@@ -323,7 +323,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
   - Samplers: CPU, GPU, memory, disk, network, battery.
   - History graphs, top processes, alerts (port `SustainedAlertGate`).
   - Tray readout icons, island "system" page and strip readouts, speed test (same endpoint as upstream), connected devices.
-- **M6 Energy & quick wins.**
+- **M6 Energy & quick wins.** Done. Closed-lid mode changes the active scheme's lid action (with a crash-safe marker); brightness routes are WMI, DDC/CI and an overlay dim (Windows rejects dark gamma ramps); the panel is found by its backlight on hybrid-graphics PCs, where it is not marked internal. Not built: keyboard backlight (no Windows API), the firmware brightness keys, monitor speaker volume, per-display power, SMART-style disk rows.
   - Keep awake (+ island activity), brightness (internal, DDC, dim), Bluetooth on sleep.
   - Focus-follows-mouse and acceleration toggles.
   - Quick toggles (incl. refresh rate), quit apps, kill process, port manager.

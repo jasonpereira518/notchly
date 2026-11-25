@@ -580,10 +580,12 @@
                                 <TextBlock x:Name="MusicElapsed" FontSize="11" Foreground="{StaticResource Dim}" HorizontalAlignment="Left" />
                                 <TextBlock x:Name="MusicRemaining" FontSize="11" Foreground="{StaticResource Dim}" HorizontalAlignment="Right" />
                             </Grid>
-                            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center">
+                            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button x:Name="MusicShuffle" Style="{StaticResource IconButton}" Content="&#xE8B1;" FontSize="16" Width="40" Height="40" ToolTip="Shuffle" Margin="0,0,6,0" />
                                 <Button x:Name="MusicPrevious" Style="{StaticResource IconButton}" Content="&#xE892;" FontSize="18" Width="44" Height="44" />
                                 <Button x:Name="MusicPlayPause" Style="{StaticResource IconButton}" Content="&#xE768;" FontSize="24" Width="56" Height="56" Margin="12,0" />
                                 <Button x:Name="MusicNext" Style="{StaticResource IconButton}" Content="&#xE893;" FontSize="18" Width="44" Height="44" />
+                                <Button x:Name="MusicRepeat" Style="{StaticResource IconButton}" Content="&#xE8EE;" FontSize="16" Width="40" Height="40" ToolTip="Loop" Margin="6,0,0,0" />
                             </StackPanel>
                         </Grid>
 

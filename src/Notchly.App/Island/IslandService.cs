@@ -43,6 +43,7 @@ using Notchly.Core.Notch;
 using Notchly.Core.Power;
 using Notchly.Core.Notch.Lyrics;
 using Notchly.Core.Notch.Mascot;
+using Notchly.Core.Notch.Music;
 using Notchly.Core.Notifications;
 using Notchly.Core.Settings;
 using Microsoft.Win32;
@@ -2367,6 +2368,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicPlayPause.Click += (_, _) => _media?.TogglePlayPause();
         w.MusicPrevious.Click += (_, _) => _media?.Previous();
         w.MusicNext.Click += (_, _) => _media?.Next();
+        w.MusicShuffle.Click += (_, _) => { if (_media?.Current is { } now) _media.SetShuffle(!now.IsShuffle); };
+        w.MusicRepeat.Click += (_, _) => { if (_media?.Current is { } now) _media.SetRepeat(now.Repeat.Next()); };
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
@@ -2553,6 +2556,14 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicNext.IsEnabled = playing?.CanGoNext == true;
         w.MusicPrevious.IsEnabled = playing?.CanGoPrevious == true;
         w.MusicTimeline.IsEnabled = playing?.CanSeek == true;
+        var dim = (Brush)w.Resources["Dim"];
+        w.MusicShuffle.IsEnabled = playing?.CanShuffle == true;
+        w.MusicShuffle.Foreground = playing?.IsShuffle == true ? tint : dim;
+        w.MusicShuffle.ToolTip = playing?.IsShuffle == true ? "Shuffle on" : "Shuffle off";
+        w.MusicRepeat.IsEnabled = playing?.CanRepeat == true;
+        w.MusicRepeat.Foreground = playing is { Repeat: not NotchRepeatMode.Off } ? tint : dim;
+        w.MusicRepeat.Content = playing?.Repeat == NotchRepeatMode.One ? "" : "";
+        w.MusicRepeat.ToolTip = playing?.Repeat switch { NotchRepeatMode.All => "Loop list", NotchRepeatMode.One => "Loop song", _ => "Loop off" };
 
         UpdateBatteryControls();
         UpdateBrightnessControl();

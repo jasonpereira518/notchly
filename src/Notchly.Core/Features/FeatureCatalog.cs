@@ -180,13 +180,14 @@ public static class FeatureCatalog
         // Sound
         g = FeatureGroup.Sound;
         Add(AppFeature.Mixer, g, "Volume mixer", "Per-app volume, meters, favorites and per-app output.", Glyph.Volume,
-            none, true, P, "M4");
+            none, true, WindowsStatus.Ported, "M4",
+            "Per-app volume, meters, pinning and per-app output through Windows' own session API; no boost above 100% yet.");
         Add(AppFeature.SoundOutputSwitcher, g, "Output switcher", "Switch audio outputs with a shortcut.", Glyph.Speaker,
-            [DefaultsKey.SoundOutputSwitcherEnabled], true, P, "M4");
+            [DefaultsKey.SoundOutputSwitcherEnabled], true, WindowsStatus.Ported, "M4");
         Add(AppFeature.AudioPriority, g, "Device priority", "Prefer devices in your order as they connect.", Glyph.List,
-            [DefaultsKey.AudioPriorityOutputEnabled, DefaultsKey.AudioPriorityInputEnabled], false, P, "M4");
+            [DefaultsKey.AudioPriorityOutputEnabled, DefaultsKey.AudioPriorityInputEnabled], false, WindowsStatus.Ported, "M4");
         Add(AppFeature.MicMute, g, "Microphone mute", "Mute every microphone with one shortcut.", Glyph.MicOff,
-            none, true, P, "M4");
+            none, true, WindowsStatus.Ported, "M4");
         Add(AppFeature.MusicBlock, g, "Music app blocker", "Stop the Music app launching from play keys.", Glyph.Music,
             [DefaultsKey.MusicBlockEnabled], true, D, "-", "Windows has no 'play key launches Music' behaviour.");
 

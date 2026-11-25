@@ -102,13 +102,20 @@ public static class AudioSessions
 
     private static (string Exe, string? Family) Describe(uint pid)
     {
+        var (path, family) = ProcessImage(pid);
+        return (path.Length == 0 ? "" : Path.GetFileName(path), family);
+    }
+
+    /// <summary>The full path of a process's executable ("" when it cannot be read) and its package family, if packaged.</summary>
+    internal static (string Path, string? Family) ProcessImage(uint pid)
+    {
         var handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
         if (handle == IntPtr.Zero) return ("", null);
         try
         {
             var path = new StringBuilder(1024);
             var size = (uint)path.Capacity;
-            var exe = QueryFullProcessImageName(handle, 0, path, ref size) ? Path.GetFileName(path.ToString()) : "";
+            var exe = QueryFullProcessImageName(handle, 0, path, ref size) ? path.ToString() : "";
             uint length = 0;
             string? family = null;
             if (GetPackageFamilyName(handle, ref length, null) == 122 /* ERROR_INSUFFICIENT_BUFFER */ && length > 0)
@@ -121,7 +128,7 @@ public static class AudioSessions
         finally { CloseHandle(handle); }
     }
 
-    private static Dictionary<uint, (uint Parent, string Exe)> ParentMap()
+    internal static Dictionary<uint, (uint Parent, string Exe)> ParentMap()
     {
         var map = new Dictionary<uint, (uint, string)>();
         var snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);

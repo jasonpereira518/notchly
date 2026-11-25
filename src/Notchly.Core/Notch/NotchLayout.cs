@@ -91,6 +91,8 @@ public static class NotchLayout
 
     /// <summary>The camera page keeps its messages reachable in a short island (upstream NotchView's 144).</summary>
     public const double CameraMinimumHeight = 144;
+    /// <summary>The mixer's page never gets shorter than this (upstream NotchLayout.mixerMinimumHeight).</summary>
+    public const double MixerMinimumHeight = 104;
 
     public static double PreferredWidth(NotchSize layout, double custom) => layout switch
     {

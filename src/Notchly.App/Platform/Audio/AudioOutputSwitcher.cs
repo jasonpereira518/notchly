@@ -9,8 +9,13 @@ namespace Notchly.App.Platform.Audio;
 
 public static class AudioOutputSwitcher
 {
-    /// <summary>Sets `deviceId` as the default output for all three roles; false when any was refused.</summary>
-    public static bool SetDefault(string deviceId)
+    /// <summary>Sets `deviceId` (an output or a microphone) as the default for all three roles; false when any was refused.</summary>
+    public static bool SetDefault(string deviceId) => Set(deviceId, ERole.Console, ERole.Multimedia, ERole.Communications);
+
+    /// <summary>Sets only the communications role: where calls and system alerts play, upstream's "System sounds" output.</summary>
+    public static bool SetCommunicationsDefault(string deviceId) => Set(deviceId, ERole.Communications);
+
+    private static bool Set(string deviceId, params ERole[] roles)
     {
         object? client = null;
         try
@@ -18,13 +23,12 @@ public static class AudioOutputSwitcher
             client = new PolicyConfigClient();
             var config = (IPolicyConfig)client;
             var ok = true;
-            foreach (var role in new[] { ERole.Console, ERole.Multimedia, ERole.Communications })
-                ok &= config.SetDefaultEndpoint(deviceId, role) >= 0;
+            foreach (var role in roles) ok &= config.SetDefaultEndpoint(deviceId, role) >= 0;
             return ok;
         }
         catch (Exception e) when (e is COMException or InvalidCastException)
         {
-            Log.Warning(e, "Default output could not be set");
+            Log.Warning(e, "Default audio device could not be set");
             return false;
         }
         finally

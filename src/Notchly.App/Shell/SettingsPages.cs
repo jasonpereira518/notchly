@@ -18,12 +18,13 @@ using TextBlock = System.Windows.Controls.TextBlock;
 
 namespace Notchly.App.Shell;
 
-internal sealed class SettingsPages(App app, SettingsProxy proxy)
+internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
 {
     public FrameworkElement Build(SettingsPage page) => page switch
     {
         SettingsPage.Features => FeaturesPage(),
         SettingsPage.Island => IslandPage(),
+        SettingsPage.Sound => SoundPage(),
         SettingsPage.About => AboutPage(),
         _ => GeneralPage(),
     };

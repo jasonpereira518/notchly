@@ -20,6 +20,8 @@ public static class SettingsBackup
     {
         DefaultsKey.OnboardingStep, DefaultsKey.LaunchAtLogin, DefaultsKey.PortedFeaturesSeen,
         DefaultsKey.NotchDownloadsFolderPath, DefaultsKey.NotchCameraDevice,
+        // What a mic mute took from this machine's devices has no meaning on another.
+        DefaultsKey.MicMuteActive, DefaultsKey.MicMuteSavedVolumes, DefaultsKey.MicMuteMutedDevices, DefaultsKey.MicMuteSavedVolume,
     };
 
     public static string Export(SettingsStore store)

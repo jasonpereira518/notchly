@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**14 ported**, 54 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**18 ported**, 50 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -53,10 +53,10 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `mixer` | Volume mixer | 🛠️ Planned | M4 |  |
-| `soundOutputSwitcher` | Output switcher | 🛠️ Planned | M4 |  |
-| `audioPriority` | Device priority | 🛠️ Planned | M4 |  |
-| `micMute` | Microphone mute | 🛠️ Planned | M4 |  |
+| `mixer` | Volume mixer | ✅ Ported | M4 | Per-app volume, meters, pinning and per-app output through Windows' own session API; no boost above 100% yet. |
+| `soundOutputSwitcher` | Output switcher | ✅ Ported | M4 |  |
+| `audioPriority` | Device priority | ✅ Ported | M4 |  |
+| `micMute` | Microphone mute | ✅ Ported | M4 |  |
 | `musicBlock` | Music app blocker | ➖ Not on Windows | - | Windows has no 'play key launches Music' behaviour. |
 
 ## Energy & Display

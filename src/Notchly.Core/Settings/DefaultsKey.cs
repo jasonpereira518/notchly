@@ -212,4 +212,28 @@ public static class DefaultsKey
     public const string NotchPomodoroLongBreakMinutes = "notchPomodoroLongBreakMinutes";
     public const string NotchPomodoroLongBreakInterval = "notchPomodoroLongBreakInterval";
     public const string NotchPomodoroTotalSessions = "notchPomodoroTotalSessions";
+
+    // Sound (M4)
+    public const string AppVolumes = "appVolumes";
+    public const string AppOutputDevices = "appOutputDevices";
+    public const string MixerAppArrangement = "mixerAppArrangement";
+    public const string MixerHiddenApps = "mixerHiddenApps";
+    public const string MixerShowSystemSounds = "mixerShowFinder";
+    public const string MixerHideInactiveApps = "mixerHideInactiveApps";
+    public const string MixerCallAppVolumeEnabled = "mixerCallAppVolumeEnabled";
+    public const string MonitorShowMixer = "monitorShowMixer";
+    public const string MixerLowerVolumeOnHeadphonesDisconnect = "mixerLowerVolumeOnHeadphonesDisconnect";
+    public const string MixerHeadphonesDisconnectVolumePercent = "mixerHeadphonesDisconnectVolumePercent";
+    public const string SoundOutputSwitcherShortcut = "soundOutputSwitcherShortcut";
+    public const string SoundOutputSwitcherDeviceUIDs = "soundOutputSwitcherDeviceUIDs";
+    public const string AudioPriorityOutputUIDs = "audioPriorityOutputUIDs";
+    public const string AudioPriorityInputUIDs = "audioPriorityInputUIDs";
+    public const string AudioPriorityDeviceNames = "audioPriorityDeviceNames";
+    public const string MicMuteShortcutEnabled = "micMuteShortcutEnabled";
+    public const string MicMuteShortcut = "micMuteShortcut";
+    public const string MicMuteMenuBarIndicator = "micMuteMenuBarIndicator";
+    public const string MicMuteActive = "micMuteActive";
+    public const string MicMuteSavedVolumes = "micMuteSavedVolumes";
+    public const string MicMuteMutedDevices = "micMuteMutedDevices";
+    public const string MicMuteSavedVolume = "micMuteSavedVolume";
 }

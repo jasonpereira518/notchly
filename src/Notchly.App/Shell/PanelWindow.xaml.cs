@@ -14,12 +14,15 @@ public partial class PanelWindow : FluentWindow
 {
     private readonly App _app;
     private bool _updating;
+    private readonly PanelMixer _mixer;
 
     public PanelWindow(App app)
     {
         _app = app;
         InitializeComponent();
+        _mixer = new PanelMixer(MixerSection);
         Deactivated += (_, _) => Hide();
+        IsVisibleChanged += (_, e) => { if (e.NewValue is false) _mixer.Hide(); };
         SystemThemeWatcher.Watch(this);
     }
 
@@ -40,7 +43,10 @@ public partial class PanelWindow : FluentWindow
         IslandToggle.IsChecked = _app.Settings.GetBool(DefaultsKey.NotchEnabled);
         IslandStatus.Text = _app.Features.Get<IslandService>(AppFeature.Notch)?.StatusText ?? "Install it from Features.";
         var planned = FeatureCatalog.All.Count(i => i.Status is WindowsStatus.Planned or WindowsStatus.NativeToggle);
-        ComingSoon.Text = $"Mixer, system monitor, switcher, clipboard and {planned - 4} more features are on the way. See Features for the plan.";
+        var mixer = _app.Features.Get<Sound.MixerService>(AppFeature.Mixer);
+        MixerSection.Visibility = mixer is not null && _app.Settings.GetBool(DefaultsKey.MonitorShowMixer) ? Visibility.Visible : Visibility.Collapsed;
+        _mixer.Show(MixerSection.Visibility == Visibility.Visible ? mixer : null);
+        ComingSoon.Text = $"The system monitor, window switcher, clipboard and {planned - 4} more features are on the way. See Features for the plan.";
         _updating = false;
     }
 

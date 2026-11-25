@@ -32,6 +32,9 @@ public partial class App : Application
     public PasswordFieldProbe Passwords { get; private set; } = null!;
     /// <summary>The one clipboard watcher the clipboard features share; it listens only while one of them is on.</summary>
     public Pasteboard.ClipboardMonitor ClipboardWatch { get; private set; } = null!;
+    private Island.Files.ShelfService? _shelf;
+    /// <summary>The one shelf, shared by the island's Files page and the floating Shelf card.</summary>
+    public Island.Files.ShelfService Shelf => _shelf ??= new Island.Files.ShelfService(Dispatcher);
     public Monitor.SystemMonitor Monitor { get; private set; } = null!;
     public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
     public TrayReadoutService TrayReadouts { get; private set; } = null!;
@@ -121,6 +124,7 @@ public partial class App : Application
         });
         Features.Bind(AppFeature.PastePlain, () => new Pasteboard.PastePlainService(this));
         Features.Bind(AppFeature.FinderCutPaste, () => new Pasteboard.ExplorerImagePasteService(this));
+        Features.Bind(AppFeature.Shelf, () => new ShelfCard.ShelfSummonService(this));
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
@@ -319,6 +323,7 @@ public partial class App : Application
         try
         {
             Features?.Dispose();
+            _shelf?.Dispose();
             ClipboardWatch?.Dispose();
             TrayReadouts?.Dispose();
             MonitorAlerts?.Dispose();

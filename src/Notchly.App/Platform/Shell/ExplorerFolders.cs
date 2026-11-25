@@ -13,6 +13,25 @@ public static class ExplorerFolders
     /// <summary>The folder shown in an Explorer window's front tab, or null when it is not a real folder (This PC, Home, the Recycle Bin).</summary>
     public static string? PathFor(IntPtr explorerWindow)
     {
+        var path = OnFrontTab<string>(explorerWindow, w => w.Document.Folder.Self.Path);
+        return PasteImageSupport.IsWritableFolderPath(path) ? path : null;
+    }
+
+    /// <summary>The paths of the items selected in an Explorer window's front tab (empty when none, or when it is not a folder view).</summary>
+    public static IReadOnlyList<string> SelectedPaths(IntPtr explorerWindow) =>
+        OnFrontTab<List<string>>(explorerWindow, w =>
+        {
+            var paths = new List<string>();
+            foreach (object item in w.Document.SelectedItems()) paths.Add(((dynamic)item).Path);
+            return paths;
+        }) ?? [];
+
+    /// <summary>
+    /// Finds the Explorer window by its handle, picks its front tab (a window with tabs is listed once per tab, all with the same handle)
+    /// and reads from it. Null when there is no such window or the read fails.
+    /// </summary>
+    private static T? OnFrontTab<T>(IntPtr explorerWindow, Func<dynamic, T?> read) where T : class
+    {
         var type = Type.GetTypeFromProgID("Shell.Application");
         if (type is null) return null;
         object? shell = null;
@@ -21,30 +40,20 @@ public static class ExplorerFolders
             shell = Activator.CreateInstance(type);
             if (shell is null) return null;
             dynamic windows = ((dynamic)shell).Windows();
-            string? only = null, active = null;
-            var matches = 0;
+            var matches = new List<object>();
             foreach (object window in windows)
             {
-                dynamic w = window;
-                try
-                {
-                    if (new IntPtr((long)w.HWND) != explorerWindow) continue;
-                    string? path = null;
-                    try { path = w.Document.Folder.Self.Path; }
-                    catch (Exception e) when (e is COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { /* a view that is not a folder */ }
-                    matches++;
-                    only ??= path;
-                    if (matches > 1 || active is null)
-                        if (IsFrontTab(window)) active = path;
-                }
+                try { if (new IntPtr((long)((dynamic)window).HWND) == explorerWindow) matches.Add(window); }
                 catch (COMException) { /* a window that closed meanwhile */ }
             }
-            var chosen = matches <= 1 ? only : active ?? only;
-            return PasteImageSupport.IsWritableFolderPath(chosen) ? chosen : null;
+            if (matches.Count == 0) return null;
+            var chosen = matches.Count == 1 ? matches[0] : matches.FirstOrDefault(IsFrontTab) ?? matches[0];
+            try { return read(chosen); }
+            catch (Exception e) when (e is COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { return null; }
         }
         catch (Exception e) when (e is COMException or InvalidCastException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
         {
-            Log.Debug(e, "The Explorer folder could not be found");
+            Log.Debug(e, "The Explorer window could not be read");
             return null;
         }
         finally { if (shell is not null && Marshal.IsComObject(shell)) Marshal.FinalReleaseComObject(shell); }

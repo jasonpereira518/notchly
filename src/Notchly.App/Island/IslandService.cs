@@ -225,7 +225,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _media.TrackChanged += OnTrackChanged;
         _lyrics = new LyricsService(_settings);
         _equalizer = new LiveEqualizerService(_settings, _dispatcher, () => _media?.Current);
-        _shelf = new ShelfService(_dispatcher);
+        _shelf = App.Current.Shelf;
         _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
         _files.Render();
         _clipboardPage = new Clipboard.ClipboardPage(window, () => App.Current.Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory), _settings,
@@ -327,7 +327,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _equalizer?.Dispose(); _equalizer = null;
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
-        _shelf?.Dispose(); _shelf = null; _files = null; _clipboardPage = null;
+        _shelf = null; _files = null; _clipboardPage = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
@@ -938,12 +938,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         Refresh();
     }
 
+    /// <summary>Whether the island is open on a page.</summary>
+    public bool IsOpenOn(NotchModule module) => _expanded && _page == module;
+
     /// <summary>Opens the island on a page with the keyboard (a shortcut for that page). False when the island does not offer it.</summary>
-    public bool OpenPage(NotchModule module)
+    public bool OpenPage(NotchModule module, bool takeFocus = true)
     {
         if (!_running || !Pages().Contains(module)) return false;
         _page = module;
-        Open(takeFocus: true);
+        Open(takeFocus);
         ShowPage(module);
         return true;
     }

@@ -222,6 +222,10 @@ public class ShelfSummonTests
     }
 
     [Fact]
+    public void TheDockFrameScalesWithTheDisplay() =>
+        Assert.Equal(new WindowRect(1920 - 18 - 270, 1040 - 18 - 60, 270, 60), ShelfSummonSupport.DockFrame(ShelfDockPlacement.Tray, Work, 1.5));
+
+    [Fact]
     public void TheDockZoneGrowsByItsMargin()
     {
         var frame = new WindowRect(100, 100, 180, 40);

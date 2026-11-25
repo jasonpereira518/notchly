@@ -77,11 +77,15 @@ public static class ShelfSummonSupport
     public static ShelfDockPlacement EffectivePlacement(ShelfDockPlacement placement, bool islandEnabled) =>
         islandEnabled ? ShelfDockPlacement.Tray : placement;
 
-    /// <summary>Where the pill sits: above the tray at the bottom right of the work area, or under the top edge at its centre.</summary>
-    public static WindowRect DockFrame(ShelfDockPlacement placement, WindowRect workArea) =>
-        placement == ShelfDockPlacement.TopCenter
-            ? new WindowRect(workArea.X + (workArea.Width - DockWidth) / 2, workArea.Y + DockEdgeGap, DockWidth, DockHeight)
-            : new WindowRect(workArea.Right - DockCornerGap - DockWidth, workArea.Bottom - DockCornerGap - DockHeight, DockWidth, DockHeight);
+    /// <summary>Where the pill sits: above the tray at the bottom right of the work area, or under the top edge at its centre. The scale is the display's.</summary>
+    public static WindowRect DockFrame(ShelfDockPlacement placement, WindowRect workArea, double scale = 1)
+    {
+        var width = DockWidth * scale;
+        var height = DockHeight * scale;
+        return placement == ShelfDockPlacement.TopCenter
+            ? new WindowRect(workArea.X + (workArea.Width - width) / 2, workArea.Y + DockEdgeGap * scale, width, height)
+            : new WindowRect(workArea.Right - DockCornerGap * scale - width, workArea.Bottom - DockCornerGap * scale - height, width, height);
+    }
 
     /// <summary>Whether the pointer is in the frame grown by a margin (the dwell starts inside the trigger margin; it ends past the retreat margin).</summary>
     public static bool InZone(WindowRect frame, double x, double y, double margin) =>

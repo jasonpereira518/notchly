@@ -246,11 +246,11 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 **Clipboard & Files (7)**
 | Feature | Status | Windows approach |
 |---|---|---|
-| clipboard history | P | `AddClipboardFormatListener`; honours apps that exclude themselves from history |
-| paste plain | P | |
-| URL cleaner | P | port the rules |
-| shelf | P | OLE drop target; shake to summon |
-| Finder cut/paste | P (part) | only "paste image as PNG in Explorer" (folder found via `IShellWindows`). Ctrl+X/V is built in |
+| clipboard history | ✓ M8 | `AddClipboardFormatListener`; honours apps that exclude themselves from history |
+| paste plain | ✓ M8 | clipboard swapped for the text, Ctrl+V sent, clipboard put back |
+| URL cleaner | ✓ M8 | upstream rules ported |
+| shelf | ✓ M3 + M8 | OLE drop target; shake to summon; floating card |
+| Finder cut/paste | ✓ M8 (part) | only "paste image as PNG in Explorer" (folder found via `IShellWindows`). Ctrl+X/V is built in |
 | Finder rename | N | F2 |
 | disk image installer | D | |
 
@@ -329,7 +329,9 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
   - Quick toggles (incl. refresh rate), quit apps, kill process, port manager.
   - Optional elevated-at-login task.
 - **M7 Windows & input.** Done. One hook pipeline with ordered subscribers, a marker on everything Notchly sends, a pause for full-screen games and administrator windows, and Core rules for each feature (the wheel decisions are a planner tested without a wheel). Everything installs switched off. Not built: the panel's layout grid, Spaces-specific switcher rules, per-key debounce editing in Settings, and the Microsoft 365 switch only frees the shortcuts for the current user.
-- **M8 Clipboard & files.** History, auto-clear, paste plain, URL cleaner, Shelf window, paste image into Explorer.
+- **M8 Clipboard & files.** Done. One clipboard watcher (`AddClipboardFormatListener`, read after a short settle) feeds the link cleaner, then the history; Notchly's own writes are recognised by their sequence numbers and carry the formats that keep Windows' own history from recording them. History, plain paste and image paste install switched off. The Shelf is one service shared by the island's Files page and a floating card; "content drag" is judged by where a drag began and whether the window is in its move loop, since Windows has no drag clipboard. Not built: Explorer cut/paste (built in), rename (F2), the disk image installer, redirect or AMP unwrapping in the link cleaner (upstream has none), history editing and OCR, the menu-bar preview of the clipboard, and screenshot-to-Shelf (with screenshots).
+  - Clipboard history (island page + window), auto-clear, paste as plain text, link cleaner, paste image into Explorer as a PNG.
+  - Floating Shelf: shortcut, shake, drop zone, edge peek; shared with the Files page.
 - **M9 Tools.** Command bar, quick launcher, radial menu, scratchpad, cleaning mode, color picker, OCR/QR, camera preview window, wallpaper.
 - **M10 Capture & media.** Screenshot + editor, recorder + editor, media tools.
 - **M11 App management.** winget manager, app updates, uninstaller, cleaner + schedule.

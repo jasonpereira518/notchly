@@ -201,7 +201,9 @@ public sealed class ClipboardView
         _pinFilter.Foreground = _pinnedOnly ? _palette.Accent : _palette.Dim;
         _cards.Children.Clear();
         _empty.Visibility = _shown.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        _empty.Text = _history.Entries.Count == 0 ? "Things you copy appear here"
+        _empty.Text = !_settings.GetBool(DefaultsKey.ClipboardHistoryEnabled) && _history.Entries.Count == 0
+                ? "Clipboard history is off. Turn it on in Settings → Clipboard and files."
+            : _history.Entries.Count == 0 ? "Things you copy appear here"
             : _pinnedOnly && _query.Length == 0 ? "Nothing is pinned" : "Nothing matches";
         _scroller.Visibility = _shown.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         // The newest unpinned entry is where the highlight starts, as upstream.

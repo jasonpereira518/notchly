@@ -11,14 +11,17 @@ namespace Notchly.App.Shell;
 
 internal sealed class ShortcutRecorder : Button
 {
-    private readonly SettingsStore _settings;
-    private readonly string _key;
+    private readonly Func<string> _read;
+    private readonly Action<string> _write;
     private bool _recording;
 
-    public ShortcutRecorder(SettingsStore settings, string key)
+    public ShortcutRecorder(SettingsStore settings, string key) : this(() => settings.GetString(key), value => settings.Set(key, value)) { }
+
+    /// <summary>A recorder for a shortcut kept somewhere other than its own setting (one entry of a map).</summary>
+    public ShortcutRecorder(Func<string> read, Action<string> write)
     {
-        _settings = settings;
-        _key = key;
+        _read = read;
+        _write = write;
         MinWidth = 180;
         Show();
         Click += (_, _) => { _recording = true; Content = "Press the shortcut…"; Focus(); };
@@ -26,7 +29,7 @@ internal sealed class ShortcutRecorder : Button
         PreviewKeyDown += OnKeyDown;
     }
 
-    private void Show() => Content = Shortcut.Parse(_settings.GetString(_key)) is { } shortcut ? shortcut.DisplayText : "Not set";
+    private void Show() => Content = Shortcut.Parse(_read()) is { } shortcut ? shortcut.DisplayText : "Not set";
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
@@ -35,7 +38,7 @@ internal sealed class ShortcutRecorder : Button
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin) return;
         if (key == Key.Escape) { _recording = false; Show(); return; }
-        if (key == Key.Back) { _settings.Set(_key, Shortcut.NoneStorage); _recording = false; Show(); return; }
+        if (key == Key.Back) { _write(Shortcut.NoneStorage); _recording = false; Show(); return; }
         var modifiers = ShortcutModifiers.None;
         if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) modifiers |= ShortcutModifiers.Control;
         if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt)) modifiers |= ShortcutModifiers.Alt;
@@ -43,7 +46,7 @@ internal sealed class ShortcutRecorder : Button
         if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin)) modifiers |= ShortcutModifiers.Win;
         var shortcut = new Shortcut(KeyInterop.VirtualKeyFromKey(key), modifiers);
         if (!shortcut.IsValid) { Content = "Add Ctrl, Alt, Shift or Win"; return; }
-        _settings.Set(_key, shortcut.StorageValue);
+        _write(shortcut.StorageValue);
         _recording = false;
         Show();
     }

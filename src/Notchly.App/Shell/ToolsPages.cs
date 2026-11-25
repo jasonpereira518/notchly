@@ -119,6 +119,7 @@ internal sealed partial class SettingsPages
         page.Children.Add(Caption(AccelerationNote));
         if (!settings.IsAvailable(AppFeature.MouseAcceleration)) page.Children.Add(Caption("Install Pointer acceleration in Features to use it."));
         page.Children.Add(Toggle("Turn off pointer acceleration", null, DefaultsKey.MouseAccelerationDisabled, ""));
+        AddMouseInputSections(page);
         return page;
     }
 

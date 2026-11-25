@@ -24,6 +24,8 @@ public partial class App : Application
     public HotkeyService Hotkeys { get; private set; } = null!;
     /// <summary>When the input features step aside (a full-screen game, an administrator window).</summary>
     public InputGate InputGate { get; private set; } = null!;
+    /// <summary>The one handler behind every scroll feature.</summary>
+    public MouseInput.ScrollPipeline Scroll { get; private set; } = null!;
     /// <summary>Everything the input features send goes through this, marked as Notchly's own.</summary>
     public Notchly.Core.Input.IInputInjector Injector { get; private set; } = null!;
     /// <summary>Whether the focus is in a password field.</summary>
@@ -78,6 +80,7 @@ public partial class App : Application
         InputGate = new InputGate(Settings, Dispatcher);
         Injector = new SendInputInjector();
         Passwords = new PasswordFieldProbe();
+        Scroll = new MouseInput.ScrollPipeline(this);
         Features = new FeatureRuntime(Settings);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
         Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
@@ -101,6 +104,11 @@ public partial class App : Application
         Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
         Features.Bind(AppFeature.WindowLayout, () => new Layout.WindowLayoutService(this));
         Features.Bind(AppFeature.Switcher, () => new Switcher.SwitcherService(this));
+        foreach (var feature in new[] { AppFeature.ScrollInverter, AppFeature.ScrollHorizontal, AppFeature.ScrollZoom, AppFeature.SmoothScroll, AppFeature.LinearScroll, AppFeature.ScrollSpeed })
+            Features.Bind(feature, () => new MouseInput.ScrollFeatureService(this));
+        Features.Bind(AppFeature.MouseButtonShortcuts, () => new MouseInput.MouseButtonService(this));
+        Features.Bind(AppFeature.MouseClickDebounce, () => new MouseInput.ClickDebounceService(this));
+        Features.Bind(AppFeature.KeyboardDebounce, () => new MouseInput.KeyDebounceService(this));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));
@@ -280,6 +288,7 @@ public partial class App : Application
             MonitorAlerts?.Dispose();
             Monitor?.Dispose();
             Tray?.Dispose();
+            Scroll?.Dispose();
             Passwords?.Dispose();
             InputGate?.Dispose();
             Hotkeys?.Dispose();

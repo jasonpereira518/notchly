@@ -40,6 +40,13 @@ public static class AgentLook
     /// <summary>The agent's own icon, or its letter in a disc of its colour, <paramref name="size"/> across.</summary>
     public static FrameworkElement Mark(AgentProvider provider, ImageSource? icon, double size, double opacity = 1)
     {
+        // The company's mark on a transparent background, in the agent's colour, instead of an app icon's tile.
+        if (Drawn(provider) is { } drawn)
+            return new System.Windows.Shapes.Path
+            {
+                Data = drawn, Fill = Frozen(Tint(provider)), Width = size, Height = size, Opacity = opacity, Stretch = Stretch.Uniform,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
         if (icon is not null)
             return new Image { Source = icon, Width = size, Height = size, Opacity = opacity, VerticalAlignment = VerticalAlignment.Center, Stretch = Stretch.Uniform };
         var tint = Tint(provider);
@@ -53,6 +60,51 @@ public static class AgentLook
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.None,
             },
         };
+    }
+
+    /// <summary>
+    /// Simple monochrome marks on a 24-point square, filled even-odd so the inner shapes cut out:
+    /// Codex a hexagon holding a prompt, OpenCode a square frame, Copilot a face with two eyes.
+    /// Claude is a burst of rays and Cursor a hexagonal cube. All are drawn here, simplified, not the official artwork.
+    /// </summary>
+    private static readonly Dictionary<AgentProvider, Geometry> DrawnMarks = new()
+    {
+        [AgentProvider.Claude] = Starburst(),
+        [AgentProvider.Cursor] = Geometry.Parse("F0 M12,1.5 L21.1,6.75 V17.25 L12,22.5 L2.9,17.25 V6.75 Z M12,12.4 L18.6,8.4 L12,19.4 Z"),
+        [AgentProvider.Codex] = Geometry.Parse("F0 M12,1.5 L21.1,6.75 V17.25 L12,22.5 L2.9,17.25 V6.75 Z M12,4 L18.9,8 V16 L12,20 L5.1,16 V8 Z " +
+                                               "M8.2,9.3 L10,8.4 L13.4,12 L10,15.6 L8.2,14.7 L10.9,12 Z M13.6,14.4 H16.4 V15.8 H13.6 Z"),
+        [AgentProvider.OpenCode] = Geometry.Parse("F0 M4,2 H20 V22 H4 Z M8,6 H16 V18 H8 Z"),
+        [AgentProvider.Copilot] = Geometry.Parse("F0 M5,8 Q5,4 9,4 H15 Q19,4 19,8 V15 Q19,20 12,20 Q5,20 5,15 Z M8,10 H10 V13 H8 Z M14,10 H16 V13 H14 Z " +
+                                                 "M2.5,10 H4 V14 H2.5 Z M20,10 H21.5 V14 H20 Z"),
+    };
+
+    /// <summary>Claude's burst: twelve slim rays from the centre, long and short in turn.</summary>
+    private static Geometry Starburst()
+    {
+        var geometry = new StreamGeometry { FillRule = FillRule.Nonzero };
+        using (var context = geometry.Open())
+        {
+            for (var i = 0; i < 12; i++)
+            {
+                var angle = i * Math.PI / 6;
+                var length = i % 2 == 0 ? 11 : 8.2;
+                var (sin, cos) = Math.SinCos(angle);
+                Point At(double along, double across) => new(12 + cos * along - sin * across, 12 + sin * along + cos * across);
+                context.BeginFigure(At(0, -1.15), true, true);
+                context.LineTo(At(length - 1, -0.8), true, false);
+                context.LineTo(At(length, 0), true, false);
+                context.LineTo(At(length - 1, 0.8), true, false);
+                context.LineTo(At(0, 1.15), true, false);
+            }
+        }
+        return geometry;
+    }
+
+    private static Geometry? Drawn(AgentProvider provider)
+    {
+        if (!DrawnMarks.TryGetValue(provider, out var geometry)) return null;
+        if (!geometry.IsFrozen) geometry.Freeze();
+        return geometry;
     }
 
     public static SolidColorBrush Frozen(Color color)

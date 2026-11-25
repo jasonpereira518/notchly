@@ -52,6 +52,7 @@ public sealed class MenuBarController : IDisposable
     private static readonly Style TitleStyle = (Style)XamlReader.Parse(TitleStyleXaml);
 
     private readonly SettingsStore _settings;
+    private readonly AppBarStrip _strip;
     private readonly Grid _root;
     /// <summary>The bar's colour, animated between apps; black until the first app is read.</summary>
     private readonly SolidColorBrush _background = new(Colors.Black);
@@ -70,6 +71,7 @@ public sealed class MenuBarController : IDisposable
     public MenuBarController(AppBarStrip strip, SettingsStore settings, Dispatcher dispatcher)
     {
         _settings = settings;
+        _strip = strip;
         _titles = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left,
@@ -251,7 +253,8 @@ public sealed class MenuBarController : IDisposable
         if (items.Count == 0) return;
         var menu = new ContextMenu { PlacementTarget = anchor, Placement = PlacementMode.Bottom, HorizontalOffset = 0 };
         foreach (var node in items) menu.Items.Add(Entry(node, app));
-        menu.Closed += (_, _) => { if (_open == menu) _open = null; };
+        menu.Closed += (_, _) => { if (_open == menu) _open = null; _strip.RaiseTouched(); };
+        menu.Opened += (_, _) => _strip.RaiseTouched();
         _open = menu;
         menu.IsOpen = true;
     }

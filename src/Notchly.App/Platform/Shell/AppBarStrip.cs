@@ -31,6 +31,11 @@ public sealed class AppBarStrip : Window
     /// <summary>A full-screen app took the display: the strip steps aside until it leaves.</summary>
     public event Action<bool>? FullscreenAppChanged;
 
+    /// <summary>The strip was clicked or activated, which may have raised it above the island.</summary>
+    public event Action? Touched;
+
+    public void RaiseTouched() => Touched?.Invoke();
+
     public AppBarStrip(DisplayInfo display, double heightDips)
     {
         _display = display;
@@ -43,6 +48,11 @@ public sealed class AppBarStrip : Window
         Background = Brushes.Black;
         Title = "Notchly strip";
         SourceInitialized += (_, _) => Register();
+        // A click on the strip, or the menu it drops, can lift the strip over the island and hide the
+        // notch; the island is put back in front once the click is through.
+        PreviewMouseDown += (_, _) => Touched?.Invoke();
+        PreviewMouseUp += (_, _) => Touched?.Invoke();
+        Activated += (_, _) => Touched?.Invoke();
         // While the window still exists: by Closed it is destroyed, and the shell would keep its space
         // reserved, leaving maximized windows below an empty band.
         Closing += (_, _) => Unregister();

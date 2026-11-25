@@ -79,7 +79,7 @@ public sealed class CameraPage : IDisposable
         if (_visible) Render();
     }
 
-    /// <summary>Showing the page shows the hint; leaving it (or the island closing) stops the camera at once.</summary>
+    /// <summary>Showing the page starts the camera; leaving it (or the island closing) stops it at once.</summary>
     public bool Visible
     {
         get => _visible;
@@ -88,11 +88,17 @@ public sealed class CameraPage : IDisposable
             if (_visible == value) return;
             _visible = value;
             if (!value) Hide();
-            else Render();
+            else
+            {
+                Render();
+                // Choosing the Camera page is the click that opens it: the mirror starts without a second one.
+                // Deferred so the island has finished switching pages (CanPresent is true by then).
+                _window.Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { if (_visible) Show(); });
+            }
         }
     }
 
-    /// <summary>Open camera: the camera starts only from this explicit click (upstream showEmbedded).</summary>
+    /// <summary>Starts the camera when the Camera page is chosen, or from the hint's Open camera after a stop (upstream showEmbedded).</summary>
     private void Show()
     {
         if (_presented || _locked || !_canPresent()) return;

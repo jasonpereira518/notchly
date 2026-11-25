@@ -153,11 +153,11 @@ public static class FeatureCatalog
         Add(AppFeature.KeyboardDebounce, g, "Key debounce", "Filter repeated letters from a worn keyboard.", Glyph.Keyboard,
             [DefaultsKey.KeyboardDebounceEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.TextSnippets, g, "Text snippets", "Expand short triggers into text with variables.", Glyph.Text,
-            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, P, "M7");
+            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.SuperKey, g, "Super key", "Use Caps Lock as a Hyper key with its own tap action.", Glyph.Keyboard,
-            [DefaultsKey.SuperKeyEnabled], true, P, "M7");
+            [DefaultsKey.SuperKeyEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.QuitWindowProtection, g, "Quit and close protection", "Guard Alt+F4, Ctrl+W and Ctrl+Q with a hold or double press.", Glyph.Shield,
-            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, P, "M7");
+            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, WindowsStatus.Ported, "M7");
 
         // Clipboard and files
         g = FeatureGroup.ClipboardFiles;

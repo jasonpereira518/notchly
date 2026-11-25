@@ -109,6 +109,9 @@ public partial class App : Application
         Features.Bind(AppFeature.MouseButtonShortcuts, () => new MouseInput.MouseButtonService(this));
         Features.Bind(AppFeature.MouseClickDebounce, () => new MouseInput.ClickDebounceService(this));
         Features.Bind(AppFeature.KeyboardDebounce, () => new MouseInput.KeyDebounceService(this));
+        Features.Bind(AppFeature.SuperKey, () => new KeyboardInput.SuperKeyService(this));
+        Features.Bind(AppFeature.TextSnippets, () => new KeyboardInput.SnippetService(this));
+        Features.Bind(AppFeature.QuitWindowProtection, () => new KeyboardInput.QuitProtectionService(this));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));

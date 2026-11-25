@@ -24,9 +24,9 @@ public static class WindowGestureSupport
     /// </summary>
     public static IReadOnlyList<string> Modifiers(string? stored)
     {
-        var parts = (stored ?? "").Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var parts = (stored ?? "").Split('+', StringSplitOptions.TrimEntries)
             .Select(p => p.ToLowerInvariant() switch { "option" => "alt", "command" => "win", var other => other }).Distinct().ToList();
-        if (parts.Count == 0 || parts.Any(p => !Primary.Contains(p) && p != "shift") || !parts.Any(Primary.Contains)) return DefaultModifiers.Split('+');
+        if (parts.Count == 0 || parts.Any(p => p.Length == 0) || parts.Any(p => !Primary.Contains(p) && p != "shift") || !parts.Any(Primary.Contains)) return DefaultModifiers.Split('+');
         parts = parts.Where(Primary.Contains).ToList();
         return Primary.Where(parts.Contains).ToList();
     }

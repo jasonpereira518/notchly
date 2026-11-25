@@ -72,6 +72,10 @@ public sealed class BrightnessService : IFeatureService
     public event Action? Changed;
     /// <summary>A level was set from here (not by the monitor itself): what the island's notice shows.</summary>
     public event Action<BrightnessDisplay>? LevelSet;
+    /// <summary>Any display's level or list changed, for the island's slider, which looks the service up when it draws.</summary>
+    public static event Action? AnyChanged;
+    /// <summary>A shortcut stepped a display: the island shows its notice (the built-in panel's own events do for it).</summary>
+    public static event Action<BrightnessDisplay>? Stepped;
 
     public BrightnessService(SettingsStore settings, HotkeyService hotkeys, Dispatcher dispatcher)
     {
@@ -119,7 +123,7 @@ public sealed class BrightnessService : IFeatureService
         _internalWatcher = null;
         foreach (var d in _displays) { d.Overlay?.Dispose(); d.Ddc?.Dispose(); }
         _displays = [];
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
     private void OnDisplayChange(object? sender, EventArgs e) => _dispatcher.BeginInvoke(ScheduleRebuild);
@@ -207,7 +211,7 @@ public sealed class BrightnessService : IFeatureService
         _displays = list;
         if (needsRetry) ScheduleDiscoveryRetry();
         else { _retry?.Stop(); _retryIndex = 0; }
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
     private double ReadInternalLevel(BrightnessDisplay display)
@@ -232,6 +236,12 @@ public sealed class BrightnessService : IFeatureService
 
     // MARK: Setting levels
 
+    private void RaiseChanged()
+    {
+        Changed?.Invoke();
+        AnyChanged?.Invoke();
+    }
+
     public BrightnessDisplay? Find(string id) => _displays.FirstOrDefault(d => d.Id == id);
 
     /// <summary>The display the island's slider follows: the built-in panel, else the first one.</summary>
@@ -246,7 +256,7 @@ public sealed class BrightnessService : IFeatureService
         ApplyOverlay(display);
         lock (_gate) _pending[id] = (level, 0);
         _signal.Set();
-        Changed?.Invoke();
+        RaiseChanged();
         LevelSet?.Invoke(display);
     }
 
@@ -356,7 +366,7 @@ public sealed class BrightnessService : IFeatureService
             };
             var current = hardware is { } h && display.ExtendedDimming ? BrightnessSupport.LevelFrom(h, display.Picture) : hardware ?? display.Level;
             level = BrightnessSupport.SteppedLevel(current, job.Delta);
-            _dispatcher.Invoke(() => { display.Level = level.Value; display.LevelAt = DateTime.Now; ApplyOverlay(display); Changed?.Invoke(); LevelSet?.Invoke(display); });
+            _dispatcher.Invoke(() => { display.Level = level.Value; display.LevelAt = DateTime.Now; ApplyOverlay(display); RaiseChanged(); LevelSet?.Invoke(display); });
         }
         var components = display.ExtendedDimming ? BrightnessSupport.ExtendedDimming(level.Value) : new BrightnessSupport.Components(level.Value, 1);
         switch (display.Kind)
@@ -390,7 +400,7 @@ public sealed class BrightnessService : IFeatureService
                     var hardware = Math.Clamp(percent / 100.0, 0, 1);
                     internalDisplay.Level = internalDisplay.ExtendedDimming ? BrightnessSupport.LevelFrom(hardware, internalDisplay.Picture) : hardware;
                     internalDisplay.LevelAt = DateTime.Now;
-                    Changed?.Invoke();
+                    RaiseChanged();
                 });
             };
             _internalWatcher.Start();
@@ -430,7 +440,9 @@ public sealed class BrightnessService : IFeatureService
         var pointer = _displays.FirstOrDefault(d => point.X >= d.Bounds.Left && point.X < d.Bounds.Right && point.Y >= d.Bounds.Top && point.Y < d.Bounds.Bottom);
         var primary = _displays.FirstOrDefault(d => d.IsPrimary);
         var target = BrightnessSupport.ShortcutDisplay(true, pointer?.Id, primary?.Id, _displays.Select(d => d.Id).ToList());
-        if (target is not null) Step(target, direction);
+        if (target is null) return;
+        Step(target, direction);
+        if (Find(target) is { } stepped) Stepped?.Invoke(stepped);
     }
 
     public void Dispose()

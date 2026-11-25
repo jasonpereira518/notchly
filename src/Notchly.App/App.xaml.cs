@@ -81,7 +81,13 @@ public partial class App : Application
         Features.Bind(AppFeature.SoundOutputSwitcher, () => new Sound.OutputSwitcherService(Settings, Hotkeys));
         Features.Bind(AppFeature.AudioPriority, () => new Sound.AudioPriorityService(Settings, Dispatcher));
         Features.Bind(AppFeature.MicMute, () => new Sound.MicMuteService(Settings, Hotkeys, Dispatcher));
-        Features.Bind(AppFeature.KeepAwake, () => new Energy.KeepAwakeService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.KeepAwake, () =>
+        {
+            var keepAwake = new Energy.KeepAwakeService(Settings, Hotkeys, Dispatcher);
+            keepAwake.Ended += reason => Tray?.Notify("Keep awake ended",
+                reason == Notchly.Core.Energy.KeepAwakeSupport.EndReason.Battery ? "The battery reached its limit, so Windows may sleep again." : "The session ran out, so Windows may sleep again.");
+            return keepAwake;
+        });
         Features.Bind(AppFeature.Brightness, () => new Energy.BrightnessService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
 

@@ -527,6 +527,12 @@
                                                    VerticalAlignment="Center" Foreground="{StaticResource Dim}" />
                                     </StackPanel>
                                 </Button>
+                                <Button x:Name="HomeAwakeChip" Style="{StaticResource ChipButton}" Visibility="Collapsed" ToolTip="Keep this PC awake">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="HomeAwakeIcon" Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="HomeAwakeText" Text="Awake" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                                 <Button x:Name="HomeTimerChip" Style="{StaticResource ChipButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />

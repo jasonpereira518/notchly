@@ -62,6 +62,14 @@ public sealed class KeepAwakeService : IFeatureService
     public event Action<EndReason>? Ended;
     /// <summary>Started or stopped; what the tray and island follow.</summary>
     public static event Action<bool>? ActiveChanged;
+    /// <summary>Any keep-awake state changed, for the island's strip and chip, which look the service up when they draw.</summary>
+    public static event Action? AnyChanged;
+
+    private void RaiseChanged()
+    {
+        Changed?.Invoke();
+        AnyChanged?.Invoke();
+    }
 
     public KeepAwakeService(SettingsStore settings, HotkeyService hotkeys, Dispatcher dispatcher)
     {
@@ -176,7 +184,7 @@ public sealed class KeepAwakeService : IFeatureService
         _end = ExtendedEnd(end, DateTime.Now, minutes);
         _minutes = null;
         Persist();
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
     /// <summary>The user ends the session (a rule-made one stays quiet until the rules clear).</summary>
@@ -215,7 +223,7 @@ public sealed class KeepAwakeService : IFeatureService
         UpdateJiggle();
         ApplyLidMode();
         if (!wasActive) ActiveChanged?.Invoke(true);
-        Changed?.Invoke();
+        RaiseChanged();
         Log.Information("Keep awake started ({Trigger}, {End})", trigger, end?.ToString("t") ?? "no end");
         return true;
     }
@@ -233,7 +241,7 @@ public sealed class KeepAwakeService : IFeatureService
         if (reason != EndReason.Quit) _settings.Set(DefaultsKey.KeepAwakeSessionEnd, "");
         RestoreLidMode(allowSleep);
         ActiveChanged?.Invoke(false);
-        Changed?.Invoke();
+        RaiseChanged();
         Log.Information("Keep awake ended ({Reason})", reason);
         if (NotifiesOnEnd(reason)) Ended?.Invoke(reason);
     }
@@ -340,7 +348,7 @@ public sealed class KeepAwakeService : IFeatureService
         _request.Release();
         _jiggle.Stop();
         RestoreLidMode();
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
     private void Resume()
@@ -352,7 +360,7 @@ public sealed class KeepAwakeService : IFeatureService
         _request.Hold("Notchly keep awake", !_settings.GetBool(DefaultsKey.KeepAwakeAllowDisplaySleep));
         UpdateJiggle();
         ApplyLidMode();
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
     private void OnPowerMode(object? sender, PowerModeChangedEventArgs e) => _dispatcher.BeginInvoke(() =>

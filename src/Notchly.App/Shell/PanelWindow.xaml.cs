@@ -17,6 +17,7 @@ public partial class PanelWindow : FluentWindow
     private readonly PanelMixer _mixer;
     private readonly PanelMonitor _monitor;
     private readonly PanelEnergy _energy;
+    private readonly PanelTools _tools;
 
     public PanelWindow(App app)
     {
@@ -27,8 +28,9 @@ public partial class PanelWindow : FluentWindow
         _mixer = new PanelMixer(MixerSection);
         _monitor = new PanelMonitor(MonitorSections, app.Settings);
         _energy = new PanelEnergy(KeepAwakeSection, BrightnessSection, app.Settings);
+        _tools = new PanelTools(ToolsSection, app.Settings);
         Deactivated += (_, _) => Hide();
-        IsVisibleChanged += (_, e) => { if (e.NewValue is false) { _mixer.Hide(); _monitor.Hide(); _energy.Hide(); } };
+        IsVisibleChanged += (_, e) => { if (e.NewValue is false) { _mixer.Hide(); _monitor.Hide(); _energy.Hide(); _tools.Hide(); } };
         SystemThemeWatcher.Watch(this);
     }
 
@@ -56,6 +58,9 @@ public partial class PanelWindow : FluentWindow
         var keepAwake = _app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake);
         var brightness = _app.Settings.IsEngaged(AppFeature.Brightness) ? _app.Features.Get<Energy.BrightnessService>(AppFeature.Brightness) : null;
         _energy.Show(keepAwake, brightness);
+        var toggles = _app.Features.Get<Tools.QuickTogglesService>(AppFeature.QuickToggles);
+        if (toggles is not null) { toggles.DismissPanel -= Hide; toggles.DismissPanel += Hide; }
+        _tools.Show(toggles);
         ComingSoon.Text = $"Window switcher, clipboard and {planned - 4} more features are on the way. See Features for the plan.";
         _updating = false;
     }

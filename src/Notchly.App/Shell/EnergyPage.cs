@@ -60,7 +60,7 @@ internal sealed partial class SettingsPages
         page.Children.Add(Toggle("While the PC is plugged in", null, DefaultsKey.KeepAwakeConnectedToPower, ""));
         page.Children.Add(Toggle("While certain apps run", null, DefaultsKey.KeepAwakeRunningApps, ""));
         page.Children.Add(RunningAppsCard());
-        page.Children.Add(Choice("When there are several", "Any one of them, or all of them at once.", DefaultsKey.KeepAwakeAutomationRequireAll, [("false", "Any"), ("true", "All")], ""));
+        page.Children.Add(Toggle("Need all of them", "Off: any one of the rules is enough.", DefaultsKey.KeepAwakeAutomationRequireAll, ""));
 
         // Displays
         page.Children.Add(Section("Displays"));

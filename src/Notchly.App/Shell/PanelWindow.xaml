@@ -56,6 +56,8 @@
 
             <StackPanel x:Name="BrightnessSection" />
 
+            <StackPanel x:Name="ToolsSection" />
+
             <StackPanel x:Name="MonitorSections" />
 
             <TextBlock x:Name="ComingSoon" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="2,4,2,10" />

@@ -495,7 +495,7 @@ public class ToolsTests
         Assert.Null(FocusFollowsSupport.Original.Parse("1;1;-5"));
         var mouse = new PointerAccelerationSupport.Original(6, 10, 1);
         Assert.Equal(mouse, PointerAccelerationSupport.Original.Parse(mouse.Storage));
-        Assert.Equal(new PointerAccelerationSupport.Original(6, 10, 0), mouse.WithoutAcceleration);
+        Assert.Equal(new PointerAccelerationSupport.Original(6, 10, 0), mouse.WithAccelerationOff());
         Assert.Null(PointerAccelerationSupport.Original.Parse("6;10"));
         Assert.Null(PointerAccelerationSupport.Original.Parse("6;10;9"));
         Assert.Null(PointerAccelerationSupport.Original.Parse("a;b;c"));

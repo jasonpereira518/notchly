@@ -7,7 +7,7 @@ using Wpf.Ui.Controls;
 
 namespace Notchly.App.Shell;
 
-public enum SettingsPage { General, Features, Island, Sound, Monitor, Energy, About }
+public enum SettingsPage { General, Features, Island, Sound, Monitor, Energy, Tools, Processes, Mouse, About }
 
 public partial class SettingsWindow : FluentWindow
 {
@@ -21,6 +21,9 @@ public partial class SettingsWindow : FluentWindow
         new(SettingsPage.Sound, "Sound", ""),
         new(SettingsPage.Monitor, "System monitor", "\uE9D9"),
         new(SettingsPage.Energy, "Energy", "\uE945"),
+        new(SettingsPage.Tools, "Tools", "\uE90F"),
+        new(SettingsPage.Processes, "Processes and ports", "\uE9D9"),
+        new(SettingsPage.Mouse, "Mouse", "\uE962"),
         new(SettingsPage.About, "About", ""),
     ];
 
@@ -32,6 +35,16 @@ public partial class SettingsWindow : FluentWindow
         _pages = new SettingsPages(app, new SettingsProxy(app.Settings, Dispatcher));
         Navigation.ItemsSource = Items;
         SystemThemeWatcher.Watch(this);
+    }
+
+    /// <summary>Builds the page again where it stands, so a change to its own rows shows at once.</summary>
+    public void Rebuild()
+    {
+        if (Navigation.SelectedItem is not NavItem item) return;
+        var offset = Scroller.VerticalOffset;
+        PageHost.Content = _pages.Build(item.Page);
+        Scroller.UpdateLayout();
+        Scroller.ScrollToVerticalOffset(offset);
     }
 
     public void Navigate(SettingsPage page) => Navigation.SelectedItem = Items.First(i => i.Page == page);

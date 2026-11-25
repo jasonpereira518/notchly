@@ -51,7 +51,7 @@ public static class PointerAccelerationSupport
         }
 
         /// <summary>The same thresholds with acceleration off.</summary>
-        public Original WithoutAcceleration => this with { Acceleration = 0 };
+        public Original WithAccelerationOff() => this with { Acceleration = 0 };
     }
 
     public enum Step { Nothing, CaptureAndApply, Reapply, Restore }

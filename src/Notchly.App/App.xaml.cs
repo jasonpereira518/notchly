@@ -90,6 +90,12 @@ public partial class App : Application
         });
         Features.Bind(AppFeature.Brightness, () => new Energy.BrightnessService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
+        Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
+        Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));
+        Features.Bind(AppFeature.PortManager, () => new Tools.PortManagerService(Settings, this));
+        Features.Bind(AppFeature.FocusFollowsMouse, () => new Tools.FocusFollowsMouseService(Settings));
+        Features.Bind(AppFeature.MouseAcceleration, () => new Tools.PointerAccelerationService(Settings));
 
         var firstRun = !Settings.GetBool(DefaultsKey.HasOnboarded);
         if (firstRun)
@@ -106,6 +112,9 @@ public partial class App : Application
         Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
         // A Bluetooth restore owed from before this launch is paid whether or not the feature is still installed.
         Energy.BluetoothSleepService.PayDebt(Settings);
+        // A mouse setting left changed by a crash is given back unless its toggle is on and installed (which applies it again).
+        if (!Settings.IsAvailable(AppFeature.FocusFollowsMouse) || !Settings.GetBool(DefaultsKey.FocusFollowsMouseEnabled)) Tools.FocusFollowsMouseService.Restore(Settings);
+        if (!Settings.IsAvailable(AppFeature.MouseAcceleration) || !Settings.GetBool(DefaultsKey.MouseAccelerationDisabled)) Tools.PointerAccelerationService.Restore(Settings);
         Features.SyncAll();
         Tray = new TrayIconService(this);
         if (e.Args.Contains(NotificationSettings.SetupFlag)) ContinueNotificationSetup();
@@ -205,6 +214,9 @@ public partial class App : Application
         };
         ApplicationThemeManager.Apply(theme);
     }
+
+    /// <summary>Builds the open settings page again (a reorder, say).</summary>
+    public void RefreshSettingsPage() => _settingsWindow?.Rebuild();
 
     public void ShowSettings(SettingsPage page)
     {

@@ -377,6 +377,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (reserve && _strip is null)
         {
             _strip = new AppBarStrip(display, geometry.StripHeight + geometry.FloatingDrop) { KeepBelow = _window.Handle };
+            _strip.Touched += () => _window?.ReassertTopmost();
             _menuBar = new MenuBarController(_strip, _settings, _dispatcher);
             _strip.Show();
             _window.ReassertTopmost();

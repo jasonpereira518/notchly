@@ -109,7 +109,7 @@ public static class FeatureCatalog
         // Windows and Dock
         var g = FeatureGroup.WindowsDock;
         Add(AppFeature.Switcher, g, "App switcher", "Switch apps and windows with live previews and search.", Glyph.Apps,
-            [DefaultsKey.SwitcherEnabled], true, P, "M7", "Alt+Tab replacement using live DWM thumbnails.");
+            [DefaultsKey.SwitcherEnabled], true, WindowsStatus.Ported, "M7", "Replaces Alt+Tab with live window previews; off until you turn it on.");
         Add(AppFeature.DockPreview, g, "Dock preview", "Hover Dock icons to preview windows.", Glyph.Window,
             [DefaultsKey.DockPreviewEnabled], true, N, "-", "Windows taskbar already previews windows on hover.", "ms-settings:taskbar");
         Add(AppFeature.DockClick, g, "Dock clicks", "Click an active app's icon to minimize or cycle windows.", Glyph.Window,
@@ -118,7 +118,7 @@ public static class FeatureCatalog
         Add(AppFeature.WindowMaximizer, g, "Maximize windows", "Fill the screen without a new Space.", Glyph.Window,
             [DefaultsKey.WindowMaximizeEnabled], true, D, "-", "Windows' maximize button already does this.");
         Add(AppFeature.WindowLayout, g, "Window layout", "Snap windows, move them between displays and restore them.", Glyph.Snap,
-            none, true, P, "M7", "Shortcuts and modifier-drag on top of Windows Snap.", "ms-settings:multitasking");
+            none, true, WindowsStatus.Ported, "M7", "Shortcuts, dragging with a modifier and edge snap on top of Windows Snap; off until you turn it on.", "ms-settings:multitasking");
         Add(AppFeature.AutoQuit, g, "Quit on close", "Quit selected apps when their last window closes.", Glyph.Close,
             [DefaultsKey.AutoQuitEnabled], true, D, "-", "Windows apps already exit with their last window.");
         Add(AppFeature.SpacesOrder, g, "Fixed Space order", "Keep Spaces in the order you set.", Glyph.Order,

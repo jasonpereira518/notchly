@@ -42,13 +42,17 @@ public static class FeatureAvailability
 
     private static IEnumerable<string> InitialEnableKeys(FeatureInfo info) => info.Feature switch
     {
-        AppFeature.WindowLayout => [DefaultsKey.WindowLayoutShortcutsEnabled],
         AppFeature.AudioPriority => info.EnabledKeys,
         // The live equalizer starts off: only the user's own switch turns it on.
         AppFeature.NotchLiveEqualizer => [],
         // These two change how the PC behaves without being asked (Bluetooth off at every sleep, pointer acceleration
         // off): they install with their switch off, and only the user's own switch turns them on.
         AppFeature.BluetoothSleep or AppFeature.MouseAcceleration => [],
+        // The window and input features rewrite keys, wheel ticks and window positions: they install off, and the person turns each on.
+        AppFeature.Switcher or AppFeature.WindowLayout or AppFeature.ScrollInverter or AppFeature.ScrollHorizontal or AppFeature.ScrollZoom
+            or AppFeature.SmoothScroll or AppFeature.LinearScroll or AppFeature.ScrollSpeed or AppFeature.MouseButtonShortcuts
+            or AppFeature.MouseClickDebounce or AppFeature.KeyboardDebounce or AppFeature.TextSnippets or AppFeature.SuperKey
+            or AppFeature.QuitWindowProtection => [],
         _ => info.EnabledKeys.Take(1),
     };
 

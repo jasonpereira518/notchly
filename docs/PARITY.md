@@ -2,17 +2,17 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**34 ported**, 34 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**48 ported**, 20 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `switcher` | App switcher | 🛠️ Planned | M7 | Alt+Tab replacement using live DWM thumbnails. |
+| `switcher` | App switcher | ✅ Ported | M7 | Replaces Alt+Tab with live window previews; off until you turn it on. |
 | `dockPreview` | Dock preview | 🪟 Built into Windows | - | Windows taskbar already previews windows on hover. |
 | `dockClick` | Dock clicks | 🪟 Built into Windows | - | Clicking the active taskbar button already minimizes; Ctrl+click cycles windows. |
 | `windowMaximizer` | Maximize windows | ➖ Not on Windows | - | Windows' maximize button already does this. |
-| `windowLayout` | Window layout | 🛠️ Planned | M7 | Shortcuts and modifier-drag on top of Windows Snap. |
+| `windowLayout` | Window layout | ✅ Ported | M7 | Shortcuts, dragging with a modifier and edge snap on top of Windows Snap; off until you turn it on. |
 | `autoQuit` | Quit on close | ➖ Not on Windows | - | Windows apps already exit with their last window. |
 | `spacesOrder` | Fixed Space order | ➖ Not on Windows | - | Windows virtual desktops never reorder themselves. |
 
@@ -20,22 +20,22 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `scrollInverter` | Scroll direction | 🛠️ Planned | M7 |  |
-| `scrollHorizontal` | Scroll sideways | 🛠️ Planned | M7 |  |
-| `scrollZoom` | Scroll zoom | 🛠️ Planned | M7 | Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps. |
+| `scrollInverter` | Scroll direction | ✅ Ported | M7 |  |
+| `scrollHorizontal` | Scroll sideways | ✅ Ported | M7 |  |
+| `scrollZoom` | Scroll zoom | ✅ Ported | M7 | Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps. |
 | `focusFollowsMouse` | Focus follows mouse | ✅ Ported | M6 | Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off. |
-| `smoothScroll` | Smooth scrolling | 🛠️ Planned | M7 |  |
-| `linearScroll` | Linear scrolling | 🛠️ Planned | M7 |  |
-| `scrollSpeed` | Scroll speed | 🛠️ Planned | M7 |  |
+| `smoothScroll` | Smooth scrolling | ✅ Ported | M7 |  |
+| `linearScroll` | Linear scrolling | ✅ Ported | M7 |  |
+| `scrollSpeed` | Scroll speed | ✅ Ported | M7 |  |
 | `mouseAcceleration` | Pointer acceleration | ✅ Ported | M6 | Turns off 'Enhance pointer precision', and puts yours back when you turn it off. |
 | `mouseNavigation` | Side buttons | 🪟 Built into Windows | - | Windows apps handle side buttons natively. |
-| `mouseButtonShortcuts` | Mouse button shortcuts | 🛠️ Planned | M7 |  |
+| `mouseButtonShortcuts` | Mouse button shortcuts | ✅ Ported | M7 |  |
 | `middleClick` | Middle click | 🪟 Built into Windows | - | Built into Precision Touchpad settings (three-finger tap). |
-| `mouseClickDebounce` | Extra click filter | 🛠️ Planned | M7 |  |
-| `keyboardDebounce` | Key debounce | 🛠️ Planned | M7 |  |
-| `textSnippets` | Text snippets | 🛠️ Planned | M7 |  |
-| `superKey` | Super key | 🛠️ Planned | M7 |  |
-| `quitWindowProtection` | Quit and close protection | 🛠️ Planned | M7 |  |
+| `mouseClickDebounce` | Extra click filter | ✅ Ported | M7 |  |
+| `keyboardDebounce` | Key debounce | ✅ Ported | M7 |  |
+| `textSnippets` | Text snippets | ✅ Ported | M7 |  |
+| `superKey` | Super key | ✅ Ported | M7 |  |
+| `quitWindowProtection` | Quit and close protection | ✅ Ported | M7 |  |
 
 ## Clipboard & Files
 

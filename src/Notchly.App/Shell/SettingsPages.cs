@@ -27,9 +27,11 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         SettingsPage.Sound => SoundPage(),
         SettingsPage.Monitor => MonitorPage(),
         SettingsPage.Energy => EnergyPage(),
+        SettingsPage.Windows => WindowsPage(),
         SettingsPage.Tools => ToolsPage(),
         SettingsPage.Processes => ProcessesPage(),
         SettingsPage.Mouse => MousePage(),
+        SettingsPage.Keyboard => KeyboardPage(),
         SettingsPage.About => AboutPage(),
         _ => GeneralPage(),
     };

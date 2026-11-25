@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M6 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; and energy and quick tools). See
+Status: milestones M0–M7 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; and windows and input). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -95,6 +95,14 @@ for the porting plan.
     Notchly may not stop gets one administrator prompt. **Focus follows mouse** and **pointer acceleration** (Settings → Mouse)
     flip Windows' own settings and give yours back. **Start with administrator rights** (Settings → General) starts Notchly
     elevated at sign-in through a scheduled task, so its shortcuts reach administrator windows.
+  - **Windows and input** (M7, all off until you turn them on in Settings → Windows, Mouse and Keyboard): an **app switcher** that
+    replaces Alt+Tab with live window previews (recent order, search, W to close, Q to quit, the wheel and the mouse); **window
+    layout** by shortcut (halves, thirds, quarters, sixths, corners, maximize, display moves, restore), by dragging with a
+    modifier held, by dragging a title bar to a screen edge, or by holding a chord and moving the pointer; **scroll** options
+    for the mouse wheel only (reverse, sideways, zoom, one notch at a time, faster with a key, smooth); **mouse button shortcuts**
+    and a desktop drag; **bounce filters** for a worn mouse button or key; a **super key** (Caps Lock as Ctrl+Alt+Shift+Win);
+    **text snippets** with variables and a searchable library; and **quit and close protection** for Alt+F4, Ctrl+Q and Ctrl+W.
+    They step aside in full-screen games, and cannot reach apps running as administrator unless Notchly does too.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

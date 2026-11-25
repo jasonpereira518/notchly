@@ -109,7 +109,7 @@ public static class FeatureCatalog
         // Windows and Dock
         var g = FeatureGroup.WindowsDock;
         Add(AppFeature.Switcher, g, "App switcher", "Switch apps and windows with live previews and search.", Glyph.Apps,
-            [DefaultsKey.SwitcherEnabled], true, P, "M7", "Alt+Tab replacement using live DWM thumbnails.");
+            [DefaultsKey.SwitcherEnabled], true, WindowsStatus.Ported, "M7", "Replaces Alt+Tab with live window previews; off until you turn it on.");
         Add(AppFeature.DockPreview, g, "Dock preview", "Hover Dock icons to preview windows.", Glyph.Window,
             [DefaultsKey.DockPreviewEnabled], true, N, "-", "Windows taskbar already previews windows on hover.", "ms-settings:taskbar");
         Add(AppFeature.DockClick, g, "Dock clicks", "Click an active app's icon to minimize or cycle windows.", Glyph.Window,
@@ -118,7 +118,7 @@ public static class FeatureCatalog
         Add(AppFeature.WindowMaximizer, g, "Maximize windows", "Fill the screen without a new Space.", Glyph.Window,
             [DefaultsKey.WindowMaximizeEnabled], true, D, "-", "Windows' maximize button already does this.");
         Add(AppFeature.WindowLayout, g, "Window layout", "Snap windows, move them between displays and restore them.", Glyph.Snap,
-            none, true, P, "M7", "Shortcuts and modifier-drag on top of Windows Snap.", "ms-settings:multitasking");
+            none, true, WindowsStatus.Ported, "M7", "Shortcuts, dragging with a modifier and edge snap on top of Windows Snap; off until you turn it on.", "ms-settings:multitasking");
         Add(AppFeature.AutoQuit, g, "Quit on close", "Quit selected apps when their last window closes.", Glyph.Close,
             [DefaultsKey.AutoQuitEnabled], true, D, "-", "Windows apps already exit with their last window.");
         Add(AppFeature.SpacesOrder, g, "Fixed Space order", "Keep Spaces in the order you set.", Glyph.Order,
@@ -127,37 +127,37 @@ public static class FeatureCatalog
         // Mouse and keyboard
         g = FeatureGroup.MouseKeyboard;
         Add(AppFeature.ScrollInverter, g, "Scroll direction", "Invert mouse scrolling independently of the touchpad.", Glyph.Scroll,
-            [DefaultsKey.ScrollInverterEnabled, DefaultsKey.ScrollInverterHorizontalEnabled], true, P, "M7");
+            [DefaultsKey.ScrollInverterEnabled, DefaultsKey.ScrollInverterHorizontalEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollHorizontal, g, "Scroll sideways", "Hold a key to turn the wheel into horizontal scrolling.", Glyph.Scroll,
-            [DefaultsKey.ScrollHorizontalEnabled], false, P, "M7");
+            [DefaultsKey.ScrollHorizontalEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollZoom, g, "Scroll zoom", "Zoom with a modifier and the wheel.", Glyph.Zoom,
-            [DefaultsKey.PinchZoomEnabled], false, P, "M7", "Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps.");
+            [DefaultsKey.PinchZoomEnabled], false, WindowsStatus.Ported, "M7", "Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps.");
         Add(AppFeature.FocusFollowsMouse, g, "Focus follows mouse", "Bring the window under the pointer forward after a pause.", Glyph.Mouse,
             [DefaultsKey.FocusFollowsMouseEnabled], false, WindowsStatus.Ported, "M6", "Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off.");
         Add(AppFeature.SmoothScroll, g, "Smooth scrolling", "Give the mouse wheel a fluid glide.", Glyph.Scroll,
-            [DefaultsKey.SmoothScrollEnabled], true, P, "M7");
+            [DefaultsKey.SmoothScrollEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.LinearScroll, g, "Linear scrolling", "Every wheel notch scrolls the same distance.", Glyph.Scroll,
-            [DefaultsKey.LinearScrollEnabled], false, P, "M7");
+            [DefaultsKey.LinearScrollEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollSpeed, g, "Scroll speed", "Adjust how far each wheel notch scrolls.", Glyph.Scroll,
-            [DefaultsKey.ScrollSpeedEnabled], false, P, "M7");
+            [DefaultsKey.ScrollSpeedEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.MouseAcceleration, g, "Pointer acceleration", "Turn mouse acceleration off and restore it later.", Glyph.Mouse,
             [DefaultsKey.MouseAccelerationDisabled], true, WindowsStatus.Ported, "M6", "Turns off 'Enhance pointer precision', and puts yours back when you turn it off.", "ms-settings:mousetouchpad");
         Add(AppFeature.MouseNavigation, g, "Side buttons", "Mouse Back and Forward buttons in more apps.", Glyph.Mouse,
             [DefaultsKey.MouseNavigationEnabled], true, N, "-", "Windows apps handle side buttons natively.");
         Add(AppFeature.MouseButtonShortcuts, g, "Mouse button shortcuts", "Assign keys to extra mouse buttons.", Glyph.Mouse,
-            [DefaultsKey.MouseButtonShortcutsEnabled, DefaultsKey.MouseSpacesGestureEnabled], true, P, "M7");
+            [DefaultsKey.MouseButtonShortcutsEnabled, DefaultsKey.MouseSpacesGestureEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.MiddleClick, g, "Middle click", "Three-finger touchpad press as middle click.", Glyph.Mouse,
             [DefaultsKey.MiddleClickEnabled], true, N, "-", "Built into Precision Touchpad settings (three-finger tap).", "ms-settings:devices-touchpad");
         Add(AppFeature.MouseClickDebounce, g, "Extra click filter", "Ignore accidental double clicks from a worn button.", Glyph.Mouse,
-            [DefaultsKey.MouseClickDebounceEnabled], true, P, "M7");
+            [DefaultsKey.MouseClickDebounceEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.KeyboardDebounce, g, "Key debounce", "Filter repeated letters from a worn keyboard.", Glyph.Keyboard,
-            [DefaultsKey.KeyboardDebounceEnabled], true, P, "M7");
+            [DefaultsKey.KeyboardDebounceEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.TextSnippets, g, "Text snippets", "Expand short triggers into text with variables.", Glyph.Text,
-            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, P, "M7");
+            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.SuperKey, g, "Super key", "Use Caps Lock as a Hyper key with its own tap action.", Glyph.Keyboard,
-            [DefaultsKey.SuperKeyEnabled], true, P, "M7");
+            [DefaultsKey.SuperKeyEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.QuitWindowProtection, g, "Quit and close protection", "Guard Alt+F4, Ctrl+W and Ctrl+Q with a hold or double press.", Glyph.Shield,
-            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, P, "M7");
+            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, WindowsStatus.Ported, "M7");
 
         // Clipboard and files
         g = FeatureGroup.ClipboardFiles;

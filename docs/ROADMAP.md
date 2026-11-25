@@ -328,7 +328,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
   - Focus-follows-mouse and acceleration toggles.
   - Quick toggles (incl. refresh rate), quit apps, kill process, port manager.
   - Optional elevated-at-login task.
-- **M7 Windows & input.** Switcher, window layout, quit protection, scroll family, mouse buttons, debounce, super key, snippets.
+- **M7 Windows & input.** Done. One hook pipeline with ordered subscribers, a marker on everything Notchly sends, a pause for full-screen games and administrator windows, and Core rules for each feature (the wheel decisions are a planner tested without a wheel). Everything installs switched off. Not built: the panel's layout grid, Spaces-specific switcher rules, per-key debounce editing in Settings, and the Microsoft 365 switch only frees the shortcuts for the current user.
 - **M8 Clipboard & files.** History, auto-clear, paste plain, URL cleaner, Shelf window, paste image into Explorer.
 - **M9 Tools.** Command bar, quick launcher, radial menu, scratchpad, cleaning mode, color picker, OCR/QR, camera preview window, wallpaper.
 - **M10 Capture & media.** Screenshot + editor, recorder + editor, media tools.

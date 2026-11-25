@@ -11,6 +11,7 @@
                  ShowInTaskbar="False"
                  Topmost="True"
                  WindowStartupLocation="Manual">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Border Padding="16,14,16,12">
         <StackPanel>
             <!-- Header -->
@@ -51,6 +52,8 @@
 
             <StackPanel x:Name="MixerSection" />
 
+            <StackPanel x:Name="MonitorSections" />
+
             <TextBlock x:Name="ComingSoon" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="2,4,2,10" />
 
             <Grid>
@@ -58,4 +61,5 @@
             </Grid>
         </StackPanel>
     </Border>
+    </ScrollViewer>
 </ui:FluentWindow>

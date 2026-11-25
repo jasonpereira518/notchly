@@ -22,6 +22,7 @@ using Notchly.App.Island.Lyrics;
 using Notchly.App.Island.Mascot;
 using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
+using Notchly.App.Island.Metrics;
 using Notchly.App.Island.Mixer;
 using Notchly.App.Island.Watch;
 using Notchly.App.Platform;
@@ -59,7 +60,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null, MascotReaction? Companion = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -87,6 +88,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private WatchService? _watch;
     private WatchPage? _watchPage;
     private MixerPage? _mixerPage;
+    private SystemPage? _systemPage;
     private BluetoothAccessories? _accessories;
     /// <summary>Accessory batteries: one alert per low episode, kept across lock and sleep (upstream batteryState).</summary>
     private NotchAccessoryBatteryState _accessoryBattery = new();
@@ -249,6 +251,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _watch.Chosen += OnWatchChosen;
         _watchPage = new WatchPage(window, _watch, ChooseWatchArea, modal => _modalOpen = modal, () => Open(takeFocus: true));
         _mixerPage = new MixerPage(window, () => ((App)Application.Current).Features.Get<Notchly.App.Sound.MixerService>(AppFeature.Mixer), _settings, modal => _modalOpen = modal);
+        _systemPage = new SystemPage(window, () => ((App)Application.Current).Monitor, _settings);
+        _systemPage.Resized += () => { if (_expanded && _page == NotchModule.System) Refresh(); };
         _accessories = new BluetoothAccessories(work => _dispatcher.BeginInvoke(work));
         _accessories.Connected += OnAccessoryConnected;
         _accessories.Disconnected += OnAccessoryDisconnected;
@@ -322,6 +326,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _cameraPage?.Dispose(); _cameraPage = null;
         _watch?.Dispose(); _watch = null; _watchPage = null;
         if (_mixerPage is not null) _mixerPage.Visible = false;
+        if (_systemPage is not null) _systemPage.Visible = false;
+        _systemPage = null;
         _mixerPage = null;
         _accessories?.Dispose(); _accessories = null;
         _accessoriesOn = false;
@@ -437,6 +443,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotchModule.Camera => w.CameraPage,
             NotchModule.Watch => w.WatchPage,
             NotchModule.Mixer => w.MixerPage,
+            NotchModule.System => w.SystemPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -931,6 +938,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_cameraPage is not null) _cameraPage.Visible = false;
         if (_watchPage is not null) _watchPage.Visible = false;
         if (_mixerPage is not null) _mixerPage.Visible = false;
+        if (_systemPage is not null) _systemPage.Visible = false;
         _window.ShowOpenLayer(false);
         if (_mascotLayer is not null) NotchWindow.Fade(_mascotLayer, 1, 0.2, delay: 0.14);
         SyncLyrics();
@@ -1041,6 +1049,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject agenda && InCalendarAgenda(agenda)) return;
         // And the AI page, once its cards outgrow the island.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject cards && InTaggedScroller(cards, "AgentsPage")) return;
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject metrics && InTaggedScroller(metrics, "SystemPage")) return;
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject messages && InTaggedScroller(messages, "NotificationsPage")) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
@@ -2497,6 +2506,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _window.MixerPage.Visibility = module == NotchModule.Mixer ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Mixer && _geometry is { } mg) _mixerPage?.Layout(mg.ContentBudget);
         if (_mixerPage is not null) _mixerPage.Visible = module == NotchModule.Mixer && _expanded;
+        _window.SystemPage.Visibility = module == NotchModule.System ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.System && _geometry is { } sg) _systemPage?.Layout(sg.ContentBudget, sg.ContentWidth);
+        if (_systemPage is not null) _systemPage.Visible = module == NotchModule.System && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();

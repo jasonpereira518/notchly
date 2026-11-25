@@ -706,6 +706,9 @@
                         <!-- Volume mixer (upstream NotchMixerView): built in code by MixerPage. -->
                         <Grid x:Name="MixerPage" Visibility="Collapsed" />
 
+                        <!-- System monitor (upstream NotchSystemView): built in code by SystemPage. -->
+                        <Grid x:Name="SystemPage" Visibility="Collapsed" />
+
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">
                             <Grid.RowDefinitions>

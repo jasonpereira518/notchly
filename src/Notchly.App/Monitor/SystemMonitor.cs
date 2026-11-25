@@ -55,6 +55,10 @@ public sealed class SystemMonitor : IDisposable
     private double _diskLastAt;
 
     public SystemSnapshot Snapshot { get; } = new();
+    private readonly HttpSpeedTransport _speedTransport = new();
+
+    /// <summary>The internet speed test (started by the person, from the Network detail).</summary>
+    public SpeedTest SpeedTest { get; }
     public MetricHistory Cpu { get; } = new(HistoryCapacity);
     public MetricHistory Gpu { get; } = new(HistoryCapacity);
     public MetricHistory Memory { get; } = new(HistoryCapacity);
@@ -76,12 +80,18 @@ public sealed class SystemMonitor : IDisposable
     {
         _settings = settings;
         _dispatcher = dispatcher;
+        SpeedTest = new SpeedTest(_speedTransport, Platform.Monitor.Clock.UnbiasedSeconds, (span, cancellation) => Task.Delay(span, cancellation));
         _timer = new DispatcherTimer(DispatcherPriority.Background, dispatcher);
         _timer.Tick += (_, _) => OnTick();
         SystemEvents.PowerModeChanged += OnPowerMode;
     }
 
-    public int Foreground => _plan.Foreground ? 1 : 0;
+    public void StartSpeedTest()
+    {
+        if (!SpeedTest.IsRunning) _ = SpeedTest.RunAsync();
+    }
+
+    public bool Foreground => _plan.Foreground;
     private bool? _hasBattery;
     public bool HasBattery => _hasBattery ??= PowerSampler.Read() is not null;
 
@@ -304,5 +314,7 @@ public sealed class SystemMonitor : IDisposable
         StopPeripherals();
         _gpu.Dispose();
         _disk.Dispose();
+        SpeedTest.Cancel();
+        _speedTransport.Dispose();
     }
 }

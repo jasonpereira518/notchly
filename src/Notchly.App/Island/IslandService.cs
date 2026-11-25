@@ -232,7 +232,7 @@ public sealed class IslandService : IFeatureService
         // The battery's flow changes by the second: read it again while the home page is open.
         _batteryTimer = NewTimer(UpdateBatteryReading, TimeSpan.FromSeconds(3));
         _foreground = new ForegroundWatcher();
-        _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); TintSoon(); };
+        _foreground.ForegroundChanged += hwnd => { _menuBar?.OnForeground(hwnd); TintSoon(); _window?.ReassertTopmost(); CheckFullscreen(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
 
         _hoverTimer = NewTimer(OnHoverTimer);
@@ -555,12 +555,15 @@ public sealed class IslandService : IFeatureService
 
     // MARK: Menu bar colour and the island's edge (Windows-only)
 
-    /// <summary>A new app in front: read its colour once its window has settled, and again a little later.</summary>
+    /// <summary>A new app in front: read its colour at once, then as its window settles and a little later.</summary>
     private async void TintSoon()
     {
-        await Task.Delay(150);
         UpdateTint();
-        await Task.Delay(450);
+        await Task.Delay(70);
+        UpdateTint();
+        await Task.Delay(180);
+        UpdateTint();
+        await Task.Delay(400);
         UpdateTint();
     }
 

@@ -28,7 +28,9 @@ using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
 using Notchly.App.Platform.Bluetooth;
 using Notchly.App.Platform.Input;
+using Notchly.App.Island.Music;
 using Notchly.App.Platform.Media;
+using Notchly.App.Platform.Net.Spotify;
 using Notchly.App.Platform.Power;
 using Notchly.App.Platform.Shell;
 using Notchly.App.Platform.Windowing;
@@ -110,6 +112,10 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private bool _dragPlaceholder;
     private DispatcherTimer? _revealTimer;
     private bool _lyricsOpen, _modalOpen;
+    /// <summary>"Up next" shares the lyrics' slot under the player; it starts open, and either closes the other.</summary>
+    private bool _queueOpen = true;
+    private MusicService? _music;
+    private MusicPage? _musicPage;
     private int? _lyricsActive = -1;
     private string _lyricsKey = "";
     private readonly List<TextBlock> _lyricLines = [];
@@ -220,6 +226,10 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _media.Changed += OnMediaChanged;
         _media.TrackChanged += OnTrackChanged;
         _lyrics = new LyricsService(_settings);
+        _music = new MusicService(_settings, _dispatcher);
+        _music.Changed += OnMusicChanged;
+        _musicPage = new MusicPage(window, _music, () => { Collapse(); App.Current.ShowSettings(SettingsPage.Island); }, PlayPlaylistAsync);
+        SpotifyAccount.Changed += OnSpotifyAccountChanged;
         _equalizer = new LiveEqualizerService(_settings, _dispatcher, () => _media?.Current);
         _shelf = new ShelfService(_dispatcher);
         _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
@@ -312,6 +322,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _foreground?.Dispose(); _foreground = null;
         _media?.Dispose(); _media = null;
         _lyrics?.Dispose(); _lyrics = null;
+        SpotifyAccount.Changed -= OnSpotifyAccountChanged;
+        _music?.Dispose(); _music = null; _musicPage = null;
         _equalizer?.Dispose(); _equalizer = null;
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
@@ -429,7 +441,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_geometry is not { } g || _window is not { } w) return _geometry?.Expanded ?? SizeD.Zero;
         FrameworkElement page = _page switch
         {
-            NotchModule.Music => w.MusicPlayer,
+            NotchModule.Music => w.MusicIdle.Visibility == Visibility.Visible ? w.MusicIdle : w.MusicPlayer,
             NotchModule.Files => w.FilesPage,
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
@@ -441,7 +453,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
-        return g.ExpandedSize(w.MeasurePage(page, g.ContentWidth) + 4, LyricsShown ? g.MusicExtrasHeight : 0);
+        return g.ExpandedSize(w.MeasurePage(page, g.ContentWidth) + 4, LyricsShown || QueueShown ? g.MusicExtrasHeight : 0);
     }
 
     private NotchCompactActivity? CurrentActivity()
@@ -1246,8 +1258,85 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private void SetLyricsOpen(bool open)
     {
         _lyricsOpen = open;
+        if (open) _queueOpen = false;
         SyncLyrics();
         Refresh();
+    }
+
+    // MARK: Up next and the playlist picker (Spotify; a Windows addition)
+
+    private bool QueueAvailable => _music is { SpotifyActive: true, QueueEnabled: true } && _media?.Current is not null;
+    private bool QueueShown => _queueOpen && QueueAvailable && _page == NotchModule.Music;
+
+    private void SetQueueOpen(bool open)
+    {
+        _queueOpen = open;
+        if (open) _lyricsOpen = false;
+        SyncLyrics();
+        Refresh();
+    }
+
+    /// <summary>Spotify's own answer for the song playing when it has one, else what Windows' controls report.</summary>
+    private bool ShuffleOf(NowPlaying now) => _music is { SpotifyActive: true, Player: { } p } ? p.Shuffle : now.IsShuffle;
+    private NotchRepeatMode RepeatOf(NowPlaying now) => _music is { SpotifyActive: true, Player: { } p } ? p.Repeat : now.Repeat;
+    private bool SpotifyControls => _music is { SpotifyActive: true, Player: not null };
+
+    /// <summary>Lets the music service see what is playing and whether the page is on screen, then draws the views.</summary>
+    private void SyncMusic()
+    {
+        if (_window is not { } w || _music is null) return;
+        var playing = _media?.Current;
+        _music.Update(playing, live: _expanded && _page == NotchModule.Music);
+        RenderMusicViews();
+    }
+
+    private void RenderMusicViews()
+    {
+        if (_window is not { } w || _music is null || _musicPage is null) return;
+        var playing = _media?.Current;
+        var onMusic = _page == NotchModule.Music;
+        w.QueueButton.Visibility = onMusic && QueueAvailable ? Visibility.Visible : Visibility.Collapsed;
+        w.QueueButton.IsChecked = _queueOpen;
+        w.QueuePanel.Visibility = QueueShown ? Visibility.Visible : Visibility.Collapsed;
+        if (_geometry is { } g)
+        {
+            w.QueuePanel.Height = Math.Max(0, g.MusicExtrasHeight - 12);
+            w.MusicIdle.Height = Math.Max(120, g.ContentBudget);
+        }
+        var idle = onMusic && playing is null;
+        w.MusicIdle.Visibility = idle ? Visibility.Visible : Visibility.Collapsed;
+        w.MusicPlayer.Visibility = idle ? Visibility.Collapsed : Visibility.Visible;
+        if (idle && _expanded)
+        {
+            _ = _music.LoadPlaylistsAsync();
+            _musicPage.RenderIdle();
+        }
+        if (QueueShown) _musicPage.RenderQueue();
+    }
+
+    private void OnMusicChanged()
+    {
+        RenderMusicViews();
+        UpdatePages();
+        if (_expanded) Refresh();
+    }
+
+    private void OnSpotifyAccountChanged() => _dispatcher.BeginInvoke(() =>
+    {
+        if (_music is null) return;
+        _ = _music.LoadPlaylistsAsync(force: true);
+        SyncMusic();
+        UpdatePages();
+        if (_expanded) Refresh();
+    });
+
+    private async Task PlayPlaylistAsync(string contextUri)
+    {
+        if (_music is null || _musicPage is null) return;
+        _musicPage.Status = "Starting…";
+        var problem = await _music.PlayAsync(contextUri);
+        // On success the player appears through Windows' media controls and this view gives way to it.
+        if (_musicPage is not null) _musicPage.Status = problem ?? "";
     }
 
     /// <summary>Shows or hides the lyrics button and panel, and tells the service what is visible.</summary>
@@ -1260,6 +1349,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_geometry is { } g) w.LyricsPanel.Height = Math.Max(0, g.MusicExtrasHeight - 12);
         _lyrics.Update(CurrentIdentity(), LyricsShown && _expanded);
         RenderLyrics();
+        SyncMusic();
     }
 
     private void RenderLyrics()
@@ -2369,8 +2459,23 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicPrevious.Click += (_, _) => _media?.Previous();
         w.MusicNext.Click += (_, _) => _media?.Next();
         w.MusicStar.Click += (_, _) => ToggleStar();
-        w.MusicShuffle.Click +=(_, _) => { if (_media?.Current is { } now) _media.SetShuffle(!now.IsShuffle); };
-        w.MusicRepeat.Click += (_, _) => { if (_media?.Current is { } now) _media.SetRepeat(now.Repeat.Next()); };
+        // Spotify takes shuffle and loop through its own player when signed in (its queue and Liked Songs need it
+        // anyway); anything it refuses, and every other player, goes through Windows' media controls.
+        w.MusicShuffle.Click += async (_, _) =>
+        {
+            if (_media?.Current is not { } now) return;
+            var on = !ShuffleOf(now);
+            if (SpotifyControls && await _music!.SetShuffleAsync(on)) return;
+            _media?.SetShuffle(on);
+        };
+        w.QueueButton.Click += (_, _) => SetQueueOpen(w.QueueButton.IsChecked == true);
+        w.MusicRepeat.Click += async (_, _) =>
+        {
+            if (_media?.Current is not { } now) return;
+            var next = RepeatOf(now).Next();
+            if (SpotifyControls && await _music!.SetRepeatAsync(next)) return;
+            _media?.SetRepeat(next);
+        };
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
@@ -2548,6 +2653,12 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private void ToggleStar()
     {
         if (_media?.Current is not { } now) return;
+        // On Spotify the star is Liked Songs; a song Spotify cannot star (an episode, a local file) uses the local list.
+        if (_music is { SpotifyActive: true } music && SpotifyModels.IsStarrable(music.Player?.TrackUri))
+        {
+            _ = music.ToggleLikedAsync();
+            return;
+        }
         Stars.Toggle(now.Title, now.Artist);
         _settings.Set(DefaultsKey.NotchMusicLocalStars, Stars.ToJson());
         UpdatePages();
@@ -2579,18 +2690,21 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicPrevious.IsEnabled = playing?.CanGoPrevious == true;
         w.MusicTimeline.IsEnabled = playing?.CanSeek == true;
         var dim = (Brush)w.Resources["Dim"];
-        var starred = playing is not null && Stars.Contains(playing.Title, playing.Artist);
+        var onSpotify = _music is { SpotifyActive: true } && SpotifyModels.IsStarrable(_music.Player?.TrackUri);
+        var starred = playing is not null && (onSpotify ? _music!.Liked == true : Stars.Contains(playing.Title, playing.Artist));
         w.MusicStar.Visibility = playing is null ? Visibility.Collapsed : Visibility.Visible;
         w.MusicStar.Content = starred ? "" : "";
         w.MusicStar.Foreground = starred ? tint : dim;
-        w.MusicStar.ToolTip = starred ? "Remove star" : "Star this song";
-        w.MusicShuffle.IsEnabled = playing?.CanShuffle == true;
-        w.MusicShuffle.Foreground = playing?.IsShuffle == true ? tint : dim;
-        w.MusicShuffle.ToolTip = playing?.IsShuffle == true ? "Shuffle on" : "Shuffle off";
-        w.MusicRepeat.IsEnabled = playing?.CanRepeat == true;
-        w.MusicRepeat.Foreground = playing is { Repeat: not NotchRepeatMode.Off } ? tint : dim;
-        w.MusicRepeat.Content = playing?.Repeat == NotchRepeatMode.One ? "" : "";
-        w.MusicRepeat.ToolTip = playing?.Repeat switch { NotchRepeatMode.All => "Loop list", NotchRepeatMode.One => "Loop song", _ => "Loop off" };
+        w.MusicStar.ToolTip = onSpotify ? (starred ? "Remove from Liked Songs" : "Add to Liked Songs") : starred ? "Remove star" : "Star this song";
+        var shuffle = playing is not null && ShuffleOf(playing);
+        var repeat = playing is null ? NotchRepeatMode.Off : RepeatOf(playing);
+        w.MusicShuffle.IsEnabled = SpotifyControls || playing?.CanShuffle == true;
+        w.MusicShuffle.Foreground = shuffle ? tint : dim;
+        w.MusicShuffle.ToolTip = shuffle ? "Shuffle on" : "Shuffle off";
+        w.MusicRepeat.IsEnabled = SpotifyControls || playing?.CanRepeat == true;
+        w.MusicRepeat.Foreground = repeat != NotchRepeatMode.Off ? tint : dim;
+        w.MusicRepeat.Content = repeat == NotchRepeatMode.One ? "" : "";
+        w.MusicRepeat.ToolTip = repeat switch { NotchRepeatMode.All => "Loop list", NotchRepeatMode.One => "Loop song", _ => "Loop off" };
 
         UpdateBatteryControls();
         UpdateBrightnessControl();

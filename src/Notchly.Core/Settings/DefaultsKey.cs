@@ -294,4 +294,46 @@ public static class DefaultsKey
     public const string MenuBarUsageBarMediumThreshold = "menuBarUsageBarMediumThreshold";
     public const string MenuBarUsageBarHighThreshold = "menuBarUsageBarHighThreshold";
     public const string MenuBarMetricOrder = "menuBarMetricOrder";
+
+    // Energy (M6)
+    public const string DefaultDurationMinutes = "defaultDurationMinutes";
+    public const string BatteryLimitPercent = "batteryLimitPercent";
+    public const string KeepAwakeAutoStart = "keepAwakeAutoStart";
+    public const string KeepAwakeAllowDisplaySleep = "keepAwakeAllowDisplaySleep";
+    public const string KeepAwakeExternalDisplay = "keepAwakeExternalDisplay";
+    public const string KeepAwakeConnectedToPower = "keepAwakeConnectedToPower";
+    public const string KeepAwakeRunningApps = "keepAwakeRunningApps";
+    /// <summary>Executable names on Windows (upstream stores bundle ids under the same key).</summary>
+    public const string KeepAwakeRunningAppBundleIDs = "keepAwakeRunningAppBundleIDs";
+    public const string KeepAwakeAutomationRequireAll = "keepAwakeAutomationRequireAll";
+    public const string KeepAwakePauseWhenLocked = "keepAwakePauseWhenLocked";
+    public const string KeepAwakeSwitchUsesUntil = "keepAwakeSwitchUsesUntil";
+    public const string KeepAwakeUntilTime = "keepAwakeUntilTime";
+    public const string KeepAwakeMouseJiggleEnabled = "keepAwakeMouseJiggleEnabled";
+    public const string KeepAwakeMouseJiggleIntervalMinutes = "keepAwakeMouseJiggleIntervalMinutes";
+    public const string HotkeyEnabled = "hotkeyEnabled";
+    public const string KeepAwakeShortcut = "keepAwakeShortcut";
+    public const string ClamshellPreferred = "clamshellPreferred";
+    public const string DimScreenOnLidClose = "dimScreenOnLidClose";
+    public const string PanelShowKeepAwake = "panelShowKeepAwake";
+    /// <summary>A manual session saved at quit ("end;minutes"); machine state.</summary>
+    public const string KeepAwakeSessionEnd = "keepAwakeSessionEnd";
+    /// <summary>The lid actions found before closed-lid mode changed them ("ac;dc"); machine state, a crash guard.</summary>
+    public const string LidActionBackup = "lidActionBackup";
+    /// <summary>The panel level saved while the lid is closed and dimmed; machine state, a crash guard.</summary>
+    public const string LidDimSavedBrightness = "lidDimSavedBrightness";
+
+    public const string BrightnessKeyStep = "brightnessKeyStep";
+    public const string DisplayBrightnessShortcutsEnabled = "displayBrightnessShortcutsEnabled";
+    public const string DisplayBrightnessDecreaseShortcut = "displayBrightnessDecreaseShortcut";
+    public const string DisplayBrightnessIncreaseShortcut = "displayBrightnessIncreaseShortcut";
+    public const string PanelShowBrightness = "panelShowBrightness";
+    /// <summary>Displays forced onto software dimming, by display path (comma-joined); machine state.</summary>
+    public const string BrightnessForcedSoftwarePaths = "brightnessForcedSoftwarePaths";
+    /// <summary>Software dim levels applied by this app, "path=level" pairs; machine state, a crash guard.</summary>
+    public const string BrightnessAppliedDims = "brightnessAppliedDims";
+
+    public const string BluetoothSleepRestoreOnWake = "bluetoothSleepRestoreOnWake";
+    /// <summary>A restore owed to the radio after sleep; machine state, never backed up.</summary>
+    public const string BluetoothSleepRestorePending = "bluetoothSleepRestorePending";
 }

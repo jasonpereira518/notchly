@@ -319,7 +319,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
   - Mixer panel section and island page: per-app sessions with icons, volume, mute, meters, pinning and order.
   - Per-app output device, output switcher hotkey, priority auto-switch, quieter on headphone disconnect, mic mute with island indicator.
   - Boost above 100% last, as an experiment.
-- **M5 Monitor.**
+- **M5 Monitor.** Done except what needs the elevated helper (M12): temperatures, fan speeds, per-app network, and system or adapter watts, which Windows does not give an unprivileged app. CPU comes from the kernel's tick counters (so upstream's tick contract ports exactly), GPU from the GPU Engine counters Task Manager reads (never NVML, so the dGPU is not kept awake), memory pressure is derived, and disk SMART health is left out.
   - Samplers: CPU, GPU, memory, disk, network, battery.
   - History graphs, top processes, alerts (port `SustainedAlertGate`).
   - Tray readout icons, island "system" page and strip readouts, speed test (same endpoint as upstream), connected devices.

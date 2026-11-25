@@ -15,14 +15,18 @@ public partial class PanelWindow : FluentWindow
     private readonly App _app;
     private bool _updating;
     private readonly PanelMixer _mixer;
+    private readonly PanelMonitor _monitor;
 
     public PanelWindow(App app)
     {
         _app = app;
         InitializeComponent();
+        // A tall panel (the monitor's sections) scrolls instead of running off the screen.
+        MaxHeight = SystemParameters.WorkArea.Height - 24;
         _mixer = new PanelMixer(MixerSection);
+        _monitor = new PanelMonitor(MonitorSections, app.Settings);
         Deactivated += (_, _) => Hide();
-        IsVisibleChanged += (_, e) => { if (e.NewValue is false) _mixer.Hide(); };
+        IsVisibleChanged += (_, e) => { if (e.NewValue is false) { _mixer.Hide(); _monitor.Hide(); } };
         SystemThemeWatcher.Watch(this);
     }
 
@@ -46,7 +50,8 @@ public partial class PanelWindow : FluentWindow
         var mixer = _app.Features.Get<Sound.MixerService>(AppFeature.Mixer);
         MixerSection.Visibility = mixer is not null && _app.Settings.GetBool(DefaultsKey.MonitorShowMixer) ? Visibility.Visible : Visibility.Collapsed;
         _mixer.Show(MixerSection.Visibility == Visibility.Visible ? mixer : null);
-        ComingSoon.Text = $"The system monitor, window switcher, clipboard and {planned - 4} more features are on the way. See Features for the plan.";
+        _monitor.Show(_app.Monitor);
+        ComingSoon.Text = $"Window switcher, clipboard and {planned - 4} more features are on the way. See Features for the plan.";
         _updating = false;
     }
 

@@ -22,6 +22,9 @@ public partial class App : Application
     public SettingsStore Settings { get; private set; } = null!;
     public InputHookService Input { get; private set; } = null!;
     public HotkeyService Hotkeys { get; private set; } = null!;
+    public Monitor.SystemMonitor Monitor { get; private set; } = null!;
+    public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
+    public TrayReadoutService TrayReadouts { get; private set; } = null!;
     public FeatureRuntime Features { get; private set; } = null!;
     public TrayIconService Tray { get; private set; } = null!;
 
@@ -68,6 +71,12 @@ public partial class App : Application
         Hotkeys = new HotkeyService();
         Features = new FeatureRuntime(Settings);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
+        Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
+        TrayReadouts = new TrayReadoutService(this);
+        MonitorAlerts = new Monitor.MonitorAlertService(Settings, Monitor, (title, body) => Tray?.Notify(title, body));
+        foreach (var feature in new[] { AppFeature.MonitorCPU, AppFeature.MonitorGPU, AppFeature.MonitorMemory, AppFeature.MonitorNetwork,
+                                        AppFeature.MonitorDisk, AppFeature.MonitorPower, AppFeature.ConnectedDevices })
+            Features.Bind(feature, () => new Monitor.MonitorFeatureService(Monitor, MonitorAlerts, () => TrayReadouts?.Sync()));
         Features.Bind(AppFeature.Mixer, () => new Sound.MixerService(Settings, Dispatcher));
         Features.Bind(AppFeature.SoundOutputSwitcher, () => new Sound.OutputSwitcherService(Settings, Hotkeys));
         Features.Bind(AppFeature.AudioPriority, () => new Sound.AudioPriorityService(Settings, Dispatcher));
@@ -216,6 +225,9 @@ public partial class App : Application
         try
         {
             Features?.Dispose();
+            TrayReadouts?.Dispose();
+            MonitorAlerts?.Dispose();
+            Monitor?.Dispose();
             Tray?.Dispose();
             Hotkeys?.Dispose();
             Input?.Dispose();

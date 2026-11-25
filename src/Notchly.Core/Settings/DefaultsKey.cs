@@ -336,4 +336,46 @@ public static class DefaultsKey
     public const string BluetoothSleepRestoreOnWake = "bluetoothSleepRestoreOnWake";
     /// <summary>A restore owed to the radio after sleep; machine state, never backed up.</summary>
     public const string BluetoothSleepRestorePending = "bluetoothSleepRestorePending";
+
+    // Tools and mouse toggles (M6)
+    public const string PanelShowToggles = "panelShowToggles";
+    public const string PanelToggleOrder = "panelToggleOrder";
+    public const string PanelToggleDarkMode = "panelToggleDarkMode";
+    /// <summary>Upstream's legacy storage name for the microphone row.</summary>
+    public const string PanelUtilityMicMute = "panelUtilityMicMute";
+    public const string PanelToggleEmptyTrash = "panelToggleEmptyTrash";
+    public const string PanelToggleQuitAllApps = "panelToggleQuitAllApps";
+    public const string PanelToggleEjectDisks = "panelToggleEjectDisks";
+    public const string PanelToggleHiddenFiles = "panelToggleHiddenFiles";
+    public const string PanelToggleDesktopIcons = "panelToggleDesktopIcons";
+    public const string PanelToggleLockScreen = "panelToggleLockScreen";
+    public const string PanelToggleDisplayOff = "panelToggleDisplayOff";
+    public const string PanelToggleScreenSaver = "panelToggleScreenSaver";
+    // Rows added on Windows.
+    public const string PanelToggleRefreshRate = "panelToggleRefreshRate";
+    public const string PanelToggleWifi = "panelToggleWifi";
+    public const string PanelToggleBluetooth = "panelToggleBluetooth";
+    public const string DiskEjectExcludedVolumes = "diskEjectExcludedVolumes";
+
+    public const string QuitAppsShortcutEnabled = "quitAppsShortcutEnabled";
+    public const string QuitAppsShortcut = "quitAppsShortcut";
+    public const string QuitAppsExceptFrontShortcutEnabled = "quitAppsExceptFrontShortcutEnabled";
+    public const string QuitAppsExceptFrontShortcut = "quitAppsExceptFrontShortcut";
+    /// <summary>Executable names on Windows (upstream stores bundle ids under the same key).</summary>
+    public const string QuitAppsKeptApps = "quitAppsKeptApps";
+
+    public const string KillProcessCommandBarEnabled = "killProcessCommandBarEnabled";
+    public const string KillProcessGroupRelated = "killProcessGroupRelated";
+    public const string KillProcessSortBy = "killProcessSortBy";
+    public const string KillProcessSortAscending = "killProcessSortAscending";
+    public const string PanelUtilityPortManager = "panelUtilityPortManager";
+
+    public const string FocusFollowsMouseDelayMilliseconds = "focusFollowsMouseDelayMilliseconds";
+    public const string FocusFollowsMouseRaise = "focusFollowsMouseRaise";
+    public const string PanelControlFocusFollowsMouse = "panelControlFocusFollowsMouse";
+    public const string PanelControlMouseAcceleration = "panelControlMouseAcceleration";
+    /// <summary>What Windows had before hover activation was turned on ("tracking;raise;ms"); machine state, a crash guard.</summary>
+    public const string FocusFollowsMouseOriginal = "focusFollowsMouseOriginal";
+    /// <summary>The mouse parameters before acceleration was turned off ("t1;t2;accel"); machine state, a crash guard.</summary>
+    public const string MouseAccelerationOriginal = "mouseAccelerationOriginal";
 }

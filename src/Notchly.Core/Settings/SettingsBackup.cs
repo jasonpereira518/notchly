@@ -25,6 +25,8 @@ public static class SettingsBackup
         // Saved sessions, lid and dimming crash guards, displays and the radio debt belong to this machine too.
         DefaultsKey.KeepAwakeSessionEnd, DefaultsKey.LidActionBackup, DefaultsKey.LidDimSavedBrightness,
         DefaultsKey.BrightnessForcedSoftwarePaths, DefaultsKey.BrightnessExtendedDimmingPaths, DefaultsKey.BluetoothSleepRestorePending,
+        // The system settings a toggle changed are this machine's too.
+        DefaultsKey.FocusFollowsMouseOriginal, DefaultsKey.MouseAccelerationOriginal,
     };
 
     public static string Export(SettingsStore store)

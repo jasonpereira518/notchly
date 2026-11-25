@@ -134,7 +134,7 @@ public static class FeatureCatalog
         Add(AppFeature.ScrollZoom, g, "Scroll zoom", "Zoom with a modifier and the wheel.", Glyph.Zoom,
             [DefaultsKey.PinchZoomEnabled], false, P, "M7", "Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps.");
         Add(AppFeature.FocusFollowsMouse, g, "Focus follows mouse", "Bring the window under the pointer forward after a pause.", Glyph.Mouse,
-            [DefaultsKey.FocusFollowsMouseEnabled], false, T, "M6", "Flips Windows' own 'activate window on hover' setting.");
+            [DefaultsKey.FocusFollowsMouseEnabled], false, WindowsStatus.Ported, "M6", "Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off.");
         Add(AppFeature.SmoothScroll, g, "Smooth scrolling", "Give the mouse wheel a fluid glide.", Glyph.Scroll,
             [DefaultsKey.SmoothScrollEnabled], true, P, "M7");
         Add(AppFeature.LinearScroll, g, "Linear scrolling", "Every wheel notch scrolls the same distance.", Glyph.Scroll,
@@ -142,7 +142,7 @@ public static class FeatureCatalog
         Add(AppFeature.ScrollSpeed, g, "Scroll speed", "Adjust how far each wheel notch scrolls.", Glyph.Scroll,
             [DefaultsKey.ScrollSpeedEnabled], false, P, "M7");
         Add(AppFeature.MouseAcceleration, g, "Pointer acceleration", "Turn mouse acceleration off and restore it later.", Glyph.Mouse,
-            [DefaultsKey.MouseAccelerationDisabled], true, T, "M6", "Flips 'Enhance pointer precision'.", "ms-settings:mousetouchpad");
+            [DefaultsKey.MouseAccelerationDisabled], true, WindowsStatus.Ported, "M6", "Turns off 'Enhance pointer precision', and puts yours back when you turn it off.", "ms-settings:mousetouchpad");
         Add(AppFeature.MouseNavigation, g, "Side buttons", "Mouse Back and Forward buttons in more apps.", Glyph.Mouse,
             [DefaultsKey.MouseNavigationEnabled], true, N, "-", "Windows apps handle side buttons natively.");
         Add(AppFeature.MouseButtonShortcuts, g, "Mouse button shortcuts", "Assign keys to extra mouse buttons.", Glyph.Mouse,
@@ -205,8 +205,8 @@ public static class FeatureCatalog
         // Tools
         g = FeatureGroup.Tools;
         Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, P, "M9");
-        Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, P, "M6");
-        Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, P, "M6");
+        Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, WindowsStatus.Ported, "M6");
+        Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, WindowsStatus.Ported, "M6");
         Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, P, "M9");
         Add(AppFeature.ScreenOCR, g, "Copy text from screen", "Recognize text or read a QR code from any area.", Glyph.Scan, none, true, P, "M9");
         Add(AppFeature.CleaningMode, g, "Cleaning mode", "Lock keyboard input while cleaning.", Glyph.Sparkle, none, true, P, "M9");
@@ -225,8 +225,8 @@ public static class FeatureCatalog
         Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, P, "M9");
         Add(AppFeature.ScreenRecorder, g, "Screen recording", "Record with system audio and microphone, then trim and export.", Glyph.Record, none, true, P, "M10");
         Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, P, "M9");
-        Add(AppFeature.KillProcess, g, "Kill process", "Find and stop misbehaving processes.", Glyph.Stop, none, false, P, "M6");
-        Add(AppFeature.PortManager, g, "Port manager", "Find processes listening on ports and stop them.", Glyph.Network, none, false, P, "M6");
+        Add(AppFeature.KillProcess, g, "Kill process", "Find and stop misbehaving processes.", Glyph.Stop, none, false, WindowsStatus.Ported, "M6");
+        Add(AppFeature.PortManager, g, "Port manager", "Find processes listening on ports and stop them.", Glyph.Network, none, false, WindowsStatus.Ported, "M6");
 
         // Dynamic Island
         g = FeatureGroup.DynamicIsland;

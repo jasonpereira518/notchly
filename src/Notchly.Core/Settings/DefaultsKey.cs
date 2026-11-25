@@ -330,8 +330,8 @@ public static class DefaultsKey
     public const string PanelShowBrightness = "panelShowBrightness";
     /// <summary>Displays forced onto software dimming, by display path (comma-joined); machine state.</summary>
     public const string BrightnessForcedSoftwarePaths = "brightnessForcedSoftwarePaths";
-    /// <summary>Software dim levels applied by this app, "path=level" pairs; machine state, a crash guard.</summary>
-    public const string BrightnessAppliedDims = "brightnessAppliedDims";
+    /// <summary>Displays whose bottom quarter dims the picture below the panel's minimum (comma-joined); machine state.</summary>
+    public const string BrightnessExtendedDimmingPaths = "brightnessExtendedDimmingPaths";
 
     public const string BluetoothSleepRestoreOnWake = "bluetoothSleepRestoreOnWake";
     /// <summary>A restore owed to the radio after sleep; machine state, never backed up.</summary>

@@ -194,13 +194,13 @@ public static class FeatureCatalog
         // Energy and display
         g = FeatureGroup.EnergyDisplay;
         Add(AppFeature.KeepAwake, g, "Keep awake", "Keep the PC awake on a timer, lid closed or by rules.", Glyph.Moon,
-            none, true, P, "M6");
+            none, true, WindowsStatus.Ported, "M6");
         Add(AppFeature.Brightness, g, "Displays", "Brightness for the built-in panel and DDC/CI monitors, software dimming.", Glyph.Brightness,
-            [DefaultsKey.BrightnessControlEnabled], true, P, "M6");
+            [DefaultsKey.BrightnessControlEnabled], true, WindowsStatus.Ported, "M6");
         Add(AppFeature.ExtraBrightness, g, "Extra brightness", "Use HDR headroom beyond normal maximum brightness.", Glyph.Sun,
             [DefaultsKey.ExtraBrightnessEnabled], true, D, "-", "Needs an XDR/HDR panel.");
         Add(AppFeature.BluetoothSleep, g, "Bluetooth on sleep", "Turn Bluetooth off during sleep and back on at wake.", Glyph.Bluetooth,
-            [DefaultsKey.BluetoothSleepEnabled], true, P, "M6");
+            [DefaultsKey.BluetoothSleepEnabled], true, WindowsStatus.Ported, "M6");
 
         // Tools
         g = FeatureGroup.Tools;

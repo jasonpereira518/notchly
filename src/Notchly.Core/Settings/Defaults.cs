@@ -266,7 +266,7 @@ public static class Defaults
         [DefaultsKey.DisplayBrightnessIncreaseShortcut] = "control+alt+win:187",
         [DefaultsKey.PanelShowBrightness] = true,
         [DefaultsKey.BrightnessForcedSoftwarePaths] = "",
-        [DefaultsKey.BrightnessAppliedDims] = "",
+        [DefaultsKey.BrightnessExtendedDimmingPaths] = "",
         [DefaultsKey.BluetoothSleepEnabled] = false,
         [DefaultsKey.BluetoothSleepRestoreOnWake] = true,
         [DefaultsKey.BluetoothSleepRestorePending] = false,

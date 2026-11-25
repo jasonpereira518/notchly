@@ -81,6 +81,9 @@ public partial class App : Application
         Features.Bind(AppFeature.SoundOutputSwitcher, () => new Sound.OutputSwitcherService(Settings, Hotkeys));
         Features.Bind(AppFeature.AudioPriority, () => new Sound.AudioPriorityService(Settings, Dispatcher));
         Features.Bind(AppFeature.MicMute, () => new Sound.MicMuteService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.KeepAwake, () => new Energy.KeepAwakeService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.Brightness, () => new Energy.BrightnessService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
 
         var firstRun = !Settings.GetBool(DefaultsKey.HasOnboarded);
         if (firstRun)
@@ -95,6 +98,8 @@ public partial class App : Application
         foreach (var feature in Settings.InstallSwitchedOnExtensions())
             Log.Information("Feature {Feature} was switched on in the island's settings and was installed", FeatureCatalog.Id(feature));
         Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
+        // A Bluetooth restore owed from before this launch is paid whether or not the feature is still installed.
+        Energy.BluetoothSleepService.PayDebt(Settings);
         Features.SyncAll();
         Tray = new TrayIconService(this);
         if (e.Args.Contains(NotificationSettings.SetupFlag)) ContinueNotificationSetup();

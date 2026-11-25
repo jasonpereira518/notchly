@@ -97,7 +97,7 @@ public sealed class MenuBarController : IDisposable
         _tint = tint;
         var target = Color.FromRgb(tint.R, tint.G, tint.B);
         _background.BeginAnimation(SolidColorBrush.ColorProperty,
-            new ColorAnimation(target, TimeSpan.FromMilliseconds(150)) { FillBehavior = FillBehavior.HoldEnd });
+            new ColorAnimation(target, TimeSpan.FromMilliseconds(60)) { FillBehavior = FillBehavior.HoldEnd });
         ApplyText(tint);
     }
 

@@ -119,6 +119,8 @@ public partial class App : Application
         {
             RegisterHotkey = Hotkeys.Register, ShortcutPressed = ClipboardShortcut,
         });
+        Features.Bind(AppFeature.PastePlain, () => new Pasteboard.PastePlainService(this));
+        Features.Bind(AppFeature.FinderCutPaste, () => new Pasteboard.ExplorerImagePasteService(this));
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));

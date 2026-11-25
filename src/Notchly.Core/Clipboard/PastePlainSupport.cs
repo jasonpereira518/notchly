@@ -56,6 +56,36 @@ public static partial class PastePlainSupport
         return PlainPastePlan.ForwardPaste;
     }
 
+    // MARK: Text from HTML
+
+    [GeneratedRegex(@"<(script|style)\b.*?</\1\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex ScriptRegex();
+    [GeneratedRegex(@"<br\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex BreakRegex();
+    [GeneratedRegex(@"</(p|div|tr|li|h[1-6]|table|ul|ol)\s*>", RegexOptions.IgnoreCase)]
+    private static partial Regex BlockEndRegex();
+    [GeneratedRegex(@"</t[dh]\s*>", RegexOptions.IgnoreCase)]
+    private static partial Regex CellEndRegex();
+    [GeneratedRegex(@"<[^>]*>", RegexOptions.Singleline)]
+    private static partial Regex AnyTagRegex();
+    [GeneratedRegex(@"\n{3,}")]
+    private static partial Regex BlankLinesRegex();
+    [GeneratedRegex(@"\t+(?=\n|$)")]
+    private static partial Regex TrailingTabsRegex();
+
+    /// <summary>The text of a piece of HTML: tags gone, line ends where blocks and breaks were, a tab between table cells, entities decoded.</summary>
+    public static string TextOfHtml(string? html)
+    {
+        if (string.IsNullOrEmpty(html)) return "";
+        var text = ScriptRegex().Replace(html, "");
+        text = BreakRegex().Replace(text, "\n");
+        text = BlockEndRegex().Replace(text, "\n");
+        text = CellEndRegex().Replace(text, "\t");
+        text = AnyTagRegex().Replace(text, "");
+        text = System.Net.WebUtility.HtmlDecode(text).Replace("\r\n", "\n").Replace('\u00A0', ' ');
+        return BlankLinesRegex().Replace(TrailingTabsRegex().Replace(text, ""), "\n\n").Trim();
+    }
+
     // MARK: The transient write
 
     public const int ModifierPolls = 100, ModifierPollMs = 15;

@@ -453,6 +453,17 @@ public class PastePlainTests
     }
 
     [Fact]
+    public void HtmlBecomesText()
+    {
+        Assert.Equal("Hello world\nSecond & third", PastePlainSupport.TextOfHtml("<html><body><p>Hello <b>world</b></p><p>Second &amp; third</p></body></html>"));
+        Assert.Equal("a\nb", PastePlainSupport.TextOfHtml("a<br>b"));
+        Assert.Equal("A\tB\n1\t2", PastePlainSupport.TextOfHtml("<table><tr><td>A</td><td>B</td></tr><tr><td>1</td><td>2</td></tr></table>"));
+        Assert.Equal("shown", PastePlainSupport.TextOfHtml("<style>p{color:red}</style><script>x()</script>shown"));
+        Assert.Equal("", PastePlainSupport.TextOfHtml(null));
+        Assert.Equal("a\n\nb", PastePlainSupport.TextOfHtml("a<p></p><p></p><p></p>b"));
+    }
+
+    [Fact]
     public void TheClipboardIsRestoredOnlyWhenNobodyChangedIt()
     {
         Assert.True(PastePlainSupport.ShouldRestore(10, 10));
@@ -497,6 +508,23 @@ public class PasteImageTests
         Assert.False(PasteImageSupport.WithinCap(64L * 1024 * 1024 + 1));
         Assert.False(PasteImageSupport.WithinCap(0));
     }
+
+    [Theory]
+    [InlineData("CabinetWClass", true)]
+    [InlineData("Progman", true)]
+    [InlineData("WorkerW", true)]
+    [InlineData("Notepad", false)]
+    [InlineData("ApplicationFrameWindow", false)]
+    public void OnlyFolderWindowsTakeAnImagePaste(string className, bool expected) => Assert.Equal(expected, PasteImageSupport.IsFolderWindowClass(className));
+
+    [Theory]
+    [InlineData("DirectUIHWND", true)]
+    [InlineData("SysListView32", true)]
+    [InlineData("Edit", false)]
+    [InlineData("ComboBox", false)]
+    [InlineData("SearchEditBoxWClass", false)]
+    [InlineData("", false)]
+    public void OnlyTheFileListCountsAsTheFileView(string className, bool expected) => Assert.Equal(expected, PasteImageSupport.FocusIsFileView(className));
 
     [Theory]
     [InlineData(@"C:\Users\me\Pictures", true)]

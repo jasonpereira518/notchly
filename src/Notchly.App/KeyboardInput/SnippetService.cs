@@ -152,7 +152,13 @@ public sealed class SnippetService(App app) : IFeatureService
             saved = ReadClipboard();
             for (var attempt = 0; attempt < 5; attempt++)
             {
-                try { Clipboard.SetText(text); return; }
+                try
+                {
+                    var from = Platform.Native.GetClipboardSequenceNumber();
+                    Clipboard.SetText(text);
+                    app.ClipboardWatch.RememberOwnWrite(new(true, from, Platform.Native.GetClipboardSequenceNumber()));
+                    return;
+                }
                 catch (System.Runtime.InteropServices.COMException) { Thread.Sleep(20); }
             }
         });
@@ -162,7 +168,17 @@ public sealed class SnippetService(App app) : IFeatureService
         injector.Key(0x56, false, InputSource.Snippet);
         injector.Key(0x11, false, InputSource.Snippet);
         Thread.Sleep(250);
-        if (saved is not null) app.Dispatcher.Invoke(() => { try { Clipboard.SetText(saved); } catch (System.Runtime.InteropServices.COMException) { /* in use */ } });
+        if (saved is not null)
+            app.Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var from = Platform.Native.GetClipboardSequenceNumber();
+                    Clipboard.SetText(saved);
+                    app.ClipboardWatch.RememberOwnWrite(new(true, from, Platform.Native.GetClipboardSequenceNumber()));
+                }
+                catch (System.Runtime.InteropServices.COMException) { /* in use */ }
+            });
     }
 
     // MARK: The library

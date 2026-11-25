@@ -42,6 +42,17 @@ public interface IClipboardAccess
     ClipboardWriteResult WriteFiles(IReadOnlyList<string> paths, bool excludeFromMonitoring);
     ClipboardWriteResult WriteImage(byte[] png, bool excludeFromMonitoring);
     ClipboardWriteResult Clear();
+
+    /// <summary>Everything on the clipboard, to be put back later; null when some of it cannot be copied (a plain paste then does not touch it).</summary>
+    ClipboardBackup? Capture();
+    ClipboardWriteResult Restore(ClipboardBackup backup, bool excludeFromMonitoring);
+}
+
+/// <summary>A copy of the clipboard's formats, as WPF holds them. Only memory-backed formats can be kept.</summary>
+public sealed class ClipboardBackup
+{
+    internal List<(string Format, object Data)> Items { get; } = [];
+    public int FormatCount => Items.Count;
 }
 
 public sealed class Win32ClipboardAccess : IClipboardAccess
@@ -182,6 +193,49 @@ public sealed class Win32ClipboardAccess : IClipboardAccess
             Log.Warning(e, "A clipboard image could not be decoded");
             return ClipboardWriteResult.Failed(SequenceNumber);
         }
+        return Write(data, excludeFromMonitoring);
+    }
+
+    // MARK: Backup
+
+    /// <summary>Formats Windows makes from another one: they come back by themselves when the original is put back.</summary>
+    private static readonly string[] TextDerived = ["Text", "OEMText", "Locale"];
+
+    public ClipboardBackup? Capture() => Retry(CaptureOnce, "copy it");
+
+    private static ClipboardBackup? CaptureOnce()
+    {
+        var backup = new ClipboardBackup();
+        var data = System.Windows.Clipboard.GetDataObject();
+        if (data is null) return backup;
+        var formats = data.GetFormats(false);
+        bool Has(string f) => formats.Contains(f);
+        foreach (var format in formats)
+        {
+            // .NET names its own conversions ("System.Drawing.Bitmap"): they are not on the clipboard itself.
+            if (format.StartsWith("System.", StringComparison.Ordinal)) continue;
+            if (Has("UnicodeText") && TextDerived.Contains(format)) continue;
+            if (format == "Bitmap" && (Has("DeviceIndependentBitmap") || Has("Format17") || Has("PNG"))) continue;
+            switch (data.GetData(format, false))
+            {
+                case string text: backup.Items.Add((format, text)); break;
+                case string[] files: backup.Items.Add((format, files.ToArray())); break;
+                case MemoryStream stream: backup.Items.Add((format, stream.ToArray())); break;
+                case BitmapSource bitmap:
+                    if (!bitmap.IsFrozen) bitmap.Freeze();
+                    backup.Items.Add((format, bitmap));
+                    break;
+                default: return null;
+            }
+        }
+        return backup;
+    }
+
+    public ClipboardWriteResult Restore(ClipboardBackup backup, bool excludeFromMonitoring)
+    {
+        var data = new DataObject();
+        foreach (var (format, item) in backup.Items)
+            data.SetData(format, item is byte[] bytes ? new MemoryStream(bytes) : item, false);
         return Write(data, excludeFromMonitoring);
     }
 

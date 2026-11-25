@@ -38,6 +38,17 @@ public static class PasteImageSupport
         return $"{stem} {Guid.NewGuid():N}{extension}";
     }
 
+    /// <summary>Windows that are a folder view: a File Explorer window, or the desktop.</summary>
+    public static bool IsFolderWindowClass(string className) => className is "CabinetWClass" or "Progman" or "WorkerW";
+
+    public static bool IsDesktopClass(string className) => className is "Progman" or "WorkerW";
+
+    /// <summary>
+    /// Whether the focus is in the list of files and not in a box you type in (a rename box, the address bar, the search box), where a
+    /// paste must stay a paste of text.
+    /// </summary>
+    public static bool FocusIsFileView(string className) => className is "DirectUIHWND" or "SysListView32" or "SHELLDLL_DefView" or "UIItemsView";
+
     public static bool WithinCap(long bytes) => bytes is > 0 and <= MaxBytes;
 
     /// <summary>Folders that are not real places on disk (This PC, Home, the Recycle Bin) get an ordinary paste.</summary>

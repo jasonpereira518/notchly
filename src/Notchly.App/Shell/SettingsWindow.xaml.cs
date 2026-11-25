@@ -7,7 +7,7 @@ using Wpf.Ui.Controls;
 
 namespace Notchly.App.Shell;
 
-public enum SettingsPage { General, Features, Island, Sound, Monitor, Energy, Windows, Tools, Processes, Mouse, Keyboard, About }
+public enum SettingsPage { General, Features, Island, Sound, Monitor, Energy, Windows, Tools, Processes, Mouse, Keyboard, Clipboard, About }
 
 public partial class SettingsWindow : FluentWindow
 {
@@ -26,6 +26,7 @@ public partial class SettingsWindow : FluentWindow
         new(SettingsPage.Processes, "Processes and ports", "\uE9D9"),
         new(SettingsPage.Mouse, "Mouse", "\uE962"),
         new(SettingsPage.Keyboard, "Keyboard", "\uE765"),
+        new(SettingsPage.Clipboard, "Clipboard and files", "\uE77F"),
         new(SettingsPage.About, "About", ""),
     ];
 

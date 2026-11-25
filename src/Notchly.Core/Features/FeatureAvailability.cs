@@ -53,6 +53,8 @@ public static class FeatureAvailability
             or AppFeature.SmoothScroll or AppFeature.LinearScroll or AppFeature.ScrollSpeed or AppFeature.MouseButtonShortcuts
             or AppFeature.MouseClickDebounce or AppFeature.KeyboardDebounce or AppFeature.TextSnippets or AppFeature.SuperKey
             or AppFeature.QuitWindowProtection => [],
+        // History records everything copied; the others rewrite the clipboard, a link or a paste: they install off.
+        AppFeature.ClipboardHistory or AppFeature.PastePlain or AppFeature.UrlCleaner or AppFeature.FinderCutPaste => [],
         _ => info.EnabledKeys.Take(1),
     };
 

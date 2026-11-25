@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M4 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; and sound: mixer, output switcher, device priority, microphone mute) and M4 (sound: mixer, output switcher, device priority, microphone mute). See
+Status: milestones M0–M5 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; and the system monitor) and M4 (sound: mixer, output switcher, device priority, microphone mute). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -74,6 +74,14 @@ for the porting plan.
     go; **lower volume when headphones disconnect** drops the speakers to a level you pick and restores it when the
     headphones return; **mute microphone** (Ctrl+Alt+Win+M, the tray menu or Settings → Sound) mutes every microphone and
     gives each back exactly what it had, with a badge on the tray icon.
+  - **System monitor** (M5): a **System** page on the island (press `I`) with cards for the processor, graphics, memory,
+    battery, network, disk, power and connected devices, balanced across the island's width with a meter each; a card opens its
+    graph, detail rows, each core (performance and efficiency cores marked), the top apps and, for Network, a speed test. The
+    panel has System, Network, Disk and Power sections with usage bars, history graphs and expandable top apps. Optional alerts
+    (sustained high processor use, critical memory, a nearly full disk, a low battery) and optional tray readouts (one small
+    icon per metric, values or bars) are off until you turn them on in Settings → System monitor. Readings are taken only while
+    something shows them. Windows reports no temperatures, fan speeds, system or adapter power, or per-app network use to apps,
+    so those wait for the elevated helper (M12).
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

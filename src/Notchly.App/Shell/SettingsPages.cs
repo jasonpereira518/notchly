@@ -25,6 +25,7 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         SettingsPage.Features => FeaturesPage(),
         SettingsPage.Island => IslandPage(),
         SettingsPage.Sound => SoundPage(),
+        SettingsPage.Monitor => MonitorPage(),
         SettingsPage.About => AboutPage(),
         _ => GeneralPage(),
     };

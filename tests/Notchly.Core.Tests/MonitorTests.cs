@@ -372,6 +372,9 @@ public class MonitorTests
         Assert.Equal(BatteryTone.Normal, TrayReadout.BatteryColor(5, true));
         Assert.Equal("RAM", TrayReadout.Label("memory"));
         Assert.Equal("DSK", TrayReadout.Label("diskUsage"));
+        Assert.Equal("USB", TrayReadout.Label("connectedDevices"));
+        Assert.Equal("LEFT", TrayReadout.Label("batteryTime"));
+        Assert.All(TrayReadout.DefaultOrder, metric => Assert.True(TrayReadout.Label(metric).Length <= 4, metric));
     }
 
     // MARK: Sampling

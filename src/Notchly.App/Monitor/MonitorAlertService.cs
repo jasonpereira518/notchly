@@ -79,12 +79,13 @@ public sealed class MonitorAlertService(SettingsStore settings, SystemMonitor mo
 }
 
 /// <summary>A monitor feature's binding: one per feature, so installing or removing one re-plans what is sampled (planDidChange).</summary>
-public sealed class MonitorFeatureService(SystemMonitor monitor, MonitorAlertService alerts) : Shell.IFeatureService
+public sealed class MonitorFeatureService(SystemMonitor monitor, MonitorAlertService alerts, Action? tray = null) : Shell.IFeatureService
 {
     public void Sync()
     {
         monitor.PlanChanged();
         alerts.Sync();
+        tray?.Invoke();
     }
 
     public void Dispose() => monitor.PlanChanged();

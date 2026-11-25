@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**18 ported**, 50 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**25 ported**, 43 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -115,12 +115,12 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `monitorCPU` | Processor | 🛠️ Planned | M5 |  |
-| `monitorGPU` | Graphics | 🛠️ Planned | M5 |  |
-| `monitorMemory` | Memory | 🛠️ Planned | M5 |  |
-| `monitorNetwork` | Network | 🛠️ Planned | M5 |  |
-| `monitorDisk` | Disk | 🛠️ Planned | M5 |  |
-| `monitorPower` | Power | 🛠️ Planned | M5 |  |
-| `connectedDevices` | Connected devices | 🛠️ Planned | M5 |  |
+| `monitorCPU` | Processor | ✅ Ported | M5 |  |
+| `monitorGPU` | Graphics | ✅ Ported | M5 |  |
+| `monitorMemory` | Memory | ✅ Ported | M5 |  |
+| `monitorNetwork` | Network | ✅ Ported | M5 |  |
+| `monitorDisk` | Disk | ✅ Ported | M5 |  |
+| `monitorPower` | Power | ✅ Ported | M5 |  |
+| `connectedDevices` | Connected devices | ✅ Ported | M5 |  |
 | `fanControl` | Fan control | 🛠️ Planned | M12 |  |
 

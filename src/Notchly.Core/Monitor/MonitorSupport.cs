@@ -340,6 +340,7 @@ public static class TrayReadout
     public static string Label(string metric) => metric switch
     {
         "cpu" => "CPU", "gpu" => "GPU", "memory" => "RAM", "diskUsage" or "diskActivity" => "DSK", "network" => "NET", "battery" => "BAT",
+        "batteryTime" => "LEFT", "peripheralBattery" => "ACC", "connectedDevices" => "USB",
         _ => metric.ToUpperInvariant(),
     };
 }

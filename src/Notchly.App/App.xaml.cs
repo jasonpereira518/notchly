@@ -68,6 +68,10 @@ public partial class App : Application
         Hotkeys = new HotkeyService();
         Features = new FeatureRuntime(Settings);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
+        Features.Bind(AppFeature.Mixer, () => new Sound.MixerService(Settings, Dispatcher));
+        Features.Bind(AppFeature.SoundOutputSwitcher, () => new Sound.OutputSwitcherService(Settings, Hotkeys));
+        Features.Bind(AppFeature.AudioPriority, () => new Sound.AudioPriorityService(Settings, Dispatcher));
+        Features.Bind(AppFeature.MicMute, () => new Sound.MicMuteService(Settings, Hotkeys, Dispatcher));
 
         var firstRun = !Settings.GetBool(DefaultsKey.HasOnboarded);
         if (firstRun)

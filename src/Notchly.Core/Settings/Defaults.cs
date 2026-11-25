@@ -449,7 +449,7 @@ public static class Defaults
         [DefaultsKey.ShelfShortcut] = "control+alt+win:68",
         [DefaultsKey.ShelfShakeToOpen] = true,
         [DefaultsKey.ShelfDropZoneEnabled] = true,
-        [DefaultsKey.ShelfDockPlacement] = "topCenter",
+        [DefaultsKey.ShelfDockPlacement] = "menuBar",
         [DefaultsKey.ShelfEdgeDragEnabled] = false,
         [DefaultsKey.ShelfClearOnClose] = false,
         [DefaultsKey.ShelfShortcutAddsSelection] = false,

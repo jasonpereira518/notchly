@@ -24,11 +24,15 @@ internal sealed class ShelfDragMonitor : IDisposable
     /// answers a hit test as client area, so the move can only be told from the window's move loop that starts a moment later).</summary>
     private const uint ConfirmMs = 120;
 
-    private bool _down, _fromCaption, _fromOwnProcess, _content, _candidate, _rejected;
+    private bool _down, _content, _candidate, _rejected;
     private uint _candidateAt;
     private int _downX, _downY;
     private string? _sourceProgram;
     private IntPtr _downRoot;
+    private Task<Probe>? _probe;
+
+    /// <summary>What is under the pointer where the button went down; found off the hook thread, because asking a window can take a while.</summary>
+    private readonly record struct Probe(IntPtr Root, bool OwnProcess, bool NotClient, string? Program);
 
     /// <summary>Whether to watch for a shake as well as for drags.</summary>
     public volatile bool ShakeEnabled;
@@ -79,20 +83,32 @@ internal sealed class ShelfDragMonitor : IDisposable
         _rejected = false;
         _downX = e.X;
         _downY = e.Y;
-        _shake.Reset();
-        var window = Native.WindowFromPoint(new Native.POINT { X = e.X, Y = e.Y });
-        _downRoot = window == IntPtr.Zero ? IntPtr.Zero : Native.GetAncestor(window, 2);
-        _fromOwnProcess = false;
-        _fromCaption = true;
+        _downRoot = IntPtr.Zero;
         _sourceProgram = null;
-        if (_downRoot == IntPtr.Zero) return;
-        Native.GetWindowThreadProcessId(_downRoot, out var pid);
-        _fromOwnProcess = pid == (uint)Environment.ProcessId;
-        // Only the client area carries content: a caption, a border, a scroll bar or a button does not.
-        var lParam = new IntPtr((e.Y << 16) | (e.X & 0xFFFF));
-        if (Native.SendMessageTimeout(_downRoot, WM_NCHITTEST, IntPtr.Zero, lParam, SMTO_ABORTIFHUNG, 30, out var hit) != IntPtr.Zero)
-            _fromCaption = hit.ToInt32() is not (1 or -1);
-        _sourceProgram = WindowFrame.ProgramOf(_downRoot);
+        _shake.Reset();
+        int x = e.X, y = e.Y;
+        _probe = Task.Run(() => ProbeAt(x, y));
+    }
+
+    private static Probe ProbeAt(int x, int y)
+    {
+        try
+        {
+            var window = Native.WindowFromPoint(new Native.POINT { X = x, Y = y });
+            var root = window == IntPtr.Zero ? IntPtr.Zero : Native.GetAncestor(window, 2);
+            if (root == IntPtr.Zero) return new Probe(IntPtr.Zero, false, true, null);
+            Native.GetWindowThreadProcessId(root, out var pid);
+            // Only the client area carries content: a caption, a border, a scroll bar or a button does not.
+            var notClient = true;
+            var lParam = new IntPtr((y << 16) | (x & 0xFFFF));
+            if (Native.SendMessageTimeout(root, WM_NCHITTEST, IntPtr.Zero, lParam, SMTO_ABORTIFHUNG, 250, out var hit) != IntPtr.Zero)
+                notClient = hit.ToInt32() is not (1 or -1);
+            return new Probe(root, pid == (uint)Environment.ProcessId, notClient, WindowFrame.ProgramOf(root));
+        }
+        catch (Exception)
+        {
+            return new Probe(IntPtr.Zero, false, true, null);
+        }
     }
 
     private bool InMoveSize()
@@ -104,9 +120,15 @@ internal sealed class ShelfDragMonitor : IDisposable
 
     private void Move(in MouseEvent e)
     {
-        if (!_down || _fromOwnProcess || _fromCaption || _rejected) return;
+        if (!_down || _rejected) return;
         if (!_content)
         {
+            // Wait for the probe of the press: it says whether this began on a window's body, and in which program.
+            if (_probe is not { IsCompleted: true } probe) return;
+            var found = probe.Result;
+            if (found.OwnProcess || found.NotClient || found.Root == IntPtr.Zero) { _rejected = true; return; }
+            _downRoot = found.Root;
+            _sourceProgram = found.Program;
             var moved = Math.Max(Math.Abs(e.X - _downX), Math.Abs(e.Y - _downY));
             if (!_candidate)
             {
@@ -114,7 +136,7 @@ internal sealed class ShelfDragMonitor : IDisposable
                 _candidate = true;
                 _candidateAt = e.Time;
             }
-            if (!ShelfSummonSupport.IsContentDrag(_fromCaption, InMoveSize(), moved)) { _rejected = true; return; }
+            if (!ShelfSummonSupport.IsContentDrag(false, InMoveSize(), moved)) { _rejected = true; return; }
             if (e.Time - _candidateAt < ConfirmMs) return;
             _content = true;
             _shake.Reset();

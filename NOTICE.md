@@ -13,3 +13,7 @@ The Vorssaint name, logo, icon and visual identity are **not** covered by the
 GPL (see upstream `TRADEMARKS.md`). This port uses its own name, icon and the
 Windows 11 Fluent look, does not claim to be official, and never uses the
 upstream update feed.
+
+## Agent logos
+
+The AI agents page draws the Claude, OpenAI, Cursor, GitHub Copilot and OpenCode marks as vector paths from the Simple Icons set (CC0). The marks are trademarks of their owners and appear only to identify each agent.

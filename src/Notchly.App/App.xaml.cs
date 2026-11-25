@@ -30,6 +30,8 @@ public partial class App : Application
     public Notchly.Core.Input.IInputInjector Injector { get; private set; } = null!;
     /// <summary>Whether the focus is in a password field.</summary>
     public PasswordFieldProbe Passwords { get; private set; } = null!;
+    /// <summary>The one clipboard watcher the clipboard features share; it listens only while one of them is on.</summary>
+    public Pasteboard.ClipboardMonitor ClipboardWatch { get; private set; } = null!;
     public Monitor.SystemMonitor Monitor { get; private set; } = null!;
     public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
     public TrayReadoutService TrayReadouts { get; private set; } = null!;
@@ -82,6 +84,7 @@ public partial class App : Application
         Passwords = new PasswordFieldProbe();
         Scroll = new MouseInput.ScrollPipeline(this);
         Features = new FeatureRuntime(Settings);
+        ClipboardWatch = new Pasteboard.ClipboardMonitor(new Pasteboard.Win32ClipboardAccess(), Dispatcher);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
         Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
         TrayReadouts = new TrayReadoutService(this);
@@ -112,6 +115,8 @@ public partial class App : Application
         Features.Bind(AppFeature.SuperKey, () => new KeyboardInput.SuperKeyService(this));
         Features.Bind(AppFeature.TextSnippets, () => new KeyboardInput.SnippetService(this));
         Features.Bind(AppFeature.QuitWindowProtection, () => new KeyboardInput.QuitProtectionService(this));
+        Features.Bind(AppFeature.ClipboardHistory, () => new Pasteboard.ClipboardHistoryService(Settings, ClipboardWatch, Dispatcher));
+        Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));
@@ -287,6 +292,7 @@ public partial class App : Application
         try
         {
             Features?.Dispose();
+            ClipboardWatch?.Dispose();
             TrayReadouts?.Dispose();
             MonitorAlerts?.Dispose();
             Monitor?.Dispose();

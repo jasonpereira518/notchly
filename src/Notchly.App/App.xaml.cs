@@ -99,6 +99,7 @@ public partial class App : Application
         });
         Features.Bind(AppFeature.Brightness, () => new Energy.BrightnessService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
+        Features.Bind(AppFeature.WindowLayout, () => new Layout.WindowLayoutService(this));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));

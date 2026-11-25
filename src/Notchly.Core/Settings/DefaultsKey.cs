@@ -80,6 +80,8 @@ public static class DefaultsKey
     public const string NotchLyricsEnabled = "notchLyricsEnabled";
     public const string NotchLyricsOnline = "notchLyricsOnline";
     public const string NotchQueueEnabled = "notchQueueEnabled";
+    /// <summary>Windows-only: songs starred inside Notchly (JSON), for players with no library of their own.</summary>
+    public const string NotchMusicLocalStars = "notchMusicLocalStars";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";
     /// <summary>Windows-only: the top strip shows the app in front and its menus, as a Mac menu bar.</summary>

@@ -569,7 +569,9 @@
                                         </Border.Background>
                                     </Border>
                                 </Border>
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <Button x:Name="MusicStar" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE734;" FontSize="16"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Star" Panel.ZIndex="1" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,34,0">
                                     <TextBlock x:Name="MusicTitle" FontSize="17" FontWeight="SemiBold" Text="Nothing playing" />
                                     <TextBlock x:Name="MusicArtist" FontSize="13" Foreground="{StaticResource Dim}" Margin="0,3,0,0" />
                                     <TextBlock x:Name="MusicSource" FontSize="11" Foreground="{StaticResource Dim}" Margin="0,8,0,0" />

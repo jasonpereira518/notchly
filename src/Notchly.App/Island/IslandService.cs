@@ -2368,7 +2368,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicPlayPause.Click += (_, _) => _media?.TogglePlayPause();
         w.MusicPrevious.Click += (_, _) => _media?.Previous();
         w.MusicNext.Click += (_, _) => _media?.Next();
-        w.MusicShuffle.Click += (_, _) => { if (_media?.Current is { } now) _media.SetShuffle(!now.IsShuffle); };
+        w.MusicStar.Click += (_, _) => ToggleStar();
+        w.MusicShuffle.Click +=(_, _) => { if (_media?.Current is { } now) _media.SetShuffle(!now.IsShuffle); };
         w.MusicRepeat.Click += (_, _) => { if (_media?.Current is { } now) _media.SetRepeat(now.Repeat.Next()); };
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
@@ -2531,6 +2532,27 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _updatingControls = false;
     }
 
+    private NotchStarStore? _stars;
+    private string _starsJson = "";
+    /// <summary>Songs starred inside Notchly: read again whenever the saved text changes (a settings import, a clear).</summary>
+    private NotchStarStore Stars
+    {
+        get
+        {
+            var json = _settings.GetString(DefaultsKey.NotchMusicLocalStars) ?? "";
+            if (_stars is null || json != _starsJson) (_stars, _starsJson) = (NotchStarStore.FromJson(json), json);
+            return _stars;
+        }
+    }
+
+    private void ToggleStar()
+    {
+        if (_media?.Current is not { } now) return;
+        Stars.Toggle(now.Title, now.Artist);
+        _settings.Set(DefaultsKey.NotchMusicLocalStars, Stars.ToJson());
+        UpdatePages();
+    }
+
     private void UpdatePages()
     {
         if (_window is not { } w) return;
@@ -2557,6 +2579,11 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.MusicPrevious.IsEnabled = playing?.CanGoPrevious == true;
         w.MusicTimeline.IsEnabled = playing?.CanSeek == true;
         var dim = (Brush)w.Resources["Dim"];
+        var starred = playing is not null && Stars.Contains(playing.Title, playing.Artist);
+        w.MusicStar.Visibility = playing is null ? Visibility.Collapsed : Visibility.Visible;
+        w.MusicStar.Content = starred ? "" : "";
+        w.MusicStar.Foreground = starred ? tint : dim;
+        w.MusicStar.ToolTip = starred ? "Remove star" : "Star this song";
         w.MusicShuffle.IsEnabled = playing?.CanShuffle == true;
         w.MusicShuffle.Foreground = playing?.IsShuffle == true ? tint : dim;
         w.MusicShuffle.ToolTip = playing?.IsShuffle == true ? "Shuffle on" : "Shuffle off";

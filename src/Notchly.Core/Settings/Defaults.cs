@@ -40,6 +40,7 @@ public static class Defaults
         [DefaultsKey.ShelfCloseAfterDrop] = false,
         [DefaultsKey.NotchQueueEnabled] = true,
         [DefaultsKey.NotchMusicLocalStars] = "",
+        [DefaultsKey.NotchSpotifyClientId] = "",
         // Windows-only default: on. Upstream starts off because macOS asks for audio recording
         // permission; system loopback asks for nothing.
         [DefaultsKey.NotchLiveEqualizer] = true,

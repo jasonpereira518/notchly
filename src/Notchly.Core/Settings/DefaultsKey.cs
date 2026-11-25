@@ -82,6 +82,8 @@ public static class DefaultsKey
     public const string NotchQueueEnabled = "notchQueueEnabled";
     /// <summary>Windows-only: songs starred inside Notchly (JSON), for players with no library of their own.</summary>
     public const string NotchMusicLocalStars = "notchMusicLocalStars";
+    /// <summary>Windows-only: the Client ID of the user's own Spotify developer app (not a secret).</summary>
+    public const string NotchSpotifyClientId = "notchSpotifyClientId";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";
     /// <summary>Windows-only: the top strip shows the app in front and its menus, as a Mac menu bar.</summary>

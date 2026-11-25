@@ -27,6 +27,9 @@ public static class AppIcons
         return WindowIcon(app.Window);
     }
 
+    /// <summary>The icon of a program by its file, as history cards show the app a copy came from.</summary>
+    public static ImageSource? ForImagePath(string path) => ByProgram.GetOrAdd(path, ProgramIcon);
+
     private static ImageSource? ProgramIcon(string path)
     {
         var info = new SHFILEINFO();

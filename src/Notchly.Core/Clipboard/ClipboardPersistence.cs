@@ -31,6 +31,7 @@ public static class ClipboardPersistence
         if (e.ImageWidth is { } w) node["imageWidth"] = w;
         if (e.ImageHeight is { } h) node["imageHeight"] = h;
         if (e.SourceApp is not null) node["sourceApp"] = e.SourceApp;
+        if (e.SourcePath is not null) node["sourcePath"] = e.SourcePath;
         return node;
     }
 
@@ -100,7 +101,7 @@ public static class ClipboardPersistence
                 Text = text, CopiedAt = copied, PinnedAt = pinned, Kind = kind, FilePaths = files, ImageFile = image,
                 ImageHash = o["imageHash"]?.GetValue<string>(),
                 ImageWidth = o["imageWidth"]?.GetValue<int>(), ImageHeight = o["imageHeight"]?.GetValue<int>(),
-                SourceApp = o["sourceApp"]?.GetValue<string>(),
+                SourceApp = o["sourceApp"]?.GetValue<string>(), SourcePath = o["sourcePath"]?.GetValue<string>(),
             });
         }
         return ClipboardHistorySupport.Ordered(list);

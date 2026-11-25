@@ -18,7 +18,7 @@ namespace Notchly.App.Pasteboard;
 public sealed record ClipboardSnapshot(
     long Sequence, IReadOnlyList<string> Formats, string? Text = null, string? WebUrl = null, string? Html = null,
     IReadOnlyList<string>? Files = null, byte[]? Png = null, int PixelWidth = 0, int PixelHeight = 0, string? SourceProgram = null,
-    int? CanIncludeInHistory = null, int? CanUploadToCloud = null)
+    int? CanIncludeInHistory = null, int? CanUploadToCloud = null, string? SourcePath = null)
 {
     public IReadOnlyList<string> FileList => Files ?? [];
     public bool IsExcluded => ClipboardFormats.IsExcluded(Formats, CanIncludeInHistory, CanUploadToCloud);
@@ -88,8 +88,9 @@ public sealed class Win32ClipboardAccess : IClipboardAccess
         int width = 0, height = 0;
         if (includeImage && files is null && ClipboardFormats.HasImage(formats)) (png, width, height) = ReadImage(data);
 
-        return new ClipboardSnapshot(sequence, formats, text, url, html, files, png, width, height, OwnerProgram(),
-            ReadDword(data, ClipboardFormats.CanIncludeInHistory), ReadDword(data, ClipboardFormats.CanUploadToCloud));
+        var (program, path) = OwnerProgram();
+        return new ClipboardSnapshot(sequence, formats, text, url, html, files, png, width, height, program,
+            ReadDword(data, ClipboardFormats.CanIncludeInHistory), ReadDword(data, ClipboardFormats.CanUploadToCloud), path);
     }
 
     private static int? ReadDword(IDataObject data, string format)
@@ -127,10 +128,11 @@ public sealed class Win32ClipboardAccess : IClipboardAccess
     }
 
     /// <summary>The program that put the content on the clipboard: its window's owner, else whatever was in front.</summary>
-    private static string? OwnerProgram()
+    private static (string? Program, string? Path) OwnerProgram()
     {
         var owner = Native.GetClipboardOwner();
-        return (owner != IntPtr.Zero ? WindowFrame.ProgramOf(owner) : null) ?? WindowFrame.ProgramOf(Native.GetForegroundWindow());
+        var app = (owner != IntPtr.Zero ? ForegroundApps.Describe(owner) : null) ?? ForegroundApps.Describe(Native.GetForegroundWindow());
+        return app?.ImagePath is { } path ? (Path.GetFileName(path).ToLowerInvariant(), path) : (null, null);
     }
 
     // MARK: Writing

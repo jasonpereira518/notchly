@@ -62,7 +62,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null, MascotReaction? Companion = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Clipboard, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -78,6 +78,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private LiveEqualizerService? _equalizer;
     private ShelfService? _shelf;
     private FilesPage? _files;
+    private Clipboard.ClipboardPage? _clipboardPage;
     private DownloadService? _downloads;
     private DownloadsPage? _downloadsPage;
     private CalendarService? _calendar;
@@ -227,6 +228,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _shelf = new ShelfService(_dispatcher);
         _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
         _files.Render();
+        _clipboardPage = new Clipboard.ClipboardPage(window, () => App.Current.Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory), _settings,
+            new Pasteboard.ClipboardPaster(App.Current.Injector), Collapse, () => App.Current.ShowClipboardWindow());
         _downloads = new DownloadService(_dispatcher);
         _downloads.Changed += OnDownloadsChanged;
         _downloads.Arrived += OnDownloadArrived;
@@ -285,7 +288,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         // The battery's flow changes by the second: read it again while the home page is open.
         _batteryTimer = NewTimer(UpdateBatteryReading, TimeSpan.FromSeconds(3));
         _foreground = new ForegroundWatcher();
-        _foreground.ForegroundChanged += hwnd => { _menuBar?.OnForeground(hwnd); TintSoon(); _window?.ReassertTopmost(); CheckFullscreen(); };
+        _foreground.ForegroundChanged += hwnd => { _clipboardPage?.NoteForeground(hwnd); _menuBar?.OnForeground(hwnd); TintSoon(); _window?.ReassertTopmost(); CheckFullscreen(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
         SystemEvents.SessionSwitch += OnSessionSwitch;
 
@@ -324,7 +327,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _equalizer?.Dispose(); _equalizer = null;
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
-        _shelf?.Dispose(); _shelf = null; _files = null;
+        _shelf?.Dispose(); _shelf = null; _files = null; _clipboardPage = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
@@ -447,6 +450,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         {
             NotchModule.Music => w.MusicPlayer,
             NotchModule.Files => w.FilesPage,
+            NotchModule.Clipboard => w.ClipboardPage,
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
             NotchModule.Agents => w.AgentsPage,
@@ -934,6 +938,16 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         Refresh();
     }
 
+    /// <summary>Opens the island on a page with the keyboard (a shortcut for that page). False when the island does not offer it.</summary>
+    public bool OpenPage(NotchModule module)
+    {
+        if (!_running || !Pages().Contains(module)) return false;
+        _page = module;
+        Open(takeFocus: true);
+        ShowPage(module);
+        return true;
+    }
+
     /// <summary>Opens the island without taking focus, or closes it (Notchly.exe --toggle-island).</summary>
     public void Toggle()
     {
@@ -958,6 +972,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         }
         _hoverState.Close(_inside);
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
+        if (_clipboardPage is not null) _clipboardPage.Visible = false;
         if (_calendarPage is not null) _calendarPage.Visible = false;
         if (_agentsPage is not null) _agentsPage.Visible = false;
         if (_notificationsPage is not null) _notificationsPage.Visible = false;
@@ -2528,6 +2543,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             .Where(m => ImplementedPages.Contains(m) && NotchSupport.IsAvailable(m, Installed)
                         && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
                         && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
+                        && (m != NotchModule.Clipboard || _settings.GetBool(DefaultsKey.NotchClipboard))
                         && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
                         && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
                         && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled))
@@ -2547,6 +2563,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             {
                 NotchModule.Music => ("", "Music"),
                 NotchModule.Files => ("\uE8B7", "Files"),
+                NotchModule.Clipboard => ("\uE77F", "Clipboard"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),
@@ -2579,6 +2596,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _window.FilesPage.Visibility = module == NotchModule.Files ? Visibility.Visible : Visibility.Collapsed;
         _window.DownloadsPage.Visibility = module == NotchModule.Downloads ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Files && _geometry is { } g) _files?.Layout(g.ContentBudget);
+        _window.ClipboardPage.Visibility = module == NotchModule.Clipboard ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Clipboard && _geometry is { } clipGeometry) _clipboardPage?.Layout(clipGeometry.ContentBudget);
+        if (_clipboardPage is not null) _clipboardPage.Visible = module == NotchModule.Clipboard && _expanded;
         if (module == NotchModule.Downloads && _geometry is { } dg) _downloadsPage?.Layout(dg.ContentBudget);
         if (_downloadsPage is not null) _downloadsPage.Visible = module == NotchModule.Downloads;
         _window.CalendarPage.Visibility = module == NotchModule.Calendar ? Visibility.Visible : Visibility.Collapsed;

@@ -245,6 +245,18 @@ public class ClipboardHistoryRulesTests
     }
 
     [Fact]
+    public void AgeIsSaidTheWayACardSaysIt()
+    {
+        var now = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal("now", ClipboardHistorySupport.Age(now.AddSeconds(-59), now));
+        Assert.Equal("1 min", ClipboardHistorySupport.Age(now.AddSeconds(-60), now));
+        Assert.Equal("59 min", ClipboardHistorySupport.Age(now.AddMinutes(-59), now));
+        Assert.Equal("3 h", ClipboardHistorySupport.Age(now.AddHours(-3), now));
+        Assert.Equal("2 d", ClipboardHistorySupport.Age(now.AddDays(-2), now));
+        Assert.Equal("1 Jan 2026", ClipboardHistorySupport.Age(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), now));
+    }
+
+    [Fact]
     public void PreviewsAreCut()
     {
         Assert.Equal(2001, ClipboardHistorySupport.RowPreview(new string('a', 3000)).Length);
@@ -278,7 +290,8 @@ public class ClipboardPersistenceTests
     {
         var entries = new[]
         {
-            ClipboardEntry.ForText("hello", Now, "notepad.exe"),
+            ClipboardEntry.ForText("hello", Now, "notepad.exe") with { SourcePath = @"C:\Windows
+otepad.exe" },
             ClipboardEntry.ForImage("a.png", "abc", 10, 20, Now),
             ClipboardEntry.ForFiles([@"C:\x.txt", @"C:\y.txt"], Now) with { PinnedAt = Now },
         };
@@ -289,6 +302,8 @@ public class ClipboardPersistenceTests
         Assert.True(back[0].IsPinned);
         Assert.Equal(["hello"], back.Where(e => e.Kind == ClipboardKind.Text).Select(e => e.Text));
         Assert.Equal("notepad.exe", back.Single(e => e.Kind == ClipboardKind.Text).SourceApp);
+        Assert.Equal(@"C:\Windows
+otepad.exe", back.Single(e => e.Kind == ClipboardKind.Text).SourcePath);
         var image = back.Single(e => e.Kind == ClipboardKind.Image);
         Assert.Equal(("a.png", "abc", 10, 20), (image.ImageFile, image.ImageHash, image.ImageWidth, image.ImageHeight));
         Assert.Equal(entries[0].Id, back.Single(e => e.Kind == ClipboardKind.Text).Id);

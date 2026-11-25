@@ -22,6 +22,8 @@ public sealed record ClipboardEntry
     public int? ImageHeight { get; init; }
     /// <summary>The program that put it on the clipboard (its executable name), when known.</summary>
     public string? SourceApp { get; init; }
+    /// <summary>The full path of that program, so its icon can be shown; may be missing.</summary>
+    public string? SourcePath { get; init; }
 
     public bool IsPinned => PinnedAt is not null;
 

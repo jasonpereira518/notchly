@@ -661,6 +661,9 @@
                             </Grid>
                         </Grid>
 
+                        <!-- Clipboard history (upstream NotchClipboardView): built in code by ClipboardPage. -->
+                        <Grid x:Name="ClipboardPage" Visibility="Collapsed" />
+
                         <!-- Downloads (upstream NotchDownloadsView): transfers arriving and the folder's newest files. -->
                         <Grid x:Name="DownloadsPage" Visibility="Collapsed">
                             <Grid.RowDefinitions>

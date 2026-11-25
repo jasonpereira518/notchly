@@ -272,6 +272,17 @@ public static partial class ClipboardHistorySupport
 
     // MARK: Showing and pasting
 
+    /// <summary>How long ago an entry was copied, as a card says it: "now", "5 min", "3 h", "2 d", then the date.</summary>
+    public static string Age(DateTimeOffset copied, DateTimeOffset now)
+    {
+        var span = now - copied;
+        if (span < TimeSpan.FromMinutes(1)) return "now";
+        if (span < TimeSpan.FromHours(1)) return $"{(int)span.TotalMinutes} min";
+        if (span < TimeSpan.FromDays(1)) return $"{(int)span.TotalHours} h";
+        if (span < TimeSpan.FromDays(7)) return $"{(int)span.TotalDays} d";
+        return copied.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+    }
+
     public static string RowPreview(string text) => Truncated(text, RowPreviewLength);
     public static string Tooltip(string text) => Truncated(text, TooltipLength);
 

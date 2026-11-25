@@ -115,7 +115,10 @@ public partial class App : Application
         Features.Bind(AppFeature.SuperKey, () => new KeyboardInput.SuperKeyService(this));
         Features.Bind(AppFeature.TextSnippets, () => new KeyboardInput.SnippetService(this));
         Features.Bind(AppFeature.QuitWindowProtection, () => new KeyboardInput.QuitProtectionService(this));
-        Features.Bind(AppFeature.ClipboardHistory, () => new Pasteboard.ClipboardHistoryService(Settings, ClipboardWatch, Dispatcher));
+        Features.Bind(AppFeature.ClipboardHistory, () => new Pasteboard.ClipboardHistoryService(Settings, ClipboardWatch, Dispatcher)
+        {
+            RegisterHotkey = Hotkeys.Register, ShortcutPressed = ClipboardShortcut,
+        });
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
@@ -261,6 +264,28 @@ public partial class App : Application
 
     /// <summary>Builds the open settings page again (a reorder, say).</summary>
     public void RefreshSettingsPage() => _settingsWindow?.Rebuild();
+
+    private Pasteboard.ClipboardQuickWindow? _clipboardWindow;
+
+    /// <summary>The history in a window over the app you are in; a second call brings the open one forward.</summary>
+    public void ShowClipboardWindow()
+    {
+        if (Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory) is not { } history) return;
+        if (_clipboardWindow is { IsVisible: true } open) { open.Activate(); return; }
+        var front = Platform.Windowing.WindowInventory.Foreground();
+        var target = front != IntPtr.Zero && Platform.Windowing.ForegroundApps.Describe(front)?.ProcessId != (uint)Environment.ProcessId ? front : IntPtr.Zero;
+        _clipboardWindow = new Pasteboard.ClipboardQuickWindow(history, Settings, new Pasteboard.ClipboardPaster(Injector), target);
+        _clipboardWindow.Closed += (_, _) => _clipboardWindow = null;
+        _clipboardWindow.Show();
+    }
+
+    /// <summary>The history shortcut: the island's Clipboard page when it is there and wanted, else the window.</summary>
+    private void ClipboardShortcut()
+    {
+        var island = Features.Get<IslandService>(AppFeature.Notch);
+        if (Settings.GetBool(DefaultsKey.NotchClipboardWindow) && island?.OpenPage(Notchly.Core.Notch.NotchModule.Clipboard) == true) return;
+        ShowClipboardWindow();
+    }
 
     public void ShowSettings(SettingsPage page)
     {

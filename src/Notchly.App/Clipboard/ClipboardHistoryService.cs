@@ -10,6 +10,7 @@ using Notchly.App.Shell;
 using Notchly.Core;
 using Notchly.Core.Clipboard;
 using Notchly.Core.Settings;
+using Notchly.Core.Shortcuts;
 using Serilog;
 
 namespace Notchly.App.Pasteboard;
@@ -24,7 +25,8 @@ public sealed class ClipboardHistoryService : IFeatureService, IClipboardConsume
     private readonly string _folder;
     private readonly Func<DateTimeOffset> _clock;
     private readonly ClipboardAutoClear _autoClear;
-    private IDisposable? _registration;
+    private IDisposable? _registration, _hotkey;
+    private string? _hotkeyStorage;
     private DispatcherTimer? _trimTimer, _saveTimer;
     private IReadOnlyList<ClipboardEntry> _entries = [];
     private bool _loaded, _loadFailed, _dirty;
@@ -48,6 +50,10 @@ public sealed class ClipboardHistoryService : IFeatureService, IClipboardConsume
     public IReadOnlyList<ClipboardEntry> Entries { get { EnsureLoaded(); return _entries; } }
 
     public event Action? Changed;
+
+    /// <summary>How the history registers its shortcut and what the shortcut does; the app sets both, so a harness can leave them out.</summary>
+    public Func<Shortcut, Action, IDisposable?>? RegisterHotkey { get; init; }
+    public Action? ShortcutPressed { get; init; }
 
     private string HistoryFile => Path.Combine(_folder, FileName);
     private string ImageDirectory => Path.Combine(_folder, ImageFolder);
@@ -73,12 +79,27 @@ public sealed class ClipboardHistoryService : IFeatureService, IClipboardConsume
         }
         if (on) Trim();
         _autoClear.Sync();
+        SyncHotkey();
+    }
+
+    private void SyncHotkey()
+    {
+        var storage = _settings.GetBool(DefaultsKey.ClipboardHistoryEnabled) && _settings.GetBool(DefaultsKey.ClipboardHistoryShortcutEnabled)
+            ? _settings.GetString(DefaultsKey.ClipboardHistoryShortcut) : null;
+        if (storage == _hotkeyStorage && (storage is null || _hotkey is not null)) return;
+        _hotkey?.Dispose();
+        _hotkey = null;
+        _hotkeyStorage = storage;
+        if (storage is not null && RegisterHotkey is { } register && ShortcutPressed is { } pressed && Shortcut.Parse(storage) is { } shortcut)
+            _hotkey = register(shortcut, pressed);
     }
 
     public void Dispose()
     {
         _registration?.Dispose();
         _registration = null;
+        _hotkey?.Dispose();
+        _hotkey = null;
         _trimTimer?.Stop();
         _autoClear.Dispose();
         Flush();
@@ -105,7 +126,7 @@ public sealed class ClipboardHistoryService : IFeatureService, IClipboardConsume
         var now = _clock();
         var includeMedia = _settings.GetBool(DefaultsKey.ClipboardHistoryIncludeImagesFiles);
         if (includeMedia && ClipboardHistorySupport.StorableFiles(s.Files) is { } files)
-            return ClipboardEntry.ForFiles(files, now, s.SourceProgram);
+            return ClipboardEntry.ForFiles(files, now, s.SourceProgram) with { SourcePath = s.SourcePath };
         if (includeMedia && s.Png is { Length: > 0 } png && png.Length <= ClipboardHistorySupport.MaxImageBytes)
         {
             var hash = Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant();
@@ -125,13 +146,13 @@ public sealed class ClipboardHistoryService : IFeatureService, IClipboardConsume
                     return null;
                 }
             }
-            return ClipboardEntry.ForImage(file, hash, s.PixelWidth, s.PixelHeight, now, s.SourceProgram);
+            return ClipboardEntry.ForImage(file, hash, s.PixelWidth, s.PixelHeight, now, s.SourceProgram) with { SourcePath = s.SourcePath };
         }
         if (s.Text is null) return null;
         var text = ClipboardHistorySupport.StorableText(ClipboardHistorySupport.PreferredText(s.Text, s.WebUrl));
         if (text is null) return null;
         if (_settings.GetBool(DefaultsKey.ClipboardHistoryFilterSensitiveText) && ClipboardHistorySupport.LooksSensitive(text)) return null;
-        return ClipboardEntry.ForText(text, now, s.SourceProgram);
+        return ClipboardEntry.ForText(text, now, s.SourceProgram) with { SourcePath = s.SourcePath };
     }
 
     private void Record(ClipboardEntry entry)

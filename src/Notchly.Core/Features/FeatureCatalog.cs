@@ -103,8 +103,7 @@ public static class FeatureCatalog
                  bool byDefault, WindowsStatus status, string milestone, string? note = null, string? uri = null) =>
             list.Add(new FeatureInfo(f, Id(f), g, title, summary, glyph, keys, byDefault, status, milestone, note, uri));
 
-        const WindowsStatus P = WindowsStatus.Planned, T = WindowsStatus.NativeToggle,
-                            N = WindowsStatus.Native, D = WindowsStatus.Dropped;
+        const WindowsStatus P = WindowsStatus.Planned, N = WindowsStatus.Native, D = WindowsStatus.Dropped;
         string[] none = [];
 
         // Windows and Dock

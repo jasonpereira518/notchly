@@ -516,6 +516,53 @@ public class ToolsTests
     }
 
     [Fact]
+    public void FeaturesThatChangeTheMachineInstallSwitchedOff()
+    {
+        var store = NewStore();
+        store.SetAvailable(AppFeature.BluetoothSleep, true);
+        store.SetAvailable(AppFeature.MouseAcceleration, true);
+        Assert.False(store.GetBool(DefaultsKey.BluetoothSleepEnabled));
+        Assert.False(store.GetBool(DefaultsKey.MouseAccelerationDisabled));
+        // Installing the others still turns their main switch on.
+        store.SetAvailable(AppFeature.Brightness, true);
+        Assert.True(store.GetBool(DefaultsKey.BrightnessControlEnabled));
+    }
+
+    // MARK: Startup task
+
+    [Fact]
+    public void TheStartupTaskRunsElevatedAtLogonWithoutLimits()
+    {
+        var xml = StartupTaskSupport.TaskXml(@"C:\Apps\Notchly & Co\Notchly.exe", "--background", @"PC\Jane");
+        var doc = System.Xml.Linq.XDocument.Parse(xml);
+        System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+        Assert.NotNull(doc.Descendants(ns + "LogonTrigger").SingleOrDefault());
+        Assert.Equal("HighestAvailable", doc.Descendants(ns + "RunLevel").Single().Value);
+        Assert.Equal("InteractiveToken", doc.Descendants(ns + "LogonType").Single().Value);
+        Assert.Equal(@"C:\Apps\Notchly & Co\Notchly.exe", doc.Descendants(ns + "Command").Single().Value);
+        Assert.Equal("--background", doc.Descendants(ns + "Arguments").Single().Value);
+        Assert.Equal(@"PC\Jane", doc.Descendants(ns + "UserId").First().Value);
+        Assert.Equal("PT0S", doc.Descendants(ns + "ExecutionTimeLimit").Single().Value);
+        Assert.Equal("IgnoreNew", doc.Descendants(ns + "MultipleInstancesPolicy").Single().Value);
+        Assert.Equal("false", doc.Descendants(ns + "DisallowStartIfOnBatteries").Single().Value);
+        Assert.Equal("false", doc.Descendants(ns + "StopIfGoingOnBatteries").Single().Value);
+    }
+
+    [Fact]
+    public void OnlyOneStartupEntryStartsTheApp()
+    {
+        Assert.True(StartupTaskSupport.RunKeyWanted(true, false));
+        Assert.False(StartupTaskSupport.RunKeyWanted(true, true));
+        Assert.False(StartupTaskSupport.RunKeyWanted(false, false));
+        Assert.False(StartupTaskSupport.RunKeyWanted(false, true));
+        // A task removed by hand turns the switch off again.
+        Assert.True(StartupTaskSupport.ElevatedStartShownOn(true, true));
+        Assert.False(StartupTaskSupport.ElevatedStartShownOn(true, false));
+        Assert.False(StartupTaskSupport.ElevatedStartShownOn(false, true));
+        Assert.False(NewStore().GetBool(DefaultsKey.RunElevatedAtLogin));
+    }
+
+    [Fact]
     public void ToolJournalsStayOutOfBackups()
     {
         var s = NewStore();

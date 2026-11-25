@@ -27,6 +27,8 @@ public static class SettingsBackup
         DefaultsKey.BrightnessForcedSoftwarePaths, DefaultsKey.BrightnessExtendedDimmingPaths, DefaultsKey.BluetoothSleepRestorePending,
         // The system settings a toggle changed are this machine's too.
         DefaultsKey.FocusFollowsMouseOriginal, DefaultsKey.MouseAccelerationOriginal,
+        // The task lives on this machine.
+        DefaultsKey.RunElevatedAtLogin,
     };
 
     public static string Export(SettingsStore store)

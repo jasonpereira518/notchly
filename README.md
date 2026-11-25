@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M5 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; and the system monitor) and M4 (sound: mixer, output switcher, device priority, microphone mute). See
+Status: milestones M0–M6 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; and energy and quick tools). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -82,6 +82,19 @@ for the porting plan.
     icon per metric, values or bars) are off until you turn them on in Settings → System monitor. Readings are taken only while
     something shows them. Windows reports no temperatures, fan speeds, system or adapter power, or per-app network use to apps,
     so those wait for the elevated helper (M12).
+  - **Energy** (M6): **Keep awake** holds Windows awake for a length you pick, until a time, or until you stop it, with extend buttons,
+    a battery limit, pause while locked, a pointer nudge, rules (an external display, mains power, certain apps), a countdown on
+    the island and in the tray menu, and closed-lid mode that changes Windows' lid action for the session and always puts it
+    back. **Displays** has a brightness slider per display in the panel and on the island (the built-in panel, external monitors
+    over DDC/CI, and a software dim for the rest), shortcuts, and dimming below the panel's minimum. **Bluetooth on sleep** turns
+    the radio off as the PC sleeps and back on at wake. Settings → Energy has the options.
+  - **Quick tools** (M6): **Quick toggles** in the panel (dark mode, microphone, Recycle Bin, quit apps, eject drives, hidden files,
+    desktop icons, lock, display off, screen saver, refresh rate, Wi-Fi, Bluetooth), hidden and reordered in Settings → Tools.
+    **Quit apps** lists open apps and asks each to close (two shortcuts, kept apps). **Kill process** and the **port manager**
+    are in Settings → Processes and ports: every kill is confirmed and checked against the process's start time, and a process
+    Notchly may not stop gets one administrator prompt. **Focus follows mouse** and **pointer acceleration** (Settings → Mouse)
+    flip Windows' own settings and give yours back. **Start with administrator rights** (Settings → General) starts Notchly
+    elevated at sign-in through a scheduled task, so its shortcuts reach administrator windows.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

@@ -378,4 +378,8 @@ public static class DefaultsKey
     public const string FocusFollowsMouseOriginal = "focusFollowsMouseOriginal";
     /// <summary>The mouse parameters before acceleration was turned off ("t1;t2;accel"); machine state, a crash guard.</summary>
     public const string MouseAccelerationOriginal = "mouseAccelerationOriginal";
+
+    // Startup (M6)
+    /// <summary>Windows-only: the logon task that starts Notchly with administrator rights; machine state.</summary>
+    public const string RunElevatedAtLogin = "runElevatedAtLogin";
 }

@@ -109,7 +109,12 @@ public partial class App : Application
             Log.Information("Feature {Feature} is now available on Windows and was installed", FeatureCatalog.Id(feature));
         foreach (var feature in Settings.InstallSwitchedOnExtensions())
             Log.Information("Feature {Feature} was switched on in the island's settings and was installed", FeatureCatalog.Id(feature));
-        Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
+        Settings.Changed += key =>
+        {
+            Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
+            if (key is DefaultsKey.LaunchAtLogin or DefaultsKey.RunElevatedAtLogin) SyncStartupEntries();
+        };
+        SyncStartupEntries();
         // A Bluetooth restore owed from before this launch is paid whether or not the feature is still installed.
         Energy.BluetoothSleepService.PayDebt(Settings);
         // A mouse setting left changed by a crash is given back unless its toggle is on and installed (which applies it again).
@@ -213,6 +218,18 @@ public partial class App : Application
             _ => ApplicationThemeManager.GetSystemTheme() == SystemTheme.Light ? ApplicationTheme.Light : ApplicationTheme.Dark,
         };
         ApplicationThemeManager.Apply(theme);
+    }
+
+    /// <summary>The Run key and the elevated task agree: one of them starts Notchly at sign-in, never both.</summary>
+    private void SyncStartupEntries()
+    {
+        var launch = Settings.GetBool(DefaultsKey.LaunchAtLogin);
+        var elevated = Settings.GetBool(DefaultsKey.RunElevatedAtLogin);
+        Task.Run(() =>
+        {
+            try { Platform.Shell.ElevatedStartup.SyncRunKey(launch, elevated && Platform.Shell.ElevatedStartup.Exists()); }
+            catch (Exception ex) { Log.Warning(ex, "Startup entries could not be synced"); }
+        });
     }
 
     /// <summary>Builds the open settings page again (a reorder, say).</summary>

@@ -306,5 +306,6 @@ public static class Defaults
         [DefaultsKey.PanelControlMouseAcceleration] = true,
         [DefaultsKey.FocusFollowsMouseOriginal] = "",
         [DefaultsKey.MouseAccelerationOriginal] = "",
+        [DefaultsKey.RunElevatedAtLogin] = false,
     };
 }

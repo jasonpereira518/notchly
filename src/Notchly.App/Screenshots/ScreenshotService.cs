@@ -47,7 +47,6 @@ internal sealed class ScreenshotService : IFeatureService
     private ScreenshotOverlay? _overlay;
     private CountdownHud? _hud;
     private QuickPreviewWindow? _preview;
-    private bool _disposed;
 
     public ScreenshotService(App app)
     {
@@ -395,7 +394,7 @@ internal sealed class ScreenshotService : IFeatureService
         try
         {
             if (!System.Windows.Clipboard.ContainsImage()) { QuickToolHud.Show("No picture on the clipboard"); return; }
-            OpenEditor(ImageCodec.FromBitmap(System.Windows.Clipboard.GetImage()), 1);
+            OpenEditor(ImageCodec.FromBitmap(System.Windows.Clipboard.GetImage()!), 1);
         }
         catch (System.Runtime.InteropServices.COMException) { QuickToolHud.Show("The clipboard is busy"); }
     }
@@ -404,7 +403,6 @@ internal sealed class ScreenshotService : IFeatureService
 
     public void Dispose()
     {
-        _disposed = true;
         foreach (var (_, handle) in _registered.Values) handle?.Dispose();
         _registered.Clear();
         _overlay?.Cancel();
@@ -464,7 +462,7 @@ internal sealed class CountdownHud : Window
         };
     }
 
-    public new void Show(int remaining)
+    public void Show(int remaining)
     {
         _text.Text = remaining.ToString();
         if (!IsVisible) base.Show();

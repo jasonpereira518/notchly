@@ -568,7 +568,7 @@ internal sealed class ScreenshotEditorWindow : FluentWindow, ICanvasHost
         try
         {
             if (!System.Windows.Clipboard.ContainsImage()) return;
-            var picture = ImageCodec.FromBitmap(System.Windows.Clipboard.GetImage());
+            var picture = ImageCodec.FromBitmap(System.Windows.Clipboard.GetImage()!);
             if (!_model.PasteImage(EditorPicture.Asset(picture))) SystemSounds.Beep.Play();
         }
         catch (System.Runtime.InteropServices.COMException) { }

@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**52 ported**, 16 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**57 ported**, 11 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -75,21 +75,21 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `quickLauncher` | Quick panel | 🛠️ Planned | M9 |  |
 | `quickToggles` | Quick toggles | ✅ Ported | M6 |  |
 | `quitApps` | Quit apps | ✅ Ported | M6 |  |
-| `colorPicker` | Color picker | 🛠️ Planned | M9 |  |
-| `screenOCR` | Copy text from screen | 🛠️ Planned | M9 |  |
-| `cleaningMode` | Cleaning mode | 🛠️ Planned | M9 |  |
+| `colorPicker` | Color picker | ✅ Ported | M9 | A frozen screen with a magnifier; HEX, RGB, HSL or SwiftUI. Upstream's system sampler fallback and loupe zoom options are not built. |
+| `screenOCR` | Copy text from screen | ✅ Ported | M9 | Text is read by Windows' own engine and codes by ZXing.Net, all on this PC. No second recognition pass and no micro QR. |
+| `cleaningMode` | Cleaning mode | ✅ Ported | M9 | Ctrl+Alt+Delete cannot be blocked from a program, so it still works while the keyboard is locked. |
 | `mediaTools` | Media tools | 🛠️ Planned | M10 |  |
 | `cleaner` | Cleaner | 🛠️ Planned | M11 |  |
 | `uninstaller` | Uninstaller | 🛠️ Planned | M11 |  |
 | `homebrew` | Package manager | 🛠️ Planned | M11 | Homebrew becomes winget on Windows. |
 | `appUpdates` | App updates | 🛠️ Planned | M11 |  |
 | `screenshot` | Screenshot | 🛠️ Planned | M10 |  |
-| `cameraPreview` | Camera preview | ✅ Ported | M3 | Floating mirror window comes with the tools in M9. |
+| `cameraPreview` | Camera preview | ✅ Ported | M3 | The floating mirror opens from a shortcut or Settings; the island page is the same camera. |
 | `radialMenu` | Radial menu | 🛠️ Planned | M9 |  |
-| `scratchpad` | Scratchpad | 🛠️ Planned | M9 |  |
+| `scratchpad` | Scratchpad | ✅ Ported | M9 | The floating pad. The island's Scratchpad page comes with the launcher. |
 | `commandBar` | Command bar | 🛠️ Planned | M9 |  |
 | `screenRecorder` | Screen recording | 🛠️ Planned | M10 |  |
-| `wallpaper` | Wallpaper | 🛠️ Planned | M9 |  |
+| `wallpaper` | Wallpaper | ✅ Ported | M9 | Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog. |
 | `killProcess` | Kill process | ✅ Ported | M6 |  |
 | `portManager` | Port manager | ✅ Ported | M6 |  |
 

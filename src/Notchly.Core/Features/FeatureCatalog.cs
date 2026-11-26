@@ -206,9 +206,12 @@ public static class FeatureCatalog
         Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, P, "M9");
         Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, WindowsStatus.Ported, "M6");
         Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, WindowsStatus.Ported, "M6");
-        Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, P, "M9");
-        Add(AppFeature.ScreenOCR, g, "Copy text from screen", "Recognize text or read a QR code from any area.", Glyph.Scan, none, true, P, "M9");
-        Add(AppFeature.CleaningMode, g, "Cleaning mode", "Lock keyboard input while cleaning.", Glyph.Sparkle, none, true, P, "M9");
+        Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, WindowsStatus.Ported, "M9",
+            "A frozen screen with a magnifier; HEX, RGB, HSL or SwiftUI. Upstream's system sampler fallback and loupe zoom options are not built.");
+        Add(AppFeature.ScreenOCR, g, "Copy text from screen", "Recognize text or read a QR code from any area.", Glyph.Scan, none, true, WindowsStatus.Ported, "M9",
+            "Text is read by Windows' own engine and codes by ZXing.Net, all on this PC. No second recognition pass and no micro QR.");
+        Add(AppFeature.CleaningMode, g, "Cleaning mode", "Lock keyboard input while cleaning.", Glyph.Sparkle, none, true, WindowsStatus.Ported, "M9",
+            "Ctrl+Alt+Delete cannot be blocked from a program, so it still works while the keyboard is locked.");
         Add(AppFeature.MediaTools, g, "Media tools", "Compress video, convert images, make GIFs.", Glyph.Photo, none, true, P, "M10");
         Add(AppFeature.Cleaner, g, "Cleaner", "Remove caches, logs and leftovers on a schedule.", Glyph.Broom, none, true, P, "M11");
         Add(AppFeature.Uninstaller, g, "Uninstaller", "Remove apps and review their leftovers.", Glyph.Trash, none, true, P, "M11");
@@ -217,13 +220,15 @@ public static class FeatureCatalog
         Add(AppFeature.AppUpdates, g, "App updates", "Check winget and Store apps for updates in one list.", Glyph.Update, none, true, P, "M11");
         Add(AppFeature.Screenshot, g, "Screenshot", "Capture, annotate, pin and share screenshots.", Glyph.Screenshot, none, true, P, "M10");
         Add(AppFeature.CameraPreview, g, "Camera preview", "Check your camera in a floating mirror or the island.", Glyph.Camera, none, true, WindowsStatus.Ported, "M3",
-            "Floating mirror window comes with the tools in M9.");
+            "The floating mirror opens from a shortcut or Settings; the island page is the same camera.");
         Add(AppFeature.RadialMenu, g, "Radial menu", "A wheel of apps, files and tools around the pointer.", Glyph.Wheel,
             [DefaultsKey.RadialMenuEnabled], true, P, "M9");
-        Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, P, "M9");
+        Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, WindowsStatus.Ported, "M9",
+            "The floating pad. The island's Scratchpad page comes with the launcher.");
         Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, P, "M9");
         Add(AppFeature.ScreenRecorder, g, "Screen recording", "Record with system audio and microphone, then trim and export.", Glyph.Record, none, true, P, "M10");
-        Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, P, "M9");
+        Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, WindowsStatus.Ported, "M9",
+            "Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog.");
         Add(AppFeature.KillProcess, g, "Kill process", "Find and stop misbehaving processes.", Glyph.Stop, none, false, WindowsStatus.Ported, "M6");
         Add(AppFeature.PortManager, g, "Port manager", "Find processes listening on ports and stop them.", Glyph.Network, none, false, WindowsStatus.Ported, "M6");
 

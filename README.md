@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M8 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; and clipboard and files). See
+Status: milestones M0–M9a (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; and the small tools). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -110,6 +110,11 @@ for the porting plan.
     put back as it was), a **link cleaner** that takes tracking parameters out of copied links, **image paste** (Ctrl+V with a copied
     picture in a folder makes a PNG file there), and a floating **Shelf** card (shortcut, shake while dragging, a drop zone above the
     tray, a peek from the screen edge) that shares its items with the island's Files page.
+  - **Small tools** (M9a, in Settings → Tools; every shortcut starts switched off): a **color picker** (a frozen screen and a magnifier;
+    HEX, RGB, HSL or SwiftUI), **copy text from screen** (drag over text and it is read on this PC; a QR code opens its own panel),
+    **cleaning mode** (locks the keyboard and the wheel until five Escapes; Ctrl+Alt+Delete cannot be blocked), a floating **camera
+    mirror**, a **scratchpad** (tabs, Markdown with a preview and tick boxes, kept in %APPDATA%\Notchly) and a **wallpaper** gallery
+    (Windows' own pictures and yours, on every display or one).
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

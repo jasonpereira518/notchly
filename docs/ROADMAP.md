@@ -276,7 +276,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 | cleaning mode | |
 | color picker | |
 | OCR + QR | `Windows.Media.Ocr` + ZXing |
-| camera preview | `MediaCapture` (shared, read-only) + `MediaFrameReader` into a `WriteableBitmap`. The island's Camera page is ported in M3; the floating mirror window comes in M9 |
+| camera preview | `MediaCapture` (shared, read-only) + `MediaFrameReader` into a `WriteableBitmap`. The island's Camera page is ported in M3; the floating mirror window arrived in M9a |
 | wallpaper | `IDesktopWallpaper` |
 | screenshot | Windows.Graphics.Capture + annotate editor |
 | screen recorder | WGC + WASAPI loopback/process loopback + Media Foundation (NVENC) |
@@ -332,7 +332,8 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 - **M8 Clipboard & files.** Done. One clipboard watcher (`AddClipboardFormatListener`, read after a short settle) feeds the link cleaner, then the history; Notchly's own writes are recognised by their sequence numbers and carry the formats that keep Windows' own history from recording them. History, plain paste and image paste install switched off. The Shelf is one service shared by the island's Files page and a floating card; "content drag" is judged by where a drag began and whether the window is in its move loop, since Windows has no drag clipboard. Not built: Explorer cut/paste (built in), rename (F2), the disk image installer, redirect or AMP unwrapping in the link cleaner (upstream has none), history editing and OCR, the menu-bar preview of the clipboard, and screenshot-to-Shelf (with screenshots).
   - Clipboard history (island page + window), auto-clear, paste as plain text, link cleaner, paste image into Explorer as a PNG.
   - Floating Shelf: shortcut, shake, drop zone, edge peek; shared with the Files page.
-- **M9 Tools.** Command bar, quick launcher, radial menu, scratchpad, cleaning mode, color picker, OCR/QR, camera preview window, wallpaper.
+- **M9a Small tools.** Done. Color picker, copy text from screen with QR reading, cleaning mode, the floating camera mirror, scratchpad and wallpaper. The colour picker and text reading share one frozen-screen overlay (built for screenshots to reuse); text comes from Windows' own recognizer and codes from ZXing.Net; cleaning mode is the hook pipeline's new top priority; the scratchpad's preview is drawn from Core's own block parser (no Markdown package); wallpapers are set through the shell's wallpaper object. Every shortcut starts off. Not built: the capture chooser and loupe zoom options (screenshots, M10), panel tiles and the island's Scratchpad, Tools and Captures pages (with the launcher, M9b), Apple's catalog and iCloud downloads, micro QR, the second "fast" recognition pass, and cleaning mode's mouse-release gate (the mouse is never blocked).
+- **M9b Launcher tools.** Command bar (calculator, units, dates, colours, apps, windows, files through Windows Search, emoji, menu items and selected-text actions, `ms-settings:` pages, links and scripts, pins, aliases, learned ranking), quick launcher with the island's Tools page, radial menu.
 - **M10 Capture & media.** Screenshot + editor, recorder + editor, media tools.
 - **M11 App management.** winget manager, app updates, uninstaller, cleaner + schedule.
 - **M12 Elevated helper.** `Notchly.Helper` service (named pipe locked to the user): LibreHardwareMonitor temperatures, OMEN fan curves (port the policy in `FanControlSupport.swift`), per-process network via ETW.

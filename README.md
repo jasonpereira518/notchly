@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M9b (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; and the command bar). See
+Status: milestones M0–M9c (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; the command bar; and the quick panel and radial menu). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -120,6 +120,13 @@ for the porting plan.
     menu items of the app you came from, what you copied, what you had selected (copy, UPPER, lower, Title Case, count), and your own
     links. It answers sums, unit conversions, dates and colors as you type (`2+3*4`, `100 km to mi`, `in 3 weeks`, `#00bc7d to rgb`),
     learns what you run, and lets you pin rows, give them your own names (Ctrl+K) and hide them. Nothing you type is saved.
+  - **Quick panel and radial menu** (M9c, in Settings → Tools): **Ctrl+Win+V** opens a grid of the tools you reach for most (keep awake,
+    quick toggles, microphone, copy text, color picker, clipboard, window layout, cleaning mode, clean URL, camera, scratchpad) with
+    arrows, 1 to 9 and Return, a customize switch to reorder and hide tiles, and small option cards; with the island on it opens the
+    island's **Tools** page instead. The **radial menu** (off until turned on) opens a wheel of up to 12 slices (apps, files, links, key
+    combinations, tools, toggles, window layouts, media keys, one submenu level) at the pointer: hold the Forward mouse button or
+    Ctrl+Alt+Win+Space, move toward a slice and let go to run it. Several wheels, each with its own color, shortcut and button; an editor
+    with a live preview, an icon grid, your own images and site icons for links.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

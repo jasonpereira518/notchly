@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**58 ported**, 10 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**60 ported**, 8 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -72,7 +72,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `quickLauncher` | Quick panel | 🛠️ Planned | M9 |  |
+| `quickLauncher` | Quick panel | ✅ Ported | M9 | Ctrl+Win+V opens a grid of tools, or the island's Tools page. Tiles for features not built yet (Cleaner, Package manager, Media, Uninstaller, Screenshot, Recorder) stay hidden. |
 | `quickToggles` | Quick toggles | ✅ Ported | M6 |  |
 | `quitApps` | Quit apps | ✅ Ported | M6 |  |
 | `colorPicker` | Color picker | ✅ Ported | M9 | A frozen screen with a magnifier; HEX, RGB, HSL or SwiftUI. Upstream's system sampler fallback and loupe zoom options are not built. |
@@ -85,7 +85,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `appUpdates` | App updates | 🛠️ Planned | M11 |  |
 | `screenshot` | Screenshot | 🛠️ Planned | M10 |  |
 | `cameraPreview` | Camera preview | ✅ Ported | M3 | The floating mirror opens from a shortcut or Settings; the island page is the same camera. |
-| `radialMenu` | Radial menu | 🛠️ Planned | M9 |  |
+| `radialMenu` | Radial menu | ✅ Ported | M9 | Hold the Forward mouse button (or Ctrl+Alt+Win+Space), move toward a slice and let go. Off until turned on. No Now Playing slice, no trackpad tap. |
 | `scratchpad` | Scratchpad | ✅ Ported | M9 | The floating pad. The island's Scratchpad page comes with the launcher. |
 | `commandBar` | Command bar | ✅ Ported | M9 | Alt+Space by default, off until turned on. Apps, windows, files, emoji, menu items, selected text, settings pages and your links; sums, units, dates and colors. No scripts, no droplet animation. |
 | `screenRecorder` | Screen recording | 🛠️ Planned | M10 |  |

@@ -2573,6 +2573,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 NotchModule.Notifications => ("\uEA8F", "Notifications"),
                 NotchModule.Camera => ("\uE8B8", "Camera"),
                 NotchModule.Watch => (WatchPage.EyeGlyph, "Watch"),
+                NotchModule.System => ("", "System"),
                 NotchModule.Mixer => ("", "Volume mixer"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),

@@ -62,7 +62,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null, MascotReaction? Companion = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Tools, NotchModule.Clipboard, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Tools, NotchModule.Captures, NotchModule.Clipboard, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -80,6 +80,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private FilesPage? _files;
     private Clipboard.ClipboardPage? _clipboardPage;
     private Tools.ToolsPage? _toolsPage;
+    private Tools.CapturesPage? _capturesPage;
     private DownloadService? _downloads;
     private DownloadsPage? _downloadsPage;
     private CalendarService? _calendar;
@@ -157,6 +158,13 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
     // The companion (upstream NotchMascotTrackView in the closed island, and NotchMascotView in a notice)
     private MascotService? _mascot;
+
+    /// <summary>A moment the island's mascot can react to (a screenshot taken), if the mascot is on.</summary>
+    public void ReactTo(MascotMoment moment)
+    {
+        if (moment.Reaction() is { } reaction) _mascot?.React(reaction);
+    }
+
     private Canvas? _mascotLayer;
     private MascotView? _mascotView, _noticeMascot;
     private Notice? _noticeMascotFor;
@@ -234,6 +242,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _clipboardPage = new Clipboard.ClipboardPage(window, () => App.Current.Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory), _settings,
             new Pasteboard.ClipboardPaster(App.Current.Injector), Collapse, () => App.Current.ShowClipboardWindow());
         _toolsPage = new Tools.ToolsPage(window, () => App.Current.Features.Get<Notchly.App.Launcher.QuickLauncherService>(AppFeature.QuickLauncher));
+        _capturesPage = new Tools.CapturesPage(window, _settings, () => App.Current.Captures, Collapse);
         _downloads = new DownloadService(_dispatcher);
         _downloads.Changed += OnDownloadsChanged;
         _downloads.Arrived += OnDownloadArrived;
@@ -331,7 +340,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _equalizer?.Dispose(); _equalizer = null;
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
-        _shelf = null; _files = null; _clipboardPage = null; _toolsPage?.Dispose(); _toolsPage = null;
+        _shelf = null; _files = null; _clipboardPage = null; _toolsPage?.Dispose(); _toolsPage = null; _capturesPage?.Dispose(); _capturesPage = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
@@ -456,6 +465,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotchModule.Files => w.FilesPage,
             NotchModule.Clipboard => w.ClipboardPage,
             NotchModule.Tools => w.ToolsPage,
+            NotchModule.Captures => w.CapturesPage,
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
             NotchModule.Agents => w.AgentsPage,
@@ -982,6 +992,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
         if (_clipboardPage is not null) _clipboardPage.Visible = false;
         if (_toolsPage is not null) _toolsPage.Visible = false;
+        if (_capturesPage is not null) _capturesPage.Visible = false;
         if (_calendarPage is not null) _calendarPage.Visible = false;
         if (_agentsPage is not null) _agentsPage.Visible = false;
         if (_notificationsPage is not null) _notificationsPage.Visible = false;
@@ -2574,6 +2585,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 NotchModule.Files => ("\uE8B7", "Files"),
                 NotchModule.Clipboard => ("\uE77F", "Clipboard"),
                 NotchModule.Tools => ("\uE713", "Tools"),
+                NotchModule.Captures => ("", "Captures"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),
@@ -2613,6 +2625,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _window.ToolsPage.Visibility = module == NotchModule.Tools ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Tools && _geometry is { } tg) _toolsPage?.Layout(tg.ContentBudget, tg.ContentWidth);
         if (_toolsPage is not null) _toolsPage.Visible = module == NotchModule.Tools && _expanded;
+        _window.CapturesPage.Visibility = module == NotchModule.Captures ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Captures && _geometry is { } capg) _capturesPage?.Layout(capg.ContentBudget, capg.ContentWidth);
+        if (_capturesPage is not null) _capturesPage.Visible = module == NotchModule.Captures && _expanded;
         if (module == NotchModule.Downloads && _geometry is { } dg) _downloadsPage?.Layout(dg.ContentBudget);
         if (_downloadsPage is not null) _downloadsPage.Visible = module == NotchModule.Downloads;
         _window.CalendarPage.Visibility = module == NotchModule.Calendar ? Visibility.Visible : Visibility.Collapsed;

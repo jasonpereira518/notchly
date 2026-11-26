@@ -87,8 +87,11 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(scratchpad);
         var wallpaper = Item("Wallpaper…", () => app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper)?.Open());
         menu.Items.Add(wallpaper);
+        var screenshot = Item("Take a screenshot", () => app.Features.Get<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.CaptureArea());
+        menu.Items.Add(screenshot);
         menu.Opened += (_, _) =>
         {
+            screenshot.Visibility = app.Features.Get<Screenshots.ScreenshotService>(AppFeature.Screenshot) is null ? Visibility.Collapsed : Visibility.Visible;
             scratchpad.Visibility = app.Features.Get<Tools.ScratchpadService>(AppFeature.Scratchpad) is null ? Visibility.Collapsed : Visibility.Visible;
             wallpaper.Visibility = app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper) is null ? Visibility.Collapsed : Visibility.Visible;
             cleaning.Visibility = app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode) is null ? Visibility.Collapsed : Visibility.Visible;

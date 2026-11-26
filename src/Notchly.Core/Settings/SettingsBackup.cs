@@ -2,6 +2,7 @@
 // Port of upstream Sources/Vorssaint/Core/SettingsBackupSupport.swift: which keys travel in a
 // backup and which imported values are accepted. The file is JSON instead of a plist.
 using System.Text.Json;
+using Notchly.Core.Capture;
 using System.Text.Json.Nodes;
 
 namespace Notchly.Core.Settings;
@@ -33,6 +34,8 @@ public static class SettingsBackup
         DefaultsKey.CameraPreviewDeviceId, DefaultsKey.ScratchpadWindowOrigin, DefaultsKey.WallpaperOwnPaths, DefaultsKey.WallpaperExcludedOwnPaths,
         // What the command bar learned, and the folders it searches, belong to this machine (the habit digests mean nothing without their key).
         DefaultsKey.CommandBarFileScopes, DefaultsKey.CommandBarPositionOffset, DefaultsKey.CommandBarUsage, DefaultsKey.CommandBarQueryHabits, DefaultsKey.CommandBarQueryHabitKey,
+        // Where the last screenshot area was, and the running file number, belong to this machine's displays and folders.
+        DefaultsKey.ScreenshotLastRegion, DefaultsKey.ScreenshotFileNumberNext, DefaultsKey.ScreenshotSaveFolder,
     };
 
     public static string Export(SettingsStore store)
@@ -43,7 +46,8 @@ public static class SettingsBackup
         {
             if (MachineStateKeys.Contains(key)) continue;
             // Saved choices, or the default so the other machine gets exactly this setup.
-            settings[key] = saved.TryGetValue(key, out var value) ? value?.DeepClone() : store.DefaultNode(key);
+            var node = saved.TryGetValue(key, out var value) ? value?.DeepClone() : store.DefaultNode(key);
+            settings[key] = Portable(key, node);
         }
         var root = new JsonObject
         {
@@ -52,6 +56,34 @@ public static class SettingsBackup
             [SettingsKey] = settings,
         };
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>A watermark or backdrop picture is a private file on one PC: a backup keeps the look and never a path.</summary>
+    private static JsonNode? Portable(string key, JsonNode? node)
+    {
+        if (node is not JsonValue value || !value.TryGetValue<string>(out var raw)) return node;
+        return key switch
+        {
+            DefaultsKey.ScreenshotWatermarkStyle => WatermarkPortability.PortableStyle(raw),
+            DefaultsKey.ScreenshotWatermarkPresets => WatermarkPortability.PortablePresets(raw),
+            DefaultsKey.ScreenshotBackdropStyle => BackdropPortability.PortableStyle(raw),
+            DefaultsKey.ScreenshotBackdropPresets => BackdropPortability.PortablePresets(raw),
+            _ => node,
+        };
+    }
+
+    private static JsonNode? Restored(SettingsStore store, string key, JsonNode? node)
+    {
+        if (node is not JsonValue value || !value.TryGetValue<string>(out var raw)) return node;
+        var local = store.GetString(key);
+        return key switch
+        {
+            DefaultsKey.ScreenshotWatermarkStyle => WatermarkPortability.RestoredStyle(raw, local),
+            DefaultsKey.ScreenshotWatermarkPresets => WatermarkPortability.RestoredPresets(raw, local),
+            DefaultsKey.ScreenshotBackdropStyle => BackdropPortability.RestoredStyle(raw, local),
+            DefaultsKey.ScreenshotBackdropPresets => BackdropPortability.RestoredPresets(raw, local),
+            _ => node,
+        };
     }
 
     public sealed record ImportResult(int Applied, IReadOnlyList<string> Rejected);
@@ -74,7 +106,7 @@ public static class SettingsBackup
                 refused.Add(key);
                 continue;
             }
-            accepted[key] = value?.DeepClone();
+            accepted[key] = Restored(store, key, value?.DeepClone());
         }
         return accepted;
     }

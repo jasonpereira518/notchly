@@ -32,6 +32,9 @@ public partial class App : Application
     public PasswordFieldProbe Passwords { get; private set; } = null!;
     /// <summary>The one clipboard watcher the clipboard features share; it listens only while one of them is on.</summary>
     public Pasteboard.ClipboardMonitor ClipboardWatch { get; private set; } = null!;
+    private Screenshots.CaptureHistory? _captures;
+    /// <summary>The recent screenshots, shared by the screenshot service, its history window and the island's Captures page.</summary>
+    public Screenshots.CaptureHistory Captures => _captures ??= new Screenshots.CaptureHistory();
     private Island.Files.ShelfService? _shelf;
     /// <summary>The one shelf, shared by the island's Files page and the floating Shelf card.</summary>
     public Island.Files.ShelfService Shelf => _shelf ??= new Island.Files.ShelfService(Dispatcher);
@@ -129,6 +132,7 @@ public partial class App : Application
         Features.Bind(AppFeature.Shelf, () => new ShelfCard.ShelfSummonService(this));
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.ColorPicker, () => new Tools.ColorPickerService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.Screenshot, () => new Screenshots.ScreenshotService(this));
         Features.Bind(AppFeature.ScreenOCR, () => new Tools.ScreenTextService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.RadialMenu, () => new Radial.RadialMenuService(this));
         Features.Bind(AppFeature.QuickLauncher, () => new Launcher.QuickLauncherService(this));

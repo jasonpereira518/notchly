@@ -54,6 +54,14 @@ internal sealed partial class CommandBarRows(CommandBarService host)
         var rows = new List<CommandBarEntry>();
         if (Installed(AppFeature.ColorPicker))
             rows.Add(ForFeature(AppFeature.ColorPicker, "action.colorPicker", "Pick color", _ => Service<ColorPickerService>(AppFeature.ColorPicker)?.Pick(), "eyedropper hex rgb"));
+        if (Installed(AppFeature.Screenshot))
+        {
+            rows.Add(ForFeature(AppFeature.Screenshot, "action.screenshot", "Take a screenshot", _ => Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.CaptureArea(), "capture area window snip"));
+            rows.Add(ForFeature(AppFeature.Screenshot, "action.screenshotFullScreen", "Screenshot the whole screen", _ => Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.CaptureFullScreen(), "capture display"));
+            rows.Add(ForFeature(AppFeature.Screenshot, "action.screenshotScrolling", "Scrolling screenshot", _ => Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.CaptureArea(false, Notchly.Core.Capture.ScreenCaptureTool.Scrolling), "long page capture"));
+            rows.Add(ForFeature(AppFeature.Screenshot, "action.screenshotEditLast", "Edit the last screenshot", _ => Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.EditLast(), "annotate markup"));
+            rows.Add(ForFeature(AppFeature.Screenshot, "action.screenshotHistory", "Recent screenshots", _ => Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.ShowHistory(), "captures history"));
+        }
         if (Installed(AppFeature.ScreenOCR))
             rows.Add(ForFeature(AppFeature.ScreenOCR, "action.screenOCR", "Copy text from screen", _ => Service<ScreenTextService>(AppFeature.ScreenOCR)?.Capture(), "ocr qr scan recognize"));
         if (Installed(AppFeature.Scratchpad))

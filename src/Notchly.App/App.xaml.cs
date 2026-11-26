@@ -43,6 +43,8 @@ public partial class App : Application
 
     private SingleInstance? _instance;
     private SettingsWindow? _settingsWindow;
+    /// <summary>The Settings window while it is open (dialogs such as the radial slice sheet are owned by it).</summary>
+    public Window? SettingsHost => _settingsWindow;
     private PanelWindow? _panel;
 
     protected override void OnStartup(StartupEventArgs e)

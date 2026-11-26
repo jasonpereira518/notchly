@@ -103,6 +103,7 @@ internal sealed class ScreenshotService : IFeatureService
     /// <summary>Opens the chooser. A second call while it (or a countdown) is up closes it.</summary>
     public void CaptureArea(bool fromShortcut = false, ScreenCaptureTool tool = ScreenCaptureTool.Screenshot)
     {
+        if (_scrolling is { IsRunning: true } running) { running.Finish(); return; }
         if (_overlay is not null) { _overlay.Cancel(); return; }
         if (_countdown.Cancel()) { _tick.Stop(); _hud?.Close(); _hud = null; return; }
         _preview?.Close();
@@ -180,8 +181,36 @@ internal sealed class ScreenshotService : IFeatureService
         else _ = GrabAsync(pick);
     }
 
-    /// <summary>Provided by the scrolling capture (commit 11).</summary>
-    private void StartScrolling(ScreenshotPick pick, int delay) => QuickToolHud.Show("Scrolling capture is not available yet");
+    private ScrollingCaptureController? _scrolling;
+
+    private void StartScrolling(ScreenshotPick pick, int delay)
+    {
+        if (delay > 0)
+        {
+            _countdown.Start(delay, () => _ = RunScrollingAsync(pick));
+            _tick.Start();
+        }
+        else _ = RunScrollingAsync(pick);
+    }
+
+    private async Task RunScrollingAsync(ScreenshotPick pick)
+    {
+        var controller = new ScrollingCaptureController(pick.Area, _settings.GetBool(DefaultsKey.ScreenshotScrollingAutoScroll));
+        _scrolling = controller;
+        // The chooser and the countdown leave the screen first, so the first view is the page and not the picker.
+        await Task.Delay(220);
+        var outcome = await controller.RunAsync();
+        _scrolling = null;
+        if (outcome is not { } done) return;
+        var display = Displays.AtPoint((pick.Area.Left + pick.Area.Right) / 2, (pick.Area.Top + pick.Area.Bottom) / 2);
+        var scale = display?.Scale ?? 1;
+        await _dispatcher.InvokeAsync(() =>
+        {
+            Deliver(done.Image, scale, pick.Area);
+            if (done.Kind is ScrollingResultKind.Partial or ScrollingResultKind.Limited)
+                QuickToolHud.Show(done.Kind == ScrollingResultKind.Limited ? "The capture reached its limit" : "Some of the page could not be joined");
+        });
+    }
 
     private async Task GrabAsync(ScreenshotPick pick)
     {
@@ -378,6 +407,7 @@ internal sealed class ScreenshotService : IFeatureService
         foreach (var (_, handle) in _registered.Values) handle?.Dispose();
         _registered.Clear();
         _overlay?.Cancel();
+        _scrolling?.Cancel();
         _preview?.Close();
         _hud?.Close();
         _tick.Stop();

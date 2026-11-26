@@ -81,6 +81,12 @@ public static class DefaultsKey
     public const string NotchLyricsEnabled = "notchLyricsEnabled";
     public const string NotchLyricsOnline = "notchLyricsOnline";
     public const string NotchQueueEnabled = "notchQueueEnabled";
+    /// <summary>Windows-only: songs starred inside Notchly (JSON), for players with no library of their own.</summary>
+    public const string NotchMusicLocalStars = "notchMusicLocalStars";
+    /// <summary>Windows-only: the Client ID of the user's own Spotify developer app (not a secret).</summary>
+    public const string NotchSpotifyClientId = "notchSpotifyClientId";
+    /// <summary>Windows-only: the Spotify playlist (or Liked Songs) started last from the idle Music page.</summary>
+    public const string NotchMusicLastPlaylist = "notchMusicLastPlaylist";
     public const string NotchLiveEqualizer = "notchLiveEqualizer";
     public const string NotchDownloadsEnabled = "notchDownloadsEnabled";
     /// <summary>Windows-only: the top strip shows the app in front and its menus, as a Mac menu bar.</summary>

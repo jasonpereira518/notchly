@@ -302,6 +302,12 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
             Toggle("Live equalizer", "The bars follow what this PC plays on its default output, so other sounds move them too. " +
                    "Nothing is stored or sent. Without it, the bars keep their usual motion.", DefaultsKey.NotchLiveEqualizer, ""),
 
+            Toggle("Show the next songs", "Spotify only: the Music page lists what plays next. Windows media controls share no queue with other players.",
+                   DefaultsKey.NotchQueueEnabled, ""),
+            SpotifySettings.Card(settings),
+            Card("Starred songs", "Songs you star on players other than Spotify are kept on this PC, by title and artist. Spotify stars go to Liked Songs.", "",
+                 ActionButton("Clear starred songs", () => settings.Set(DefaultsKey.NotchMusicLocalStars, ""))),
+
             Section("Lyrics"),
             Toggle("Show lyrics", "Follow the lyrics of the current song on the island's Music page.", DefaultsKey.NotchLyricsEnabled, ""),
             Toggle("Find lyrics online", "While lyrics are open, send the song title, artist, album and duration to lrclib.net. " +

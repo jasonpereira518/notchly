@@ -60,12 +60,16 @@ for the porting plan.
     minimized or locked pauses watching, and closing it ends the watch. Text comes from Windows' own recognition on
     this PC; only the chosen area is read, in memory, and nothing is saved or sent.
   - **Companion** (opt in): a little friend who rests in the closed island's wing beside the camera when nothing else
-    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, follows the pointer
-    with its eyes, answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
+    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, watches your cursor
+    wherever it is on the screen (turning its eyes and leaning its head, then looking ahead again once the cursor
+    keeps still), answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
     through the island, and it hides in the island after half a minute of quiet. It comes out to react to music
-    starting, timers, downloads, the microphone, unlocking the PC, agents finishing, events starting, the charger,
-    Watch and files dropped in, standing in for the notice's icon when the notice brings the news. With Windows'
-    animation effects off it only changes face, and Battery Saver keeps it at rest.
+    starting, pausing and skipping, timers, downloads, notifications, the microphone, the volume reaching the top, the
+    screen going full bright or nearly dark, headphones going on and off, unlocking the PC, agents finishing, events
+    starting, the charger, Watch and files dropped in, standing in for the notice's icon when the notice brings the
+    news. Each reaction has its own motion and a small prop beside it (hearts, sparkles, notes, a "!", a "?", a
+    "z" and more), and Settings can play every one. With Windows' animation effects off it only changes face, and
+    Battery Saver keeps it at rest and reads the cursor less often.
   - **Sound** (M4): a **Volume mixer** page on the island and a section in the panel list every app that uses audio, with
     its icon, a level slider with a live meter, mute, reset, pinning, order, and (through Windows' own per-app output)
     the speaker or headphones it plays to; call apps, Zoom and music-production apps keep their own volume. Windows plays

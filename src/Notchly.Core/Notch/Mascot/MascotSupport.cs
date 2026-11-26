@@ -230,14 +230,17 @@ public static class MascotSupport
 
     // MARK: Windows additions: what else it notices
 
-    /// <summary>A reaction to the moment itself is of no use a few seconds later.</summary>
-    private const double MomentPatience = 2;
+    /// <summary>A reaction to the moment itself is of no use long after it; but a notice the moment brings (a
+    /// banner, a track's title, an accessory's name) holds the closed island for its few seconds first.</summary>
+    private const double MomentPatience = 2, NoticePatience = 6;
     public static readonly MascotReactionRequest MusicPaused = new(MascotReaction.MusicPaused, MomentPatience);
-    public static readonly MascotReactionRequest MusicSkipped = new(MascotReaction.MusicSkipped, MomentPatience);
-    /// <summary>A notification arrived and the island showed it.</summary>
-    public static readonly MascotReactionRequest Notified = new(MascotReaction.Notify, MomentPatience);
-    public static readonly MascotReactionRequest HeadphonesIn = new(MascotReaction.HeadphonesIn, MomentPatience * 2);
+    public static readonly MascotReactionRequest MusicSkipped = new(MascotReaction.MusicSkipped, NoticePatience);
+    /// <summary>A notification arrived and the island showed it: its banner is 3 s on the strip.</summary>
+    public static readonly MascotReactionRequest Notified = new(MascotReaction.Notify, NoticePatience);
+    public static readonly MascotReactionRequest HeadphonesIn = new(MascotReaction.HeadphonesIn, NoticePatience);
     public static readonly MascotReactionRequest HeadphonesOut = new(MascotReaction.HeadphonesOut, MomentPatience * 2);
+    /// <summary>The volume or brightness notice is on the strip for under 2 s.</summary>
+    public static MascotReactionRequest OnLevel(MascotReaction reaction) => new(reaction, 4);
 
     /// <summary>The volume reaching this share, or higher, from below it, is too loud.</summary>
     public const double LoudVolume = 0.9;

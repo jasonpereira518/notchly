@@ -75,6 +75,14 @@ internal static class MascotSettings
         (MascotMoment.Charging, "Charging", ""),
         (MascotMoment.LowBattery, "Low battery", ""),
         (MascotMoment.Unlocked, "PC unlocked", ""),
+        (MascotMoment.MusicPaused, "Music paused", ""),
+        (MascotMoment.MusicSkipped, "Song skipped", ""),
+        (MascotMoment.Notification, "Notification", ""),
+        (MascotMoment.LoudVolume, "Volume maxed", ""),
+        (MascotMoment.BrightScreen, "Screen too bright", ""),
+        (MascotMoment.DimScreen, "Screen nearly dark", ""),
+        (MascotMoment.HeadphonesIn, "Headphones in", ""),
+        (MascotMoment.HeadphonesOut, "Headphones out", ""),
     ];
 
     private static MascotLook Look(SettingsStore settings) => MascotSupport.Look(settings);

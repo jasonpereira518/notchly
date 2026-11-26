@@ -15,6 +15,9 @@ public readonly record struct BatteryReading(
     int? RateMilliwatts = null, int? RemainingMilliwattHours = null,
     int? FullMilliwattHours = null, int? DesignMilliwattHours = null);
 
+/// <summary>The processor's power in milliwatts: the whole package, and its cores and integrated graphics where reported.</summary>
+public readonly record struct ChipPower(int PackageMilliwatts, int? CoresMilliwatts = null, int? GraphicsMilliwatts = null);
+
 public static class BatteryDetails
 {
     /// <summary>Below this the battery is neither charging nor in use as far as anyone can tell.</summary>
@@ -64,10 +67,32 @@ public static class BatteryDetails
     public static string? Health(BatteryReading r) =>
         HealthPercent(r) is { } percent ? $"{percent}% of new ({WattHours(r.DesignMilliwattHours!.Value)})" : null;
 
-    /// <summary>The panel's rows, in order, leaving out what Windows did not report.</summary>
-    public static IReadOnlyList<(string Label, string Value)> Rows(BatteryReading r)
+    /// <summary>"Charging at 45 W" or "Using 12.4 W" for the battery alone; "Idle" when neither; null without a reading.</summary>
+    public static string BatteryFlow(BatteryReading r) =>
+        r.RateMilliwatts is { } rate && Math.Abs(rate) >= IdleMilliwatts
+            ? rate > 0 ? $"{Watts(rate)} in" : $"{Watts(rate)} out"
+            : r.PluggedIn ? (r.Charging ? "Charging" : "Not charging") : "Idle";
+
+    /// <summary>Where the power comes from: Windows reports no wall or system figure, so the panel says so.</summary>
+    public static string Wall(BatteryReading r) =>
+        r.PluggedIn ? "Not reported by Windows" : "Unplugged";
+
+    /// <summary>"31.6 W · cores 20.8 W · graphics 0.1 W"; the parts Windows did not report are left out.</summary>
+    public static string Chip(ChipPower chip)
     {
-        var rows = new List<(string, string)> { ("Power", Flow(r)) };
+        var text = Watts(chip.PackageMilliwatts);
+        if (chip.CoresMilliwatts is { } cores) text += $" · cores {Watts(cores)}";
+        if (chip.GraphicsMilliwatts is { } graphics && graphics >= IdleMilliwatts) text += $" · graphics {Watts(graphics)}";
+        return text;
+    }
+
+    /// <summary>The panel's rows, in order, leaving out what Windows did not report.</summary>
+    public static IReadOnlyList<(string Label, string Value)> Rows(BatteryReading r, ChipPower? chip = null)
+    {
+        var rows = new List<(string, string)> { ("Wall", Wall(r)), ("Battery", BatteryFlow(r)) };
+        // On the battery alone, what leaves it is what everything draws.
+        if (!r.PluggedIn && r.RateMilliwatts is { } rate && rate <= -IdleMilliwatts) rows.Add(("System", Watts(rate)));
+        if (chip is { } c) rows.Add(("Chip", Chip(c)));
         if (TimeLeft(r) is { } time) rows.Add(("Time", time));
         if (Charge(r) is { } charge) rows.Add(("Charge", charge));
         if (Health(r) is { } health) rows.Add(("Health", health));

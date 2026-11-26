@@ -246,11 +246,11 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 **Clipboard & Files (7)**
 | Feature | Status | Windows approach |
 |---|---|---|
-| clipboard history | P | `AddClipboardFormatListener`; honours apps that exclude themselves from history |
-| paste plain | P | |
-| URL cleaner | P | port the rules |
-| shelf | P | OLE drop target; shake to summon |
-| Finder cut/paste | P (part) | only "paste image as PNG in Explorer" (folder found via `IShellWindows`). Ctrl+X/V is built in |
+| clipboard history | ✓ M8 | `AddClipboardFormatListener`; honours apps that exclude themselves from history |
+| paste plain | ✓ M8 | clipboard swapped for the text, Ctrl+V sent, clipboard put back |
+| URL cleaner | ✓ M8 | upstream rules ported |
+| shelf | ✓ M3 + M8 | OLE drop target; shake to summon; floating card |
+| Finder cut/paste | ✓ M8 (part) | only "paste image as PNG in Explorer" (folder found via `IShellWindows`). Ctrl+X/V is built in |
 | Finder rename | N | F2 |
 | disk image installer | D | |
 
@@ -276,7 +276,7 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
 | cleaning mode | |
 | color picker | |
 | OCR + QR | `Windows.Media.Ocr` + ZXing |
-| camera preview | `MediaCapture` (shared, read-only) + `MediaFrameReader` into a `WriteableBitmap`. The island's Camera page is ported in M3; the floating mirror window comes in M9 |
+| camera preview | `MediaCapture` (shared, read-only) + `MediaFrameReader` into a `WriteableBitmap`. The island's Camera page is ported in M3; the floating mirror window arrived in M9a |
 | wallpaper | `IDesktopWallpaper` |
 | screenshot | Windows.Graphics.Capture + annotate editor |
 | screen recorder | WGC + WASAPI loopback/process loopback + Media Foundation (NVENC) |
@@ -319,18 +319,22 @@ Menu-bar readouts become per-metric tray icons, plus island/strip readouts.
   - Mixer panel section and island page: per-app sessions with icons, volume, mute, meters, pinning and order.
   - Per-app output device, output switcher hotkey, priority auto-switch, quieter on headphone disconnect, mic mute with island indicator.
   - Boost above 100% last, as an experiment.
-- **M5 Monitor.**
+- **M5 Monitor.** Done except what needs the elevated helper (M12): temperatures, fan speeds, per-app network, and system or adapter watts, which Windows does not give an unprivileged app. CPU comes from the kernel's tick counters (so upstream's tick contract ports exactly), GPU from the GPU Engine counters Task Manager reads (never NVML, so the dGPU is not kept awake), memory pressure is derived, and disk SMART health is left out.
   - Samplers: CPU, GPU, memory, disk, network, battery.
   - History graphs, top processes, alerts (port `SustainedAlertGate`).
   - Tray readout icons, island "system" page and strip readouts, speed test (same endpoint as upstream), connected devices.
-- **M6 Energy & quick wins.**
+- **M6 Energy & quick wins.** Done. Closed-lid mode changes the active scheme's lid action (with a crash-safe marker); brightness routes are WMI, DDC/CI and an overlay dim (Windows rejects dark gamma ramps); the panel is found by its backlight on hybrid-graphics PCs, where it is not marked internal. Not built: keyboard backlight (no Windows API), the firmware brightness keys, monitor speaker volume, per-display power, SMART-style disk rows.
   - Keep awake (+ island activity), brightness (internal, DDC, dim), Bluetooth on sleep.
   - Focus-follows-mouse and acceleration toggles.
   - Quick toggles (incl. refresh rate), quit apps, kill process, port manager.
   - Optional elevated-at-login task.
-- **M7 Windows & input.** Switcher, window layout, quit protection, scroll family, mouse buttons, debounce, super key, snippets.
-- **M8 Clipboard & files.** History, auto-clear, paste plain, URL cleaner, Shelf window, paste image into Explorer.
-- **M9 Tools.** Command bar, quick launcher, radial menu, scratchpad, cleaning mode, color picker, OCR/QR, camera preview window, wallpaper.
+- **M7 Windows & input.** Done. One hook pipeline with ordered subscribers, a marker on everything Notchly sends, a pause for full-screen games and administrator windows, and Core rules for each feature (the wheel decisions are a planner tested without a wheel). Everything installs switched off. Not built: the panel's layout grid, Spaces-specific switcher rules, per-key debounce editing in Settings, and the Microsoft 365 switch only frees the shortcuts for the current user.
+- **M8 Clipboard & files.** Done. One clipboard watcher (`AddClipboardFormatListener`, read after a short settle) feeds the link cleaner, then the history; Notchly's own writes are recognised by their sequence numbers and carry the formats that keep Windows' own history from recording them. History, plain paste and image paste install switched off. The Shelf is one service shared by the island's Files page and a floating card; "content drag" is judged by where a drag began and whether the window is in its move loop, since Windows has no drag clipboard. Not built: Explorer cut/paste (built in), rename (F2), the disk image installer, redirect or AMP unwrapping in the link cleaner (upstream has none), history editing and OCR, the menu-bar preview of the clipboard, and screenshot-to-Shelf (with screenshots).
+  - Clipboard history (island page + window), auto-clear, paste as plain text, link cleaner, paste image into Explorer as a PNG.
+  - Floating Shelf: shortcut, shake, drop zone, edge peek; shared with the Files page.
+- **M9a Small tools.** Done. Color picker, copy text from screen with QR reading, cleaning mode, the floating camera mirror, scratchpad and wallpaper. The colour picker and text reading share one frozen-screen overlay (built for screenshots to reuse); text comes from Windows' own recognizer and codes from ZXing.Net; cleaning mode is the hook pipeline's new top priority; the scratchpad's preview is drawn from Core's own block parser (no Markdown package); wallpapers are set through the shell's wallpaper object. Every shortcut starts off. Not built: the capture chooser and loupe zoom options (screenshots, M10), panel tiles and the island's Scratchpad, Tools and Captures pages (with the launcher, M9b), Apple's catalog and iCloud downloads, micro QR, the second "fast" recognition pass, and cleaning mode's mouse-release gate (the mouse is never blocked).
+- **M9b Command bar.** Done. The pure engine (search and ranking, preferences, learning, calculator, units, dates, colours, links, file-search rules, the settings-page table, emoji and the empty-bar composition) is in Core with the upstream numbers as tests; the Windows side lists apps from the shell's Apps folder, windows from the switcher's inventory, menu items of classic Win32 apps, the selected text through UI Automation, files through the Windows Search index (only in folders you add), and types emoji and case changes at the caret through the input injector. Learning is kept in settings (usage, query habits under a DPAPI-protected key). Not built: scripts in links (decided), the droplet animation, ASCII layout borrowing, per-row global shortcuts and the category chips, the mascot's Command Bar face, rows for features that do not exist yet, and menu items of apps whose menus Windows only exposes by opening them.
+- **M9c Launcher and radial menu.** Quick launcher with the island's Tools page, radial menu.
 - **M10 Capture & media.** Screenshot + editor, recorder + editor, media tools.
 - **M11 App management.** winget manager, app updates, uninstaller, cleaner + schedule.
 - **M12 Elevated helper.** `Notchly.Helper` service (named pipe locked to the user): LibreHardwareMonitor temperatures, OMEN fan curves (port the policy in `FanControlSupport.swift`), per-process network via ETW.

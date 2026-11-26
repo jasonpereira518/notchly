@@ -22,7 +22,9 @@ using Notchly.App.Island.Lyrics;
 using Notchly.App.Island.Mascot;
 using Notchly.App.Island.MenuBar;
 using Notchly.App.Island.Notifications;
+using Notchly.App.Island.Metrics;
 using Notchly.App.Island.Mixer;
+using Notchly.App.Energy;
 using Notchly.App.Island.Watch;
 using Notchly.App.Platform;
 using Notchly.App.Platform.Audio;
@@ -39,6 +41,7 @@ using Notchly.Core.Agents;
 using Notchly.Core.Calendar;
 using Notchly.Core.Camera;
 using Notchly.Core.Downloads;
+using Notchly.Core.Energy;
 using Notchly.Core.Features;
 using Notchly.Core.MenuBar;
 using Notchly.Core.Notch;
@@ -55,14 +58,14 @@ namespace Notchly.App.Island;
 
 public sealed class IslandService : IFeatureService, IMascotIsland
 {
-    private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, Notice, Drop, Open }
+    private enum ClosedContent { Bare, Music, Timer, Watch, Download, Calendar, Agents, KeepAwake, Notice, Drop, Open }
     private enum NoticeKind { Volume, Brightness, Microphone, Battery, Track, Timer, Download, Agents, Notification, Accessory, Watch }
 
     private sealed record Notice(NoticeKind Kind, string Glyph, double? Level, string? Text, ImageSource? Art,
                                  double Leading, double Trailing, double Seconds, Color? Tint = null, string? Detail = null,
                                  uint? NotificationId = null, MascotReaction? Companion = null);
 
-    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.Timer];
+    private static readonly NotchModule[] ImplementedPages = [NotchModule.Controls, NotchModule.Music, NotchModule.Clipboard, NotchModule.Files, NotchModule.Downloads, NotchModule.Calendar, NotchModule.Agents, NotchModule.Notifications, NotchModule.Camera, NotchModule.Watch, NotchModule.Mixer, NotchModule.System, NotchModule.Timer];
     private static readonly Color Orange = Color.FromRgb(0xFF, 0x9F, 0x0A), Red = Color.FromRgb(0xFF, 0x45, 0x3A),
                                   Green = Color.FromRgb(0x30, 0xD1, 0x58), Amber = Color.FromRgb(0xFF, 0xD6, 0x0A);
 
@@ -78,6 +81,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private LiveEqualizerService? _equalizer;
     private ShelfService? _shelf;
     private FilesPage? _files;
+    private Clipboard.ClipboardPage? _clipboardPage;
     private DownloadService? _downloads;
     private DownloadsPage? _downloadsPage;
     private CalendarService? _calendar;
@@ -90,6 +94,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private WatchService? _watch;
     private WatchPage? _watchPage;
     private MixerPage? _mixerPage;
+    private SystemPage? _systemPage;
     private BluetoothAccessories? _accessories;
     /// <summary>Accessory batteries: one alert per low episode, kept across lock and sleep (upstream batteryState).</summary>
     private NotchAccessoryBatteryState _accessoryBattery = new();
@@ -134,6 +139,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private int? _brightness;
     /// <summary>The battery's watts and capacities, read while the home page shows them.</summary>
     private BatteryReading? _batteryReading;
+    private ChipPower? _chipPower;
+    private Notchly.App.Platform.Monitor.ChipPowerSampler? _chipSampler;
     private bool _batteryPanelOpen;
     private DispatcherTimer? _batteryTimer;
     private ForegroundWatcher? _foreground;
@@ -231,9 +238,11 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _musicPage = new MusicPage(window, _music, () => { Collapse(); App.Current.ShowSettings(SettingsPage.Island); }, PlayPlaylistAsync);
         SpotifyAccount.Changed += OnSpotifyAccountChanged;
         _equalizer = new LiveEqualizerService(_settings, _dispatcher, () => _media?.Current);
-        _shelf = new ShelfService(_dispatcher);
+        _shelf = App.Current.Shelf;
         _files = new FilesPage(window, _shelf, _settings, modal => _modalOpen = modal, Collapse);
         _files.Render();
+        _clipboardPage = new Clipboard.ClipboardPage(window, () => App.Current.Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory), _settings,
+            new Pasteboard.ClipboardPaster(App.Current.Injector), Collapse, () => App.Current.ShowClipboardWindow());
         _downloads = new DownloadService(_dispatcher);
         _downloads.Changed += OnDownloadsChanged;
         _downloads.Arrived += OnDownloadArrived;
@@ -260,6 +269,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _watch.Chosen += OnWatchChosen;
         _watchPage = new WatchPage(window, _watch, ChooseWatchArea, modal => _modalOpen = modal, () => Open(takeFocus: true));
         _mixerPage = new MixerPage(window, () => ((App)Application.Current).Features.Get<Notchly.App.Sound.MixerService>(AppFeature.Mixer), _settings, modal => _modalOpen = modal);
+        _systemPage = new SystemPage(window, () => ((App)Application.Current).Monitor, _settings);
+        _systemPage.Resized += () => { if (_expanded && _page == NotchModule.System) Refresh(); };
         _accessories = new BluetoothAccessories(work => _dispatcher.BeginInvoke(work));
         _accessories.Connected += OnAccessoryConnected;
         _accessories.Disconnected += OnAccessoryDisconnected;
@@ -279,6 +290,10 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             _volume.OutputsChanged += UpdateVolumeControls;
         }
         catch (Exception e) { Log.Warning(e, "Audio endpoints unavailable"); }
+        KeepAwakeService.AnyChanged += OnKeepAwakeChanged;
+        KeepAwakeService.ActiveChanged += OnKeepAwakeActive;
+        BrightnessService.AnyChanged += OnBrightnessServiceChanged;
+        BrightnessService.Stepped += OnBrightnessStepped;
         _power = new PowerService(_dispatcher);
         _power.BatteryChanged += OnBatteryChanged;
         _power.BrightnessChanged += OnBrightnessChanged;
@@ -286,7 +301,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         // The battery's flow changes by the second: read it again while the home page is open.
         _batteryTimer = NewTimer(UpdateBatteryReading, TimeSpan.FromSeconds(3));
         _foreground = new ForegroundWatcher();
-        _foreground.ForegroundChanged += hwnd => { _window?.ReassertTopmost(); CheckFullscreen(); _menuBar?.OnForeground(hwnd); TintSoon(); };
+        _foreground.ForegroundChanged += hwnd => { _clipboardPage?.NoteForeground(hwnd); _menuBar?.OnForeground(hwnd); TintSoon(); _window?.ReassertTopmost(); CheckFullscreen(); };
         SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
         SystemEvents.SessionSwitch += OnSessionSwitch;
 
@@ -316,6 +331,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _mascot?.Dispose(); _mascot = null;
         _mascotRefreshTimer?.Stop();
+        _gazeTimer?.Stop();
         _mascotView = null; _noticeMascot = null; _noticeMascotFor = null; _mascotLayer = null;
         _mascotAtRest = false; _wingOpacity = (1, 1);
         _volumeKeys?.Dispose(); _volumeKeys = null;
@@ -327,7 +343,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _equalizer?.Dispose(); _equalizer = null;
         _dragHook?.Dispose(); _dragHook = null;
         _revealZone = null;
-        _shelf?.Dispose(); _shelf = null; _files = null;
+        _shelf = null; _files = null; _clipboardPage = null;
         _downloads?.Dispose(); _downloads = null; _downloadsPage = null;
         _calendar?.Dispose(); _calendar = null; _calendarPage = null;
         _agents?.Dispose(); _agents = null; _agentsPage = null;
@@ -335,6 +351,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _cameraPage?.Dispose(); _cameraPage = null;
         _watch?.Dispose(); _watch = null; _watchPage = null;
         if (_mixerPage is not null) _mixerPage.Visible = false;
+        if (_systemPage is not null) _systemPage.Visible = false;
+        _systemPage = null;
         _mixerPage = null;
         _accessories?.Dispose(); _accessories = null;
         _accessoriesOn = false;
@@ -342,6 +360,11 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _accessoryNotices.Clear();
         _dragPlaceholder = false;
         _volume?.Dispose(); _volume = null;
+        KeepAwakeService.AnyChanged -= OnKeepAwakeChanged;
+        KeepAwakeService.ActiveChanged -= OnKeepAwakeActive;
+        BrightnessService.AnyChanged -= OnBrightnessServiceChanged;
+        BrightnessService.Stepped -= OnBrightnessStepped;
+        _keepAwakeTick?.Stop();
         _power?.Dispose(); _power = null;
         _menuBar?.Dispose(); _menuBar = null;
         _strip?.Close(); _strip = null;
@@ -443,6 +466,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         {
             NotchModule.Music => w.MusicIdle.Visibility == Visibility.Visible ? w.MusicIdle : w.MusicPlayer,
             NotchModule.Files => w.FilesPage,
+            NotchModule.Clipboard => w.ClipboardPage,
             NotchModule.Downloads => w.DownloadsPage,
             NotchModule.Calendar => w.CalendarPage,
             NotchModule.Agents => w.AgentsPage,
@@ -450,6 +474,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotchModule.Camera => w.CameraPage,
             NotchModule.Watch => w.WatchPage,
             NotchModule.Mixer => w.MixerPage,
+            NotchModule.System => w.SystemPage,
             NotchModule.Timer => w.TimerPage,
             _ => w.HomePage,
         };
@@ -473,6 +498,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_media?.Current is { IsPlaying: true } && _settings.GetBool(DefaultsKey.NotchShowPlayingMusic)
             && _settings.GetString(DefaultsKey.NotchIdleContent, "music") == "music")
             running.Add(NotchCompactActivity.Music);
+        if (KeepAwakeLive is { Active: true }
+            && NotchKeepAwakeSupport.ShowsActivity(true, true, _settings.GetBool(DefaultsKey.NotchKeepAwakeActivity)))
+            running.Add(NotchCompactActivity.KeepAwake);
         return NotchActivities.Prioritized(running).Cast<NotchCompactActivity?>().FirstOrDefault();
     }
 
@@ -541,6 +569,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         NotchCompactActivity.Downloads => (g.DownloadStrip(DownloadWing(g)), ClosedContent.Download),
         NotchCompactActivity.Calendar => (g.CalendarStrip(CalendarWing()), ClosedContent.Calendar),
         NotchCompactActivity.Agents => (g.AgentStrip(AgentWing(g)), ClosedContent.Agents),
+        NotchCompactActivity.KeepAwake => (g.TimerStrip(52), ClosedContent.KeepAwake),
         _ => (g.MusicStrip, ClosedContent.Music),
     };
 
@@ -603,6 +632,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 w.StripText.Foreground = Brush(_timer.IsRunning ? Orange : Colors.White);
                 w.StripText.Visibility = Visibility.Visible;
                 break;
+            case ClosedContent.KeepAwake when KeepAwakeLive is { } awake:
+                // Upstream's mark is a yellow cup; endless sessions show the infinity mark in its place.
+                w.StripIcon.Text = "\uE706";
+                w.StripIcon.Foreground = Brush(Color.FromRgb(0xFF, 0xD6, 0x0A));
+                w.StripIcon.Visibility = Visibility.Visible;
+                w.StripText.Text = awake.RemainingSeconds is { } left ? NotchKeepAwakeSupport.CompactText(left) : "\u221E";
+                w.StripText.Foreground = Brush(Color.FromRgb(0xFF, 0xD6, 0x0A));
+                w.StripText.Visibility = Visibility.Visible;
+                break;
             case ClosedContent.Download when _downloads?.Current is { } download:
                 ShowDownloadStrip(w, download, Math.Max(0, (size.Width - g.CameraWidth) / 2));
                 break;
@@ -649,12 +687,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
     // MARK: Menu bar colour and the island's edge (Windows-only)
 
-    /// <summary>A new app in front: read its colour once its window has settled, and again a little later.</summary>
+    /// <summary>A new app in front: read its colour at once, then as its window settles and a little later.</summary>
     private async void TintSoon()
     {
-        await Task.Delay(150);
         UpdateTint();
-        await Task.Delay(450);
+        await Task.Delay(70);
+        UpdateTint();
+        await Task.Delay(180);
+        UpdateTint();
+        await Task.Delay(400);
         UpdateTint();
     }
 
@@ -913,6 +954,19 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         Refresh();
     }
 
+    /// <summary>Whether the island is open on a page.</summary>
+    public bool IsOpenOn(NotchModule module) => _expanded && _page == module;
+
+    /// <summary>Opens the island on a page with the keyboard (a shortcut for that page). False when the island does not offer it.</summary>
+    public bool OpenPage(NotchModule module, bool takeFocus = true)
+    {
+        if (!_running || !Pages().Contains(module)) return false;
+        _page = module;
+        Open(takeFocus);
+        ShowPage(module);
+        return true;
+    }
+
     /// <summary>Opens the island without taking focus, or closes it (Notchly.exe --toggle-island).</summary>
     public void Toggle()
     {
@@ -937,6 +991,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         }
         _hoverState.Close(_inside);
         if (_downloadsPage is not null) _downloadsPage.Visible = false;
+        if (_clipboardPage is not null) _clipboardPage.Visible = false;
         if (_calendarPage is not null) _calendarPage.Visible = false;
         if (_agentsPage is not null) _agentsPage.Visible = false;
         if (_notificationsPage is not null) _notificationsPage.Visible = false;
@@ -944,6 +999,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_cameraPage is not null) _cameraPage.Visible = false;
         if (_watchPage is not null) _watchPage.Visible = false;
         if (_mixerPage is not null) _mixerPage.Visible = false;
+        if (_systemPage is not null) _systemPage.Visible = false;
         _window.ShowOpenLayer(false);
         if (_mascotLayer is not null) NotchWindow.Fade(_mascotLayer, 1, 0.2, delay: 0.14);
         SyncLyrics();
@@ -1054,6 +1110,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject agenda && InCalendarAgenda(agenda)) return;
         // And the AI page, once its cards outgrow the island.
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject cards && InTaggedScroller(cards, "AgentsPage")) return;
+        if (_expanded && !inHeader && e.OriginalSource is DependencyObject metrics && InTaggedScroller(metrics, "SystemPage")) return;
         if (_expanded && !inHeader && e.OriginalSource is DependencyObject messages && InTaggedScroller(messages, "NotificationsPage")) return;
         var action = _gesture.Handle(0, -e.Delta / 120.0 * 24, Now, began: false, ended: false, momentum: false, precise,
             hasPhase: false,
@@ -1121,9 +1178,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
     private bool Starting => Now - _startedAt < 2.5;
 
+    private double _lastVolume = double.NaN;
+
     private void OnVolumeChanged(double level, bool muted)
     {
         UpdateVolumeControls();
+        // Crossing into the top tenth makes the companion flinch, whether or not the island shows the level.
+        var before = double.IsNaN(_lastVolume) ? level : _lastVolume;
+        _lastVolume = level;
+        if (!Starting && MascotSupport.VolumeReaction(before, level, muted) is { } loud) _mascot?.React(MascotSupport.OnLevel(loud));
         if (!_settings.GetBool(DefaultsKey.NotchVolume) || Starting) return;
         var glyph = muted || level <= 0 ? "" : level < 0.34 ? "" : level < 0.67 ? "" : "";
         ShowNotice(new Notice(NoticeKind.Volume, glyph, muted ? 0 : level, null, null, 44, 108, 1.6));
@@ -1140,8 +1203,76 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _mascot?.React(reaction);
     }
 
+    // MARK: Keep awake and display brightness (M6)
+
+    private static KeepAwakeService? KeepAwakeLive => (Application.Current as App)?.Features.Get<KeepAwakeService>(AppFeature.KeepAwake);
+    private static BrightnessService? BrightnessLive =>
+        (Application.Current as App) is { } app && app.Settings.IsEngaged(AppFeature.Brightness) ? app.Features.Get<BrightnessService>(AppFeature.Brightness) : null;
+    private DispatcherTimer? _keepAwakeTick;
+
+    private void OnKeepAwakeActive(bool active) => _dispatcher.BeginInvoke(() => { if (_running && !Starting) _mascot?.React(MascotSupport.KeepAwakeReaction(active)); });
+
+    private void OnKeepAwakeChanged() => _dispatcher.BeginInvoke(() =>
+    {
+        if (!_running) return;
+        UpdateAwakeChip();
+        Refresh();
+        ScheduleKeepAwakeTick();
+    });
+
+    /// <summary>The strip's reading changes once a minute, on the minute (the tick start), so a timer wakes it exactly then.</summary>
+    private void ScheduleKeepAwakeTick()
+    {
+        _keepAwakeTick?.Stop();
+        if (KeepAwakeLive is not { Active: true, Paused: false, End: { } end } || !_settings.GetBool(DefaultsKey.NotchKeepAwakeActivity)) return;
+        var now = DateTimeOffset.Now.ToUnixTimeMilliseconds() / 1000.0;
+        var endSeconds = new DateTimeOffset(end).ToUnixTimeMilliseconds() / 1000.0;
+        var next = NotchKeepAwakeSupport.TickStart(endSeconds, now) + 60 - now;
+        _keepAwakeTick ??= new DispatcherTimer(DispatcherPriority.Background, _dispatcher);
+        _keepAwakeTick.Interval = TimeSpan.FromSeconds(Math.Clamp(next + 0.2, 0.5, 61));
+        _keepAwakeTick.Tick -= OnKeepAwakeTick;
+        _keepAwakeTick.Tick += OnKeepAwakeTick;
+        _keepAwakeTick.Start();
+    }
+
+    private void OnKeepAwakeTick(object? sender, EventArgs e)
+    {
+        _keepAwakeTick?.Stop();
+        if (!_running) return;
+        UpdateAwakeChip();
+        if (_shown == ClosedContent.KeepAwake) Refresh();
+        ScheduleKeepAwakeTick();
+    }
+
+    private void UpdateAwakeChip()
+    {
+        if (_window is not { } w) return;
+        var service = KeepAwakeLive;
+        w.HomeAwakeChip.Visibility = service is null ? Visibility.Collapsed : Visibility.Visible;
+        if (service is null) return;
+        var on = service.Active;
+        w.HomeAwakeText.Text = on ? (service.RemainingSeconds is { } left ? "Awake " + NotchKeepAwakeSupport.CompactText(left) : "Awake \u221E") : "Awake";
+        w.HomeAwakeIcon.Foreground = on ? Brush(Color.FromRgb(0xFF, 0xD6, 0x0A)) : Brushes.White;
+    }
+
+    private void OnBrightnessServiceChanged() => _dispatcher.BeginInvoke(() => { if (_running) UpdateBrightnessControl(); });
+
+    /// <summary>A shortcut stepped an external or dimmed display: the built-in panel's own brightness events show their notice.</summary>
+    private void OnBrightnessStepped(BrightnessDisplay display)
+    {
+        if (display.Kind == DisplayRouteKind.Internal) return;
+        _dispatcher.BeginInvoke(() =>
+        {
+            if (!_running || !_settings.GetBool(DefaultsKey.NotchBrightness) || Starting) return;
+            ShowNotice(new Notice(NoticeKind.Brightness, "\uE706", display.Level, null, null, 44, 108, 1.6));
+        });
+    }
+
     private void OnBrightnessChanged(int level)
     {
+        // Full brightness makes the companion squint, and nearly dark has it blink slowly.
+        var before = _brightness ?? level;
+        if (!Starting && MascotSupport.BrightnessReaction(before, level) is { } dazzled) _mascot?.React(MascotSupport.OnLevel(dazzled));
         _brightness = level;
         UpdateBrightnessControl();
         if (!_settings.GetBool(DefaultsKey.NotchBrightness) || Starting) return;
@@ -1216,7 +1347,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_notice is { Kind: NoticeKind.Track } notice && _media?.Current is { } current && !ReferenceEquals(notice.Art, current.Artwork))
             _notice = notice with { Art = current.Artwork };
         _lyrics?.PlaybackChanged(CurrentIdentity());
-        _mascot?.OnMusic(_media?.Current?.IsPlaying == true);
+        _mascot?.OnMusic(_media?.Current?.IsPlaying == true, _media?.Current is { } song ? song.Title + "\n" + song.Artist : null);
         UpdatePages();
         SyncLyrics();
         Refresh();
@@ -1801,6 +1932,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotificationBanner.Seconds, Detail: content.CompactDetail, NotificationId: item.Id));
         // "Hide the system banner": once the island shows it, the original leaves Windows.
         if (_notice?.NotificationId == item.Id && notifications.HidesSystemBanner) notifications.HideOriginal(item.Id);
+        // The companion glances at it and perks up, when the banner is the notice on show.
+        if (_notice?.NotificationId == item.Id) _mascot?.React(MascotSupport.Notified);
     }
 
     /// <summary>The width a message takes once wrapped at <paramref name="room"/> (its widest line).</summary>
@@ -1990,12 +2123,19 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         var kind = NotchAccessorySupport.Kind(e.Name, e.MajorClass, e.MinorClass);
         EnqueueAccessory(AccessoryNotice(NotchAccessorySupport.Glyph(kind), NotchAccessorySupport.ConnectedText(e.Name, e.Percent), null),
                          e.Device, isLow: false);
-        _mascot?.React(MascotSupport.AccessoryConnected);
+        // Headphones go on with a bob and the band over its head; any other accessory is a perk-up.
+        _accessoryKinds[e.Device] = kind;
+        _mascot?.React(MascotSupport.AccessoryConnectedFor(kind));
     }
+
+    /// <summary>What each accessory connected was, so that headphones going are told from anything else going.</summary>
+    private readonly Dictionary<string, AccessoryKind> _accessoryKinds = new(StringComparer.Ordinal);
 
     private void OnAccessoryDisconnected(AccessoryEvent.Disconnected e)
     {
         if (_accessoriesOn) _accessoryNotices.RemoveDevice(e.Device);
+        AccessoryKind? kind = _accessoryKinds.Remove(e.Device, out var known) ? known : null;
+        if (_accessoriesOn && !Starting && MascotSupport.AccessoryDisconnectedFor(kind) is { } gone) _mascot?.React(gone);
     }
 
     /// <summary>A fresh reading: a measured recharge withdraws a waiting warning, and a new low episode warns once.</summary>
@@ -2178,6 +2318,65 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     /// <summary>Settings asks it to say hello in the island now; false when the island has no room for it.</summary>
     public bool GreetMascot() => _mascot?.Greet() == true;
 
+    // MARK: The companion's eyes on the cursor (a Windows addition: upstream follows the pointer over the island only)
+
+    private DispatcherTimer? _gazeTimer;
+    private readonly MascotGazeTracker _gaze = new();
+
+    /// <summary>
+    /// Reads the cursor, a position only (it never moves or presses anything), while the companion rests awake in the
+    /// closed island on screen, and tells it where to look. Off in full screen, while hidden in the island, behind an
+    /// activity, in the open island and without Windows' animation effects, so nothing runs when nothing shows.
+    /// </summary>
+    private void SyncGaze()
+    {
+        var watching = _running && _mascotAtRest && !_expanded && !MascotService.ReduceMotion && ClosedVisible
+                       && _mascotView is { IsVisible: true };
+        if (!watching)
+        {
+            StopGaze();
+            return;
+        }
+        var interval = TimeSpan.FromSeconds(_mascot?.LowPower == true ? MascotSupport.GazePollIntervalLowPower : MascotSupport.GazePollInterval);
+        if (_gazeTimer is null)
+        {
+            _gazeTimer = new DispatcherTimer(DispatcherPriority.Input, _dispatcher);
+            _gazeTimer.Tick += (_, _) => OnGazeTick();
+        }
+        _gazeTimer.Interval = interval;
+        if (_gazeTimer.IsEnabled) return;
+        _gaze.Reset();
+        if (_mascotView is { } view) view.Stage.GlobalGaze = true;
+        _gazeTimer.Start();
+    }
+
+    private void StopGaze()
+    {
+        if (_gazeTimer is not { IsEnabled: true }) return;
+        _gazeTimer.Stop();
+        _gaze.Reset();
+        if (_mascotView is { } view) view.Stage.GlobalGaze = false;
+    }
+
+    private void OnGazeTick()
+    {
+        if (_mascotView is not { IsVisible: true } view || !_mascotAtRest || _expanded || !ClosedVisible) { StopGaze(); return; }
+        if (!Native.GetCursorPos(out var cursor)) return;
+        switch (_gaze.Update(new PointD(cursor.X, cursor.Y), Now))
+        {
+            case MascotGazeStep.Follow:
+                // Screen pixels to the view's points, through its own window's scale.
+                var local = view.PointFromScreen(new Point(cursor.X, cursor.Y));
+                view.Stage.GazeAt(new PointD(local.X, local.Y));
+                view.Wake();
+                break;
+            case MascotGazeStep.Lose:
+                view.Stage.GazeLost();
+                view.Wake();
+                break;
+        }
+    }
+
     bool IMascotIsland.Running => _running;
     bool IMascotIsland.Expanded => _expanded;
     bool IMascotIsland.PointerInside => _inside;
@@ -2262,6 +2461,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         }
         else if (!yielding) view.Visibility = Visibility.Collapsed;
         _mascotAtRest = track is not null && content == ClosedContent.Bare && rests;
+        SyncGaze();
         PlaceMascots(_drawn == SizeD.Zero ? g.Collapsed : _drawn);
 
         // What a visit walks over steps aside: only the wing it stands in for a reaction or a countdown beside a
@@ -2479,9 +2679,12 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.HomeMute.Click += (_, _) => _volume?.ToggleMute();
         w.HomeTimerChip.Click += (_, _) => ShowPage(NotchModule.Timer);
         w.HomeVolume.ValueChanged += (_, e) => { if (!_updatingControls && _volume is not null) _volume.Volume = e.NewValue / 100; };
+        w.HomeAwakeChip.Click += (_, _) => KeepAwakeLive?.Toggle();
         w.HomeBrightness.ValueChanged += (_, e) =>
         {
-            if (_updatingControls || _power is null) return;
+            if (_updatingControls) return;
+            if (BrightnessLive is { Focus: { } focus } service) { service.SetLevel(focus.Id, e.NewValue / 100); return; }
+            if (_power is null) return;
             _brightness = (int)Math.Round(e.NewValue);
             _power.SetBrightness(_brightness.Value);
         };
@@ -2533,6 +2736,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             .Where(m => ImplementedPages.Contains(m) && NotchSupport.IsAvailable(m, Installed)
                         && (m != NotchModule.Timer || _settings.GetBool(DefaultsKey.NotchTimerEnabled))
                         && (m != NotchModule.Files || _settings.GetBool(DefaultsKey.NotchShelf))
+                        && (m != NotchModule.Clipboard || _settings.GetBool(DefaultsKey.NotchClipboard))
                         && (m != NotchModule.Downloads || _settings.GetBool(DefaultsKey.NotchDownloadsEnabled))
                         && (m != NotchModule.Calendar || _settings.GetBool(DefaultsKey.NotchCalendarEnabled))
                         && (m != NotchModule.Agents || _settings.GetBool(DefaultsKey.NotchAgentsEnabled))
@@ -2552,12 +2756,14 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             {
                 NotchModule.Music => ("", "Music"),
                 NotchModule.Files => ("\uE8B7", "Files"),
+                NotchModule.Clipboard => ("\uE77F", "Clipboard"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),
                 NotchModule.Notifications => ("\uEA8F", "Notifications"),
                 NotchModule.Camera => ("\uE8B8", "Camera"),
                 NotchModule.Watch => (WatchPage.EyeGlyph, "Watch"),
+                NotchModule.System => ("", "System"),
                 NotchModule.Mixer => ("", "Volume mixer"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
@@ -2584,6 +2790,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _window.FilesPage.Visibility = module == NotchModule.Files ? Visibility.Visible : Visibility.Collapsed;
         _window.DownloadsPage.Visibility = module == NotchModule.Downloads ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Files && _geometry is { } g) _files?.Layout(g.ContentBudget);
+        _window.ClipboardPage.Visibility = module == NotchModule.Clipboard ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.Clipboard && _geometry is { } clipGeometry) _clipboardPage?.Layout(clipGeometry.ContentBudget);
+        if (_clipboardPage is not null) _clipboardPage.Visible = module == NotchModule.Clipboard && _expanded;
         if (module == NotchModule.Downloads && _geometry is { } dg) _downloadsPage?.Layout(dg.ContentBudget);
         if (_downloadsPage is not null) _downloadsPage.Visible = module == NotchModule.Downloads;
         _window.CalendarPage.Visibility = module == NotchModule.Calendar ? Visibility.Visible : Visibility.Collapsed;
@@ -2606,6 +2815,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         _window.MixerPage.Visibility = module == NotchModule.Mixer ? Visibility.Visible : Visibility.Collapsed;
         if (module == NotchModule.Mixer && _geometry is { } mg) _mixerPage?.Layout(mg.ContentBudget);
         if (_mixerPage is not null) _mixerPage.Visible = module == NotchModule.Mixer && _expanded;
+        _window.SystemPage.Visibility = module == NotchModule.System ? Visibility.Visible : Visibility.Collapsed;
+        if (module == NotchModule.System && _geometry is { } sg) _systemPage?.Layout(sg.ContentBudget, sg.ContentWidth);
+        if (_systemPage is not null) _systemPage.Visible = module == NotchModule.System && _expanded;
         SyncLyrics();
         foreach (RadioButton tab in _window.Tabs.Children) tab.IsChecked = (NotchModule)tab.Tag == module;
         UpdatePages();
@@ -2708,6 +2920,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
         UpdateBatteryControls();
         UpdateBrightnessControl();
+        UpdateAwakeChip();
 
         var mode = _timer.HasSession ? _timer.Mode : SelectedTimerMode;
         w.ModeTimer.IsChecked = mode == NotchTimerMode.Timer;
@@ -2731,10 +2944,13 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private void UpdateBrightnessControl()
     {
         if (_window is not { } w) return;
-        var available = _brightness is not null;
+        var service = BrightnessLive?.Focus;
+        var available = service is not null || _brightness is not null;
         w.HomeBrightnessHalf.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
         Grid.SetColumnSpan(w.HomeVolumeHalf, available ? 1 : 2);
-        if (_brightness is not { } level || w.HomeBrightness.IsMouseCaptureWithin) return;
+        if (w.HomeBrightness.IsMouseCaptureWithin) return;
+        double? shown = service is not null ? service.Level * 100 : _brightness;
+        if (shown is not { } level) return;
         var updating = _updatingControls;
         _updatingControls = true;
         w.HomeBrightness.Value = level;
@@ -2802,9 +3018,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (!reading)
         {
             _batteryTimer.Stop();
+            _chipSampler?.Dispose();
+            _chipSampler = null;
+            _chipPower = null;
             return;
         }
         _batteryReading = _power!.Report();
+        // The processor's power is read only while the panel that shows it is open.
+        if (_batteryPanelOpen) _chipPower = (_chipSampler ??= new Notchly.App.Platform.Monitor.ChipPowerSampler()).Read() ?? _chipPower;
+        else if (_chipSampler is not null) { _chipSampler.Dispose(); _chipSampler = null; _chipPower = null; }
         if (!_batteryTimer.IsEnabled) _batteryTimer.Start();
         UpdateBatteryControls();
     }
@@ -2819,7 +3041,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.HomeBatteryIcon.Text = BatteryGlyph(battery);
         w.HomeBatteryChip.IsHitTestVisible = battery.HasBattery;
         if (!_batteryPanelOpen) return;
-        var rows = BatteryDetails.Rows(_batteryReading ?? new BatteryReading(battery.Percent, battery.PluggedIn, battery.Charging));
+        var rows = BatteryDetails.Rows(_batteryReading ?? new BatteryReading(battery.Percent, battery.PluggedIn, battery.Charging), _chipPower);
         var grid = w.HomeBatteryRows;
         grid.Children.Clear();
         grid.RowDefinitions.Clear();

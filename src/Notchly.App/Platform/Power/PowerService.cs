@@ -43,6 +43,9 @@ public sealed class PowerService : IDisposable
         if (Battery != previous) BatteryChanged?.Invoke(previous, Battery);
     });
 
+    /// <summary>The battery right now, for callers that do not follow changes.</summary>
+    public static BatteryState ReadBattery() => Read();
+
     private static BatteryState Read()
     {
         if (!GetSystemPowerStatus(out var status)) return default;

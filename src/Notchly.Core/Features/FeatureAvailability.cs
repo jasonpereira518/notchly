@@ -42,10 +42,19 @@ public static class FeatureAvailability
 
     private static IEnumerable<string> InitialEnableKeys(FeatureInfo info) => info.Feature switch
     {
-        AppFeature.WindowLayout => [DefaultsKey.WindowLayoutShortcutsEnabled],
         AppFeature.AudioPriority => info.EnabledKeys,
         // The live equalizer starts off: only the user's own switch turns it on.
         AppFeature.NotchLiveEqualizer => [],
+        // These two change how the PC behaves without being asked (Bluetooth off at every sleep, pointer acceleration
+        // off): they install with their switch off, and only the user's own switch turns them on.
+        AppFeature.BluetoothSleep or AppFeature.MouseAcceleration => [],
+        // The window and input features rewrite keys, wheel ticks and window positions: they install off, and the person turns each on.
+        AppFeature.Switcher or AppFeature.WindowLayout or AppFeature.ScrollInverter or AppFeature.ScrollHorizontal or AppFeature.ScrollZoom
+            or AppFeature.SmoothScroll or AppFeature.LinearScroll or AppFeature.ScrollSpeed or AppFeature.MouseButtonShortcuts
+            or AppFeature.MouseClickDebounce or AppFeature.KeyboardDebounce or AppFeature.TextSnippets or AppFeature.SuperKey
+            or AppFeature.QuitWindowProtection => [],
+        // History records everything copied; the others rewrite the clipboard, a link or a paste: they install off.
+        AppFeature.ClipboardHistory or AppFeature.PastePlain or AppFeature.UrlCleaner or AppFeature.FinderCutPaste => [],
         _ => info.EnabledKeys.Take(1),
     };
 
@@ -99,7 +108,12 @@ public static class FeatureAvailability
         [DefaultsKey.NotchCalendarEnabled] = AppFeature.NotchCalendar,
         [DefaultsKey.NotchNotificationsEnabled] = AppFeature.NotchNotifications,
         [DefaultsKey.NotchAgentsEnabled] = AppFeature.NotchAgents,
+        [DefaultsKey.NotchMascotEnabled] = AppFeature.NotchMascot,
     };
+
+    /// <summary>The switches the first repair already handled, before the companion joined them.</summary>
+    private static readonly string[] FirstRepair =
+        [DefaultsKey.NotchDownloadsEnabled, DefaultsKey.NotchCalendarEnabled, DefaultsKey.NotchNotificationsEnabled, DefaultsKey.NotchAgentsEnabled];
 
     /// <summary>Installs the extension behind an island switch that was just turned on; false when nothing changed.</summary>
     public static bool InstallForSwitch(this SettingsStore store, string key)
@@ -111,14 +125,17 @@ public static class FeatureAvailability
     }
 
     /// <summary>
-    /// Once: switches turned on before they installed their extension (the AI agents, opt-in on
-    /// Windows) are honoured. After that, uninstalling an extension keeps it uninstalled.
+    /// Once for each switch: one turned on before it installed its extension (the AI agents and the companion,
+    /// opt-in on Windows) is honoured. After that, uninstalling an extension keeps it uninstalled.
     /// </summary>
     public static IReadOnlyList<AppFeature> InstallSwitchedOnExtensions(this SettingsStore store)
     {
-        if (store.IsSaved(DefaultsKey.IslandSwitchesInstalled)) return [];
-        var installed = IslandSwitches.Where(s => store.IsSaved(s.Key) && store.InstallForSwitch(s.Key)).Select(s => s.Value).ToList();
-        store.Set(DefaultsKey.IslandSwitchesInstalled, true);
+        var handled = store.GetList(DefaultsKey.IslandSwitchesHandled).ToHashSet();
+        if (store.IsSaved(DefaultsKey.IslandSwitchesInstalled)) handled.UnionWith(FirstRepair);
+        var pending = IslandSwitches.Where(s => !handled.Contains(s.Key)).ToList();
+        if (pending.Count == 0) return [];
+        var installed = pending.Where(s => store.IsSaved(s.Key) && store.InstallForSwitch(s.Key)).Select(s => s.Value).ToList();
+        store.SetList(DefaultsKey.IslandSwitchesHandled, IslandSwitches.Keys);
         return installed;
     }
 

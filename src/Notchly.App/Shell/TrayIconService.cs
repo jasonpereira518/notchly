@@ -77,10 +77,26 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(Item("Features…", () => app.ShowSettings(SettingsPage.Features)));
         menu.Items.Add(Item("Dynamic Island…", () => app.ShowSettings(SettingsPage.Island)));
         var mic = Item("Mute microphone", () => app.Features.Get<Sound.MicMuteService>(AppFeature.MicMute)?.Toggle());
+        var awake = Item("Keep awake", () => app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake)?.Toggle());
         menu.Items.Add(new Separator());
+        menu.Items.Add(awake);
         menu.Items.Add(mic);
+        var cleaning = Item(Tools.CleaningModeService.StartNow, () => app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode)?.Start());
+        menu.Items.Add(cleaning);
+        var scratchpad = Item("Scratchpad", () => app.Features.Get<Tools.ScratchpadService>(AppFeature.Scratchpad)?.Toggle());
+        menu.Items.Add(scratchpad);
+        var wallpaper = Item("Wallpaper…", () => app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper)?.Open());
+        menu.Items.Add(wallpaper);
         menu.Opened += (_, _) =>
         {
+            scratchpad.Visibility = app.Features.Get<Tools.ScratchpadService>(AppFeature.Scratchpad) is null ? Visibility.Collapsed : Visibility.Visible;
+            wallpaper.Visibility = app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper) is null ? Visibility.Collapsed : Visibility.Visible;
+            cleaning.Visibility = app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode) is null ? Visibility.Collapsed : Visibility.Visible;
+            var keep = app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake);
+            awake.Visibility = keep is null ? Visibility.Collapsed : Visibility.Visible;
+            awake.IsChecked = keep?.Active == true;
+            awake.Header = keep?.Active == true ? "Keep awake  (" + Notchly.Core.Energy.KeepAwakeSupport.TrayCountdown(keep.RemainingSeconds) + ")" : "Keep awake";
+
             var service = app.Features.Get<Sound.MicMuteService>(AppFeature.MicMute);
             mic.Visibility = service is null ? Visibility.Collapsed : Visibility.Visible;
             mic.Header = service?.Active == true ? "Unmute microphone" : "Mute microphone";

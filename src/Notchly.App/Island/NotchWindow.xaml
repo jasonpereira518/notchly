@@ -529,6 +529,12 @@
                                                    VerticalAlignment="Center" Foreground="{StaticResource Dim}" />
                                     </StackPanel>
                                 </Button>
+                                <Button x:Name="HomeAwakeChip" Style="{StaticResource ChipButton}" Visibility="Collapsed" ToolTip="Keep this PC awake">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="HomeAwakeIcon" Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="HomeAwakeText" Text="Awake" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                                 <Button x:Name="HomeTimerChip" Style="{StaticResource ChipButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
@@ -685,6 +691,9 @@
                             </Grid>
                         </Grid>
 
+                        <!-- Clipboard history (upstream NotchClipboardView): built in code by ClipboardPage. -->
+                        <Grid x:Name="ClipboardPage" Visibility="Collapsed" />
+
                         <!-- Downloads (upstream NotchDownloadsView): transfers arriving and the folder's newest files. -->
                         <Grid x:Name="DownloadsPage" Visibility="Collapsed">
                             <Grid.RowDefinitions>
@@ -735,6 +744,9 @@
 
                         <!-- Volume mixer (upstream NotchMixerView): built in code by MixerPage. -->
                         <Grid x:Name="MixerPage" Visibility="Collapsed" />
+
+                        <!-- System monitor (upstream NotchSystemView): built in code by SystemPage. -->
+                        <Grid x:Name="SystemPage" Visibility="Collapsed" />
 
                         <!-- Timer, Pomodoro and stopwatch -->
                         <Grid x:Name="TimerPage" Visibility="Collapsed">

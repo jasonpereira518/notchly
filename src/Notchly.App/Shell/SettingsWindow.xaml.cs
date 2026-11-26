@@ -9,7 +9,7 @@ using Wpf.Ui.Controls;
 
 namespace Notchly.App.Shell;
 
-public enum SettingsPage { General, Features, Island, Sound, About }
+public enum SettingsPage { General, Features, Island, Sound, Monitor, Energy, Windows, Tools, Processes, Mouse, Keyboard, Clipboard, About }
 
 public partial class SettingsWindow : FluentWindow
 {
@@ -21,6 +21,14 @@ public partial class SettingsWindow : FluentWindow
         new(SettingsPage.Features, "Features", ""),
         new(SettingsPage.Island, "Dynamic Island", ""),
         new(SettingsPage.Sound, "Sound", ""),
+        new(SettingsPage.Monitor, "System monitor", "\uE9D9"),
+        new(SettingsPage.Energy, "Energy", "\uE945"),
+        new(SettingsPage.Windows, "Windows", "\uE7C4"),
+        new(SettingsPage.Tools, "Tools", "\uE90F"),
+        new(SettingsPage.Processes, "Processes and ports", "\uE9D9"),
+        new(SettingsPage.Mouse, "Mouse", "\uE962"),
+        new(SettingsPage.Keyboard, "Keyboard", "\uE765"),
+        new(SettingsPage.Clipboard, "Clipboard and files", "\uE77F"),
         new(SettingsPage.About, "About", ""),
     ];
 
@@ -41,6 +49,16 @@ public partial class SettingsWindow : FluentWindow
             SearchBox.SelectAll();
             e.Handled = true;
         };
+    }
+
+    /// <summary>Builds the page again where it stands, so a change to its own rows shows at once.</summary>
+    public void Rebuild()
+    {
+        if (Navigation.SelectedItem is not NavItem item) return;
+        var offset = Scroller.VerticalOffset;
+        PageHost.Content = _pages.Build(item.Page);
+        Scroller.UpdateLayout();
+        Scroller.ScrollToVerticalOffset(offset);
     }
 
     public void Navigate(SettingsPage page) => Navigation.SelectedItem = Items.First(i => i.Page == page);

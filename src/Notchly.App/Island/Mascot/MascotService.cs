@@ -57,6 +57,7 @@ internal sealed class MascotService : IMascotHidingHost, IDisposable
     private bool? _sawAgents;
     private CalendarCountdown? _sawCountdown;
     private bool? _sawMusic;
+    private string? _sawTrack;
     private bool _restedInView;
     private double _leftRest = double.NegativeInfinity, _backAtRest = double.NegativeInfinity;
     private bool _flushing;
@@ -406,10 +407,14 @@ internal sealed class MascotService : IMascotHidingHost, IDisposable
     public void React(MascotReaction reaction) => React(new MascotReactionRequest(reaction));
 
     /// <summary>Music started: once the song's strip has settled, it bobs along if the music still plays.</summary>
-    public void OnMusic(bool playing)
+    public void OnMusic(bool playing, string? track = null)
     {
         var saw = _sawMusic;
+        var sawTrack = _sawTrack;
         _sawMusic = playing;
+        _sawTrack = track;
+        // The music stopping, or another song following one that played, is noticed too (a Windows addition).
+        if (MascotSupport.MusicChange(saw, playing, sawTrack, track) is { } change) React(change);
         if (saw != false || !playing) return;
         if (!MascotSupport.Reacts(_settings) || Now - _lastGroove <= MascotSupport.GrooveInterval) return;
         _scheduler.After(MascotSupport.GrooveDelay, () =>

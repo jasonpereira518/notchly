@@ -70,7 +70,7 @@ public class MascotTests
         Assert.Equal(CanInstall, MascotSupport.IsEnabled(store));
         Assert.Equal(CanInstall, MascotSupport.Visits(store));
         Assert.Equal(CanInstall, MascotSupport.Reacts(store));
-        Assert.Equal(CanInstall, MascotSupport.HidesWhenIdle(store));
+        Assert.False(MascotSupport.HidesWhenIdle(store)); // on Windows it shows at rest by default
         store.Set(DefaultsKey.NotchMascotReactions, false);
         Assert.False(MascotSupport.Reacts(store));
         Assert.Equal(CanInstall, MascotSupport.Visits(store));
@@ -105,7 +105,7 @@ public class MascotTests
         store.Set(DefaultsKey.NotchMascotShape, "1");
         Assert.Equal(MascotShape.Ball, MascotSupport.Look(store).Shape);
 
-        Assert.Equal(MascotVisitFrequency.Normal, MascotSupport.VisitFrequency(store));
+        Assert.Equal(MascotVisitFrequency.Frequent, MascotSupport.VisitFrequency(store));
         Assert.Equal(MascotSide.Left, MascotSupport.Side(store));
         store.Set(DefaultsKey.NotchMascotVisitFrequency, "rare");
         store.Set(DefaultsKey.NotchMascotSide, "right");
@@ -134,12 +134,12 @@ public class MascotTests
         Assert.False(store.GetBool(DefaultsKey.NotchMascotEnabled));
         Assert.True(store.GetBool(DefaultsKey.NotchMascotVisits));
         Assert.True(store.GetBool(DefaultsKey.NotchMascotReactions));
-        Assert.True(store.GetBool(DefaultsKey.NotchMascotHidesWhenIdle));
+        Assert.False(store.GetBool(DefaultsKey.NotchMascotHidesWhenIdle));
         Assert.Equal("minimal", store.GetString(DefaultsKey.NotchMascotStyle));
         Assert.Equal("ball", store.GetString(DefaultsKey.NotchMascotShape));
         Assert.Equal("pearl", store.GetString(DefaultsKey.NotchMascotPalette));
         Assert.Equal("left", store.GetString(DefaultsKey.NotchMascotSide));
-        Assert.Equal("normal", store.GetString(DefaultsKey.NotchMascotVisitFrequency));
+        Assert.Equal("frequent", store.GetString(DefaultsKey.NotchMascotVisitFrequency));
         // A saved choice to stay visible survives registering the defaults again.
         store.Set(DefaultsKey.NotchMascotHidesWhenIdle, false);
         store.RegisterDefaults(Defaults.Registered);
@@ -333,8 +333,8 @@ public class MascotTests
         Assert.True(track.Rest - track.Size / 2 >= 0 && track.Rest + track.Size / 2 <= 44 - 4);
         Assert.Equal(new MascotRange(44, 224), track.Hidden);
         Assert.True(Math.Abs(track.FarSpot - (224 + 44 - track.Rest)) < 0.01);
-        Assert.True(track.Size <= height - 8);
-        Assert.Equal(Math.Clamp(height - 12, 12, 20), track.Size);
+        Assert.True(track.Size <= height - 4);
+        Assert.Equal(Math.Clamp(height - 4, 16, 26), track.Size);
     }
 
     [Fact]
@@ -343,10 +343,10 @@ public class MascotTests
         var capsule = Capsule();
         Assert.Null(capsule.Hidden);
         Assert.Equal(38, capsule.Rest);
-        Assert.True(capsule.Size <= 16);
+        Assert.True(capsule.Size <= 18);
         Assert.Equal(12, capsule.Baseline);
         Assert.True(capsule.FarSpot > capsule.Rest && capsule.FarSpot + capsule.Size / 2 <= 76);
-        Assert.Equal(Math.Clamp(20 - 6.0, 10, 18), capsule.Size);
+        Assert.Equal(Math.Clamp(20 - 4.0, 12, 22), capsule.Size);
         Assert.Null(capsule.VisibleRects);
         Assert.Equal(2, Notch().VisibleRects!.Count);
     }
@@ -716,7 +716,8 @@ public class MascotTests
         Assert.Equal(new PointD(0, 0), MascotSupport.PointerGaze(center, center, 20));
         var right = MascotSupport.PointerGaze(center, new PointD(400, 16), 20);
         var left = MascotSupport.PointerGaze(center, new PointD(0, 30), 20);
-        Assert.True(right.X > 0 && Math.Abs(right.X) <= 0.08 && left.X < 0 && left.Y > 0 && Math.Abs(left.Y) <= 0.05);
+        Assert.True(right.X > 0 && Math.Abs(right.X) <= MascotSupport.GazeAcross && left.X < 0 && left.Y > 0
+                    && Math.Abs(left.Y) <= MascotSupport.GazeDown);
         Assert.True(MascotSupport.IsPetting(center, new PointD(26 + 13, 16), 20));
         Assert.False(MascotSupport.IsPetting(center, new PointD(26 + 13.5, 16), 20));
     }

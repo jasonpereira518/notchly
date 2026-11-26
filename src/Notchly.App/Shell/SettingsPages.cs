@@ -25,6 +25,14 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         SettingsPage.Features => FeaturesPage(),
         SettingsPage.Island => IslandPage(),
         SettingsPage.Sound => SoundPage(),
+        SettingsPage.Monitor => MonitorPage(),
+        SettingsPage.Energy => EnergyPage(),
+        SettingsPage.Windows => WindowsPage(),
+        SettingsPage.Tools => ToolsPage(),
+        SettingsPage.Processes => ProcessesPage(),
+        SettingsPage.Mouse => MousePage(),
+        SettingsPage.Keyboard => KeyboardPage(),
+        SettingsPage.Clipboard => ClipboardFilesPage(),
         SettingsPage.About => AboutPage(),
         _ => GeneralPage(),
     };
@@ -117,6 +125,7 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         var page = Page(
             PageTitle("General"),
             Toggle("Launch at sign-in", "Start Notchly in the background when you sign in to Windows.", DefaultsKey.LaunchAtLogin, ""),
+            ElevatedStartCard(),
             Choice("Appearance", "Settings and panel colours.", DefaultsKey.AppTheme,
                    [("system", "Use Windows setting"), ("light", "Light"), ("dark", "Dark")], ""),
             Section("Settings file"),
@@ -128,6 +137,30 @@ internal sealed partial class SettingsPages(App app, SettingsProxy proxy)
         buttons.Children.Add(ActionButton("Open logs", () => OpenFolder(AppIdentity.LogDirectory)));
         page.Children.Add(buttons);
         return page;
+    }
+
+    private CardControl ElevatedStartCard()
+    {
+        var shown = Notchly.Core.Tools.StartupTaskSupport.ElevatedStartShownOn(app.Settings.GetBool(DefaultsKey.RunElevatedAtLogin), Platform.Shell.ElevatedStartup.Exists());
+        var toggle = new ToggleSwitch { IsChecked = shown };
+        toggle.Click += async (_, _) =>
+        {
+            var want = toggle.IsChecked == true;
+            toggle.IsEnabled = false;
+            var ok = await Task.Run(() => want ? Platform.Shell.ElevatedStartup.Create() : Platform.Shell.ElevatedStartup.Delete());
+            toggle.IsEnabled = true;
+            if (ok) app.Settings.Set(DefaultsKey.RunElevatedAtLogin, want);
+            else
+            {
+                toggle.IsChecked = !want;
+                System.Windows.MessageBox.Show(want ? "Windows did not create the startup task, so Notchly will keep starting without administrator rights."
+                                                    : "Windows did not remove the startup task.", AppIdentity.Name);
+            }
+        };
+        return Card("Start with administrator rights",
+            "Starts Notchly at sign-in through a Windows scheduled task, so its shortcuts and hooks also reach administrator windows. " +
+            "It takes one administrator prompt to turn on or off. Windows does not let an administrator app receive files dragged from other apps. " +
+            Platform.Shell.ElevatedStartup.Describe(), "", toggle);
     }
 
     private void ExportSettings()

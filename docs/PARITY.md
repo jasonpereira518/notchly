@@ -2,17 +2,17 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**19 ported**, 50 planned, 5 built into Windows, 6 not applicable — 80 upstream features.
+**59 ported**, 10 planned, 5 built into Windows, 6 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `switcher` | App switcher | 🛠️ Planned | M7 | Alt+Tab replacement using live DWM thumbnails. |
+| `switcher` | App switcher | ✅ Ported | M7 | Replaces Alt+Tab with live window previews; off until you turn it on. |
 | `dockPreview` | Dock preview | 🪟 Built into Windows | - | Windows taskbar already previews windows on hover. |
 | `dockClick` | Dock clicks | 🪟 Built into Windows | - | Clicking the active taskbar button already minimizes; Ctrl+click cycles windows. |
 | `windowMaximizer` | Maximize windows | ➖ Not on Windows | - | Windows' maximize button already does this. |
-| `windowLayout` | Window layout | 🛠️ Planned | M7 | Shortcuts and modifier-drag on top of Windows Snap. |
+| `windowLayout` | Window layout | ✅ Ported | M7 | Shortcuts, dragging with a modifier and edge snap on top of Windows Snap; off until you turn it on. |
 | `autoQuit` | Quit on close | ➖ Not on Windows | - | Windows apps already exit with their last window. |
 | `spacesOrder` | Fixed Space order | ➖ Not on Windows | - | Windows virtual desktops never reorder themselves. |
 
@@ -20,33 +20,33 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `scrollInverter` | Scroll direction | 🛠️ Planned | M7 |  |
-| `scrollHorizontal` | Scroll sideways | 🛠️ Planned | M7 |  |
-| `scrollZoom` | Scroll zoom | 🛠️ Planned | M7 | Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps. |
-| `focusFollowsMouse` | Focus follows mouse | 🔁 Windows-setting toggle | M6 | Flips Windows' own 'activate window on hover' setting. |
-| `smoothScroll` | Smooth scrolling | 🛠️ Planned | M7 |  |
-| `linearScroll` | Linear scrolling | 🛠️ Planned | M7 |  |
-| `scrollSpeed` | Scroll speed | 🛠️ Planned | M7 |  |
-| `mouseAcceleration` | Pointer acceleration | 🔁 Windows-setting toggle | M6 | Flips 'Enhance pointer precision'. |
+| `scrollInverter` | Scroll direction | ✅ Ported | M7 |  |
+| `scrollHorizontal` | Scroll sideways | ✅ Ported | M7 |  |
+| `scrollZoom` | Scroll zoom | ✅ Ported | M7 | Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps. |
+| `focusFollowsMouse` | Focus follows mouse | ✅ Ported | M6 | Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off. |
+| `smoothScroll` | Smooth scrolling | ✅ Ported | M7 |  |
+| `linearScroll` | Linear scrolling | ✅ Ported | M7 |  |
+| `scrollSpeed` | Scroll speed | ✅ Ported | M7 |  |
+| `mouseAcceleration` | Pointer acceleration | ✅ Ported | M6 | Turns off 'Enhance pointer precision', and puts yours back when you turn it off. |
 | `mouseNavigation` | Side buttons | 🪟 Built into Windows | - | Windows apps handle side buttons natively. |
-| `mouseButtonShortcuts` | Mouse button shortcuts | 🛠️ Planned | M7 |  |
+| `mouseButtonShortcuts` | Mouse button shortcuts | ✅ Ported | M7 |  |
 | `middleClick` | Middle click | 🪟 Built into Windows | - | Built into Precision Touchpad settings (three-finger tap). |
-| `mouseClickDebounce` | Extra click filter | 🛠️ Planned | M7 |  |
-| `keyboardDebounce` | Key debounce | 🛠️ Planned | M7 |  |
-| `textSnippets` | Text snippets | 🛠️ Planned | M7 |  |
-| `superKey` | Super key | 🛠️ Planned | M7 |  |
-| `quitWindowProtection` | Quit and close protection | 🛠️ Planned | M7 |  |
+| `mouseClickDebounce` | Extra click filter | ✅ Ported | M7 |  |
+| `keyboardDebounce` | Key debounce | ✅ Ported | M7 |  |
+| `textSnippets` | Text snippets | ✅ Ported | M7 |  |
+| `superKey` | Super key | ✅ Ported | M7 |  |
+| `quitWindowProtection` | Quit and close protection | ✅ Ported | M7 |  |
 
 ## Clipboard & Files
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `clipboardHistory` | Clipboard history | 🛠️ Planned | M8 |  |
-| `pastePlain` | Paste as plain text | 🛠️ Planned | M8 |  |
-| `finderCutPaste` | Explorer image paste | 🛠️ Planned | M8 | Cut/paste of files is built into Explorer. |
+| `clipboardHistory` | Clipboard history | ✅ Ported | M8 |  |
+| `pastePlain` | Paste as plain text | ✅ Ported | M8 |  |
+| `finderCutPaste` | Explorer image paste | ✅ Ported | M8 | Cut and paste of files is built into Explorer; this adds pasting a copied image as a PNG file. |
 | `finderRename` | Rename with F2 | 🪟 Built into Windows | - | Explorer already renames with F2. |
-| `shelf` | Shelf | ✅ Ported | M3 | Files page on the island; the floating shelf window comes in M8. |
-| `urlCleaner` | Clean URL | 🛠️ Planned | M8 |  |
+| `shelf` | Shelf | ✅ Ported | M3 | Files page on the island, and a floating card with a shortcut, shake, drop zone and edge peek (M8). |
+| `urlCleaner` | Clean URL | ✅ Ported | M8 |  |
 | `diskImageInstaller` | Disk image installer | ➖ Not on Windows | - | macOS disk images have no Windows equivalent. |
 
 ## Sound
@@ -63,35 +63,35 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `keepAwake` | Keep awake | 🛠️ Planned | M6 |  |
-| `brightness` | Displays | 🛠️ Planned | M6 |  |
+| `keepAwake` | Keep awake | ✅ Ported | M6 |  |
+| `brightness` | Displays | ✅ Ported | M6 |  |
 | `extraBrightness` | Extra brightness | ➖ Not on Windows | - | Needs an XDR/HDR panel. |
-| `bluetoothSleep` | Bluetooth on sleep | 🛠️ Planned | M6 |  |
+| `bluetoothSleep` | Bluetooth on sleep | ✅ Ported | M6 |  |
 
 ## Tools
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
 | `quickLauncher` | Quick panel | 🛠️ Planned | M9 |  |
-| `quickToggles` | Quick toggles | 🛠️ Planned | M6 |  |
-| `quitApps` | Quit apps | 🛠️ Planned | M6 |  |
-| `colorPicker` | Color picker | 🛠️ Planned | M9 |  |
-| `screenOCR` | Copy text from screen | 🛠️ Planned | M9 |  |
-| `cleaningMode` | Cleaning mode | 🛠️ Planned | M9 |  |
+| `quickToggles` | Quick toggles | ✅ Ported | M6 |  |
+| `quitApps` | Quit apps | ✅ Ported | M6 |  |
+| `colorPicker` | Color picker | ✅ Ported | M9 | A frozen screen with a magnifier; HEX, RGB, HSL or SwiftUI. Upstream's system sampler fallback and loupe zoom options are not built. |
+| `screenOCR` | Copy text from screen | ✅ Ported | M9 | Text is read by Windows' own engine and codes by ZXing.Net, all on this PC. No second recognition pass and no micro QR. |
+| `cleaningMode` | Cleaning mode | ✅ Ported | M9 | Ctrl+Alt+Delete cannot be blocked from a program, so it still works while the keyboard is locked. |
 | `mediaTools` | Media tools | 🛠️ Planned | M10 |  |
 | `cleaner` | Cleaner | 🛠️ Planned | M11 |  |
 | `uninstaller` | Uninstaller | 🛠️ Planned | M11 |  |
 | `homebrew` | Package manager | 🛠️ Planned | M11 | Homebrew becomes winget on Windows. |
 | `appUpdates` | App updates | 🛠️ Planned | M11 |  |
 | `screenshot` | Screenshot | 🛠️ Planned | M10 |  |
-| `cameraPreview` | Camera preview | ✅ Ported | M3 | Floating mirror window comes with the tools in M9. |
+| `cameraPreview` | Camera preview | ✅ Ported | M3 | The floating mirror opens from a shortcut or Settings; the island page is the same camera. |
 | `radialMenu` | Radial menu | 🛠️ Planned | M9 |  |
-| `scratchpad` | Scratchpad | 🛠️ Planned | M9 |  |
-| `commandBar` | Command bar | 🛠️ Planned | M9 |  |
+| `scratchpad` | Scratchpad | ✅ Ported | M9 | The floating pad. The island's Scratchpad page comes with the launcher. |
+| `commandBar` | Command bar | ✅ Ported | M9 | Alt+Space by default, off until turned on. Apps, windows, files, emoji, menu items, selected text, settings pages and your links; sums, units, dates and colors. No scripts, no droplet animation. |
 | `screenRecorder` | Screen recording | 🛠️ Planned | M10 |  |
-| `wallpaper` | Wallpaper | 🛠️ Planned | M9 |  |
-| `killProcess` | Kill process | 🛠️ Planned | M6 |  |
-| `portManager` | Port manager | 🛠️ Planned | M6 |  |
+| `wallpaper` | Wallpaper | ✅ Ported | M9 | Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog. |
+| `killProcess` | Kill process | ✅ Ported | M6 |  |
+| `portManager` | Port manager | ✅ Ported | M6 |  |
 
 ## Dynamic Island
 
@@ -115,12 +115,12 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 
 | Upstream id | Feature | Status | Milestone | Windows notes |
 |---|---|---|---|---|
-| `monitorCPU` | Processor | 🛠️ Planned | M5 |  |
-| `monitorGPU` | Graphics | 🛠️ Planned | M5 |  |
-| `monitorMemory` | Memory | 🛠️ Planned | M5 |  |
-| `monitorNetwork` | Network | 🛠️ Planned | M5 |  |
-| `monitorDisk` | Disk | 🛠️ Planned | M5 |  |
-| `monitorPower` | Power | 🛠️ Planned | M5 |  |
-| `connectedDevices` | Connected devices | 🛠️ Planned | M5 |  |
+| `monitorCPU` | Processor | ✅ Ported | M5 |  |
+| `monitorGPU` | Graphics | ✅ Ported | M5 |  |
+| `monitorMemory` | Memory | ✅ Ported | M5 |  |
+| `monitorNetwork` | Network | ✅ Ported | M5 |  |
+| `monitorDisk` | Disk | ✅ Ported | M5 |  |
+| `monitorPower` | Power | ✅ Ported | M5 |  |
+| `connectedDevices` | Connected devices | ✅ Ported | M5 |  |
 | `fanControl` | Fan control | 🛠️ Planned | M12 |  |
 

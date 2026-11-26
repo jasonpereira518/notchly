@@ -29,9 +29,17 @@ public sealed class SingleInstance : IDisposable
     /// <summary>The instance guard, or null when Notchly is already running.</summary>
     public static SingleInstance? TryAcquire()
     {
-        var mutex = new Mutex(initiallyOwned: true, MutexName, out var created);
-        if (created) return new SingleInstance(mutex);
-        mutex.Dispose();
+        try
+        {
+            var mutex = new Mutex(initiallyOwned: true, MutexName, out var created);
+            if (created) return new SingleInstance(mutex);
+            mutex.Dispose();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The running copy is elevated (the sign-in task) and a copy without administrator rights may not open its
+            // mutex: either way, one is already running.
+        }
         return null;
     }
 

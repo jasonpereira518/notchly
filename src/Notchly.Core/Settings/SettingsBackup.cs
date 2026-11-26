@@ -22,6 +22,17 @@ public static class SettingsBackup
         DefaultsKey.NotchDownloadsFolderPath, DefaultsKey.NotchCameraDevice,
         // What a mic mute took from this machine's devices has no meaning on another.
         DefaultsKey.MicMuteActive, DefaultsKey.MicMuteSavedVolumes, DefaultsKey.MicMuteMutedDevices, DefaultsKey.MicMuteSavedVolume,
+        // Saved sessions, lid and dimming crash guards, displays and the radio debt belong to this machine too.
+        DefaultsKey.KeepAwakeSessionEnd, DefaultsKey.LidActionBackup, DefaultsKey.LidDimSavedBrightness,
+        DefaultsKey.BrightnessForcedSoftwarePaths, DefaultsKey.BrightnessExtendedDimmingPaths, DefaultsKey.BluetoothSleepRestorePending,
+        // The system settings a toggle changed are this machine's too.
+        DefaultsKey.FocusFollowsMouseOriginal, DefaultsKey.MouseAccelerationOriginal,
+        // The task lives on this machine.
+        DefaultsKey.RunElevatedAtLogin,
+        // A camera id, a window position and folders of pictures name things on this machine.
+        DefaultsKey.CameraPreviewDeviceId, DefaultsKey.ScratchpadWindowOrigin, DefaultsKey.WallpaperOwnPaths, DefaultsKey.WallpaperExcludedOwnPaths,
+        // What the command bar learned, and the folders it searches, belong to this machine (the habit digests mean nothing without their key).
+        DefaultsKey.CommandBarFileScopes, DefaultsKey.CommandBarPositionOffset, DefaultsKey.CommandBarUsage, DefaultsKey.CommandBarQueryHabits, DefaultsKey.CommandBarQueryHabitKey,
     };
 
     public static string Export(SettingsStore store)

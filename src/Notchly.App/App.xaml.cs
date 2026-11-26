@@ -22,6 +22,22 @@ public partial class App : Application
     public SettingsStore Settings { get; private set; } = null!;
     public InputHookService Input { get; private set; } = null!;
     public HotkeyService Hotkeys { get; private set; } = null!;
+    /// <summary>When the input features step aside (a full-screen game, an administrator window).</summary>
+    public InputGate InputGate { get; private set; } = null!;
+    /// <summary>The one handler behind every scroll feature.</summary>
+    public MouseInput.ScrollPipeline Scroll { get; private set; } = null!;
+    /// <summary>Everything the input features send goes through this, marked as Notchly's own.</summary>
+    public Notchly.Core.Input.IInputInjector Injector { get; private set; } = null!;
+    /// <summary>Whether the focus is in a password field.</summary>
+    public PasswordFieldProbe Passwords { get; private set; } = null!;
+    /// <summary>The one clipboard watcher the clipboard features share; it listens only while one of them is on.</summary>
+    public Pasteboard.ClipboardMonitor ClipboardWatch { get; private set; } = null!;
+    private Island.Files.ShelfService? _shelf;
+    /// <summary>The one shelf, shared by the island's Files page and the floating Shelf card.</summary>
+    public Island.Files.ShelfService Shelf => _shelf ??= new Island.Files.ShelfService(Dispatcher);
+    public Monitor.SystemMonitor Monitor { get; private set; } = null!;
+    public Monitor.MonitorAlertService MonitorAlerts { get; private set; } = null!;
+    public TrayReadoutService TrayReadouts { get; private set; } = null!;
     public FeatureRuntime Features { get; private set; } = null!;
     public TrayIconService Tray { get; private set; } = null!;
 
@@ -66,12 +82,63 @@ public partial class App : Application
 
         Input = new InputHookService();
         Hotkeys = new HotkeyService();
+        InputGate = new InputGate(Settings, Dispatcher);
+        Injector = new SendInputInjector();
+        Passwords = new PasswordFieldProbe();
+        Scroll = new MouseInput.ScrollPipeline(this);
         Features = new FeatureRuntime(Settings);
+        ClipboardWatch = new Pasteboard.ClipboardMonitor(new Pasteboard.Win32ClipboardAccess(), Dispatcher);
         Features.Bind(AppFeature.Notch, () => new IslandService(Settings, Input, Dispatcher));
+        Monitor = new Monitor.SystemMonitor(Settings, Dispatcher);
+        TrayReadouts = new TrayReadoutService(this);
+        MonitorAlerts = new Monitor.MonitorAlertService(Settings, Monitor, (title, body) => Tray?.Notify(title, body));
+        foreach (var feature in new[] { AppFeature.MonitorCPU, AppFeature.MonitorGPU, AppFeature.MonitorMemory, AppFeature.MonitorNetwork,
+                                        AppFeature.MonitorDisk, AppFeature.MonitorPower, AppFeature.ConnectedDevices })
+            Features.Bind(feature, () => new Monitor.MonitorFeatureService(Monitor, MonitorAlerts, () => TrayReadouts?.Sync()));
         Features.Bind(AppFeature.Mixer, () => new Sound.MixerService(Settings, Dispatcher));
         Features.Bind(AppFeature.SoundOutputSwitcher, () => new Sound.OutputSwitcherService(Settings, Hotkeys));
         Features.Bind(AppFeature.AudioPriority, () => new Sound.AudioPriorityService(Settings, Dispatcher));
         Features.Bind(AppFeature.MicMute, () => new Sound.MicMuteService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.KeepAwake, () =>
+        {
+            var keepAwake = new Energy.KeepAwakeService(Settings, Hotkeys, Dispatcher);
+            keepAwake.Ended += reason => Tray?.Notify("Keep awake ended",
+                reason == Notchly.Core.Energy.KeepAwakeSupport.EndReason.Battery ? "The battery reached its limit, so Windows may sleep again." : "The session ran out, so Windows may sleep again.");
+            return keepAwake;
+        });
+        Features.Bind(AppFeature.Brightness, () => new Energy.BrightnessService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.BluetoothSleep, () => new Energy.BluetoothSleepService(Settings));
+        Features.Bind(AppFeature.WindowLayout, () => new Layout.WindowLayoutService(this));
+        Features.Bind(AppFeature.Switcher, () => new Switcher.SwitcherService(this));
+        foreach (var feature in new[] { AppFeature.ScrollInverter, AppFeature.ScrollHorizontal, AppFeature.ScrollZoom, AppFeature.SmoothScroll, AppFeature.LinearScroll, AppFeature.ScrollSpeed })
+            Features.Bind(feature, () => new MouseInput.ScrollFeatureService(this));
+        Features.Bind(AppFeature.MouseButtonShortcuts, () => new MouseInput.MouseButtonService(this));
+        Features.Bind(AppFeature.MouseClickDebounce, () => new MouseInput.ClickDebounceService(this));
+        Features.Bind(AppFeature.KeyboardDebounce, () => new MouseInput.KeyDebounceService(this));
+        Features.Bind(AppFeature.SuperKey, () => new KeyboardInput.SuperKeyService(this));
+        Features.Bind(AppFeature.TextSnippets, () => new KeyboardInput.SnippetService(this));
+        Features.Bind(AppFeature.QuitWindowProtection, () => new KeyboardInput.QuitProtectionService(this));
+        Features.Bind(AppFeature.ClipboardHistory, () => new Pasteboard.ClipboardHistoryService(Settings, ClipboardWatch, Dispatcher)
+        {
+            RegisterHotkey = Hotkeys.Register, ShortcutPressed = ClipboardShortcut,
+        });
+        Features.Bind(AppFeature.PastePlain, () => new Pasteboard.PastePlainService(this));
+        Features.Bind(AppFeature.FinderCutPaste, () => new Pasteboard.ExplorerImagePasteService(this));
+        Features.Bind(AppFeature.Shelf, () => new ShelfCard.ShelfSummonService(this));
+        Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
+        Features.Bind(AppFeature.ColorPicker, () => new Tools.ColorPickerService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.ScreenOCR, () => new Tools.ScreenTextService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.CommandBar, () => new CommandBar.CommandBarService(this));
+        Features.Bind(AppFeature.Scratchpad, () => new Tools.ScratchpadService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.Wallpaper, () => new Tools.WallpaperService(Settings));
+        Features.Bind(AppFeature.CameraPreview, () => new Tools.CameraWindowService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.CleaningMode, () => new Tools.CleaningModeService(Settings, Input, Dispatcher));
+        Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
+        Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));
+        Features.Bind(AppFeature.PortManager, () => new Tools.PortManagerService(Settings, this));
+        Features.Bind(AppFeature.FocusFollowsMouse, () => new Tools.FocusFollowsMouseService(Settings));
+        Features.Bind(AppFeature.MouseAcceleration, () => new Tools.PointerAccelerationService(Settings));
 
         var firstRun = !Settings.GetBool(DefaultsKey.HasOnboarded);
         if (firstRun)
@@ -85,7 +152,17 @@ public partial class App : Application
             Log.Information("Feature {Feature} is now available on Windows and was installed", FeatureCatalog.Id(feature));
         foreach (var feature in Settings.InstallSwitchedOnExtensions())
             Log.Information("Feature {Feature} was switched on in the island's settings and was installed", FeatureCatalog.Id(feature));
-        Settings.Changed += _ => Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
+        Settings.Changed += key =>
+        {
+            Dispatcher.BeginInvoke(Features.SyncAll, DispatcherPriority.Background);
+            if (key is DefaultsKey.LaunchAtLogin or DefaultsKey.RunElevatedAtLogin) SyncStartupEntries();
+        };
+        SyncStartupEntries();
+        // A Bluetooth restore owed from before this launch is paid whether or not the feature is still installed.
+        Energy.BluetoothSleepService.PayDebt(Settings);
+        // A mouse setting left changed by a crash is given back unless its toggle is on and installed (which applies it again).
+        if (!Settings.IsAvailable(AppFeature.FocusFollowsMouse) || !Settings.GetBool(DefaultsKey.FocusFollowsMouseEnabled)) Tools.FocusFollowsMouseService.Restore(Settings);
+        if (!Settings.IsAvailable(AppFeature.MouseAcceleration) || !Settings.GetBool(DefaultsKey.MouseAccelerationDisabled)) Tools.PointerAccelerationService.Restore(Settings);
         Features.SyncAll();
         Tray = new TrayIconService(this);
         if (e.Args.Contains(NotificationSettings.SetupFlag)) ContinueNotificationSetup();
@@ -186,6 +263,43 @@ public partial class App : Application
         ApplicationThemeManager.Apply(theme);
     }
 
+    /// <summary>The Run key and the elevated task agree: one of them starts Notchly at sign-in, never both.</summary>
+    private void SyncStartupEntries()
+    {
+        var launch = Settings.GetBool(DefaultsKey.LaunchAtLogin);
+        var elevated = Settings.GetBool(DefaultsKey.RunElevatedAtLogin);
+        Task.Run(() =>
+        {
+            try { Platform.Shell.ElevatedStartup.SyncRunKey(launch, elevated && Platform.Shell.ElevatedStartup.Exists()); }
+            catch (Exception ex) { Log.Warning(ex, "Startup entries could not be synced"); }
+        });
+    }
+
+    /// <summary>Builds the open settings page again (a reorder, say).</summary>
+    public void RefreshSettingsPage() => _settingsWindow?.Rebuild();
+
+    private Pasteboard.ClipboardQuickWindow? _clipboardWindow;
+
+    /// <summary>The history in a window over the app you are in; a second call brings the open one forward.</summary>
+    public void ShowClipboardWindow()
+    {
+        if (Features.Get<Pasteboard.ClipboardHistoryService>(AppFeature.ClipboardHistory) is not { } history) return;
+        if (_clipboardWindow is { IsVisible: true } open) { open.Activate(); return; }
+        var front = Platform.Windowing.WindowInventory.Foreground();
+        var target = front != IntPtr.Zero && Platform.Windowing.ForegroundApps.Describe(front)?.ProcessId != (uint)Environment.ProcessId ? front : IntPtr.Zero;
+        _clipboardWindow = new Pasteboard.ClipboardQuickWindow(history, Settings, new Pasteboard.ClipboardPaster(Injector), target);
+        _clipboardWindow.Closed += (_, _) => _clipboardWindow = null;
+        _clipboardWindow.Show();
+    }
+
+    /// <summary>The history shortcut: the island's Clipboard page when it is there and wanted, else the window.</summary>
+    private void ClipboardShortcut()
+    {
+        var island = Features.Get<IslandService>(AppFeature.Notch);
+        if (Settings.GetBool(DefaultsKey.NotchClipboardWindow) && island?.OpenPage(Notchly.Core.Notch.NotchModule.Clipboard) == true) return;
+        ShowClipboardWindow();
+    }
+
     public void ShowSettings(SettingsPage page)
     {
         if (_settingsWindow is null)
@@ -216,7 +330,15 @@ public partial class App : Application
         try
         {
             Features?.Dispose();
+            _shelf?.Dispose();
+            ClipboardWatch?.Dispose();
+            TrayReadouts?.Dispose();
+            MonitorAlerts?.Dispose();
+            Monitor?.Dispose();
             Tray?.Dispose();
+            Scroll?.Dispose();
+            Passwords?.Dispose();
+            InputGate?.Dispose();
             Hotkeys?.Dispose();
             Input?.Dispose();
             Settings?.Dispose();

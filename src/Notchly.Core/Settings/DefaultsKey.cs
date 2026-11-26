@@ -13,6 +13,7 @@ public static class DefaultsKey
     public const string PanelCollapsedSections = "panelCollapsedSections";
     public const string LaunchAtLogin = "launchAtLogin";                 // Windows-only (HKCU Run value)
     public const string AppTheme = "appTheme";                           // Windows-only: system|light|dark
+    public const string IslandSwitchesHandled = "islandSwitchesHandled";  // Windows-only: island switches whose earlier "on" has been checked against their extension
     public const string IslandSwitchesInstalled = "islandSwitchesInstalled";  // Windows-only: island switches turned on before they installed their extension were honoured
     public const string PortedFeaturesSeen = "portedFeaturesSeen";       // Windows-only: features known to be installable
 
@@ -242,4 +243,307 @@ public static class DefaultsKey
     public const string MicMuteSavedVolumes = "micMuteSavedVolumes";
     public const string MicMuteMutedDevices = "micMuteMutedDevices";
     public const string MicMuteSavedVolume = "micMuteSavedVolume";
+
+    // Monitor (M5)
+    public const string MonitorInterval = "monitorIntervalSeconds";
+    public const string NetworkSpeedUnit = "networkSpeedUnit";
+    public const string MonitorMemoryMetric = "monitorMemoryMetric";
+    public const string MonitorShowSystem = "monitorShowSystem";
+    public const string MonitorShowNetwork = "monitorShowNetwork";
+    public const string MonitorShowDisk = "monitorShowDisk";
+    public const string MonitorShowPower = "monitorShowPower";
+    public const string MonitorGraphCPU = "monitorGraphCPU";
+    public const string MonitorGraphGPU = "monitorGraphGPU";
+    public const string MonitorGraphMemory = "monitorGraphMemory";
+    public const string MonitorGraphNetwork = "monitorGraphNetwork";
+    public const string MonitorGraphDisk = "monitorGraphDisk";
+    public const string MonitorGraphBattery = "monitorGraphBattery";
+    public const string MonitorGraphScale = "monitorGraphScale";
+    public const string MonitorSysCPU = "monitorSysCPU";
+    public const string MonitorSysCPUCores = "monitorSysCPUCores";
+    public const string MonitorSysGPU = "monitorSysGPU";
+    public const string MonitorSysMemory = "monitorSysMemory";
+    public const string MonitorSysUptime = "monitorSysUptime";
+    public const string MonitorSysConnectedDevices = "monitorSysConnectedDevices";
+    public const string MonitorNetSpeed = "monitorNetSpeed";
+    public const string MonitorNetTotals = "monitorNetTotals";
+    public const string MonitorNetAddresses = "monitorNetAddresses";
+    public const string MonitorNetTest = "monitorNetTest";
+    public const string MonitorDiskUsage = "monitorDiskUsage";
+    public const string MonitorDiskActivity = "monitorDiskActivity";
+    public const string MonitorDiskSMART = "monitorDiskSMART";
+    public const string MonitorPwrBattery = "monitorPwrBattery";
+    public const string MonitorPwrTimeRemaining = "monitorPwrTimeRemaining";
+    public const string MonitorPwrHealth = "monitorPwrHealth";
+    public const string MonitorPwrPeripherals = "monitorPwrPeripherals";
+    public const string MonitorAlertCPU = "monitorAlertCPU";
+    public const string MonitorAlertMemory = "monitorAlertMemory";
+    public const string MonitorAlertDisk = "monitorAlertDisk";
+    public const string MonitorAlertBattery = "monitorAlertBattery";
+    public const string MonitorAlertCPUThreshold = "monitorAlertCPUThreshold";
+    public const string MonitorAlertDiskFreePercent = "monitorAlertDiskFreePercent";
+    public const string MonitorAlertBatteryPercent = "monitorAlertBatteryPercent";
+    public const string MonitorAlertCooldownMinutes = "monitorAlertCooldownMinutes";
+    public const string MenuBarCPU = "menuBarCPU";
+    public const string MenuBarGPU = "menuBarGPU";
+    public const string MenuBarMemory = "menuBarMemory";
+    public const string MenuBarNetwork = "menuBarNetwork";
+    public const string MenuBarDiskUsage = "menuBarDiskUsage";
+    public const string MenuBarDiskActivity = "menuBarDiskActivity";
+    public const string MenuBarBattery = "menuBarBattery";
+    public const string MenuBarBatteryTime = "menuBarBatteryTime";
+    public const string MenuBarPeripheralBattery = "menuBarPeripheralBattery";
+    public const string MenuBarConnectedDevices = "menuBarConnectedDevices";
+    public const string MenuBarMetricAppearance = "menuBarMetricAppearance";
+    public const string MenuBarMemoryStyle = "menuBarMemoryStyle";
+    public const string MenuBarDiskStyle = "menuBarDiskStyle";
+    public const string MenuBarNetworkUploadFirst = "menuBarNetworkUploadFirst";
+    public const string MenuBarUsageBarMediumThreshold = "menuBarUsageBarMediumThreshold";
+    public const string MenuBarUsageBarHighThreshold = "menuBarUsageBarHighThreshold";
+    public const string MenuBarMetricOrder = "menuBarMetricOrder";
+
+    // Energy (M6)
+    public const string DefaultDurationMinutes = "defaultDurationMinutes";
+    public const string BatteryLimitPercent = "batteryLimitPercent";
+    public const string KeepAwakeAutoStart = "keepAwakeAutoStart";
+    public const string KeepAwakeAllowDisplaySleep = "keepAwakeAllowDisplaySleep";
+    public const string KeepAwakeExternalDisplay = "keepAwakeExternalDisplay";
+    public const string KeepAwakeConnectedToPower = "keepAwakeConnectedToPower";
+    public const string KeepAwakeRunningApps = "keepAwakeRunningApps";
+    /// <summary>Executable names on Windows (upstream stores bundle ids under the same key).</summary>
+    public const string KeepAwakeRunningAppBundleIDs = "keepAwakeRunningAppBundleIDs";
+    public const string KeepAwakeAutomationRequireAll = "keepAwakeAutomationRequireAll";
+    public const string KeepAwakePauseWhenLocked = "keepAwakePauseWhenLocked";
+    public const string KeepAwakeSwitchUsesUntil = "keepAwakeSwitchUsesUntil";
+    public const string KeepAwakeUntilTime = "keepAwakeUntilTime";
+    public const string KeepAwakeMouseJiggleEnabled = "keepAwakeMouseJiggleEnabled";
+    public const string KeepAwakeMouseJiggleIntervalMinutes = "keepAwakeMouseJiggleIntervalMinutes";
+    public const string HotkeyEnabled = "hotkeyEnabled";
+    public const string KeepAwakeShortcut = "keepAwakeShortcut";
+    public const string ClamshellPreferred = "clamshellPreferred";
+    public const string DimScreenOnLidClose = "dimScreenOnLidClose";
+    public const string PanelShowKeepAwake = "panelShowKeepAwake";
+    /// <summary>A manual session saved at quit ("end;minutes"); machine state.</summary>
+    public const string KeepAwakeSessionEnd = "keepAwakeSessionEnd";
+    /// <summary>The lid actions found before closed-lid mode changed them ("ac;dc"); machine state, a crash guard.</summary>
+    public const string LidActionBackup = "lidActionBackup";
+    /// <summary>The panel level saved while the lid is closed and dimmed; machine state, a crash guard.</summary>
+    public const string LidDimSavedBrightness = "lidDimSavedBrightness";
+
+    public const string BrightnessKeyStep = "brightnessKeyStep";
+    public const string DisplayBrightnessShortcutsEnabled = "displayBrightnessShortcutsEnabled";
+    public const string DisplayBrightnessDecreaseShortcut = "displayBrightnessDecreaseShortcut";
+    public const string DisplayBrightnessIncreaseShortcut = "displayBrightnessIncreaseShortcut";
+    public const string PanelShowBrightness = "panelShowBrightness";
+    /// <summary>Displays forced onto software dimming, by display path (comma-joined); machine state.</summary>
+    public const string BrightnessForcedSoftwarePaths = "brightnessForcedSoftwarePaths";
+    /// <summary>Displays whose bottom quarter dims the picture below the panel's minimum (comma-joined); machine state.</summary>
+    public const string BrightnessExtendedDimmingPaths = "brightnessExtendedDimmingPaths";
+
+    public const string BluetoothSleepRestoreOnWake = "bluetoothSleepRestoreOnWake";
+    /// <summary>A restore owed to the radio after sleep; machine state, never backed up.</summary>
+    public const string BluetoothSleepRestorePending = "bluetoothSleepRestorePending";
+
+    // Tools and mouse toggles (M6)
+    public const string PanelShowToggles = "panelShowToggles";
+    public const string PanelToggleOrder = "panelToggleOrder";
+    public const string PanelToggleDarkMode = "panelToggleDarkMode";
+    /// <summary>Upstream's legacy storage name for the microphone row.</summary>
+    public const string PanelUtilityMicMute = "panelUtilityMicMute";
+    public const string PanelToggleEmptyTrash = "panelToggleEmptyTrash";
+    public const string PanelToggleQuitAllApps = "panelToggleQuitAllApps";
+    public const string PanelToggleEjectDisks = "panelToggleEjectDisks";
+    public const string PanelToggleHiddenFiles = "panelToggleHiddenFiles";
+    public const string PanelToggleDesktopIcons = "panelToggleDesktopIcons";
+    public const string PanelToggleLockScreen = "panelToggleLockScreen";
+    public const string PanelToggleDisplayOff = "panelToggleDisplayOff";
+    public const string PanelToggleScreenSaver = "panelToggleScreenSaver";
+    // Rows added on Windows.
+    public const string PanelToggleRefreshRate = "panelToggleRefreshRate";
+    public const string PanelToggleWifi = "panelToggleWifi";
+    public const string PanelToggleBluetooth = "panelToggleBluetooth";
+    public const string DiskEjectExcludedVolumes = "diskEjectExcludedVolumes";
+
+    public const string QuitAppsShortcutEnabled = "quitAppsShortcutEnabled";
+    public const string QuitAppsShortcut = "quitAppsShortcut";
+    public const string QuitAppsExceptFrontShortcutEnabled = "quitAppsExceptFrontShortcutEnabled";
+    public const string QuitAppsExceptFrontShortcut = "quitAppsExceptFrontShortcut";
+    /// <summary>Executable names on Windows (upstream stores bundle ids under the same key).</summary>
+    public const string QuitAppsKeptApps = "quitAppsKeptApps";
+
+    public const string KillProcessCommandBarEnabled = "killProcessCommandBarEnabled";
+    public const string KillProcessGroupRelated = "killProcessGroupRelated";
+    public const string KillProcessSortBy = "killProcessSortBy";
+    public const string KillProcessSortAscending = "killProcessSortAscending";
+    public const string PanelUtilityPortManager = "panelUtilityPortManager";
+
+    public const string FocusFollowsMouseDelayMilliseconds = "focusFollowsMouseDelayMilliseconds";
+    public const string FocusFollowsMouseRaise = "focusFollowsMouseRaise";
+    public const string PanelControlFocusFollowsMouse = "panelControlFocusFollowsMouse";
+    public const string PanelControlMouseAcceleration = "panelControlMouseAcceleration";
+    /// <summary>What Windows had before hover activation was turned on ("tracking;raise;ms"); machine state, a crash guard.</summary>
+    public const string FocusFollowsMouseOriginal = "focusFollowsMouseOriginal";
+    /// <summary>The mouse parameters before acceleration was turned off ("t1;t2;accel"); machine state, a crash guard.</summary>
+    public const string MouseAccelerationOriginal = "mouseAccelerationOriginal";
+
+    // Startup (M6)
+    /// <summary>Windows-only: the logon task that starts Notchly with administrator rights; machine state.</summary>
+    public const string RunElevatedAtLogin = "runElevatedAtLogin";
+
+    // Input (M7)
+    /// <summary>Windows-only: the input features step aside while a full-screen app or game covers a display.</summary>
+    public const string InputPauseInGames = "inputPauseInGames";
+
+    // Windows and input (M7)
+    public const string SwitcherTakeOverSystemShortcuts = "switcherTakeOverSystemShortcuts";
+    public const string SwitcherShortcut = "switcherShortcut";
+    public const string SwitcherWindowShortcut = "switcherWindowShortcut";
+    public const string SwitcherAllWindowsShortcut = "switcherAllWindowsShortcut";
+    public const string SwitcherAllWindowsShortcutEnabled = "switcherAllWindowsShortcutEnabled";
+    public const string SwitcherIconRowMode = "switcherIconRowMode";
+    public const string SwitcherSimpleMode = "switcherSimpleMode";
+    public const string SwitcherMergeTabs = "switcherMergeTabs";
+    public const string SwitcherWindowlessApps = "switcherWindowlessApps";
+    public const string SwitcherMinimizedPlacement = "switcherMinimizedPlacement";
+    public const string SwitcherTreatHiddenAppsLikeMinimized = "switcherTreatHiddenAppsLikeMinimized";
+    public const string SwitcherShowFullscreenWindows = "switcherShowFullscreenWindows";
+    public const string SwitcherAppRules = "switcherAppRules";
+    public const string SwitcherCurrentDisplayOnly = "switcherCurrentDisplayOnly";
+    public const string SwitcherCurrentSpaceOnly = "switcherCurrentSpaceOnly";
+    public const string SwitcherSearchPinEnabled = "switcherSearchPinEnabled";
+    public const string SwitcherShowShortcutHints = "switcherShowShortcutHints";
+    public const string SwitcherAppearanceDelay = "switcherAppearanceDelay";
+    public const string SwitcherInstantSelection = "switcherInstantSelection";
+    public const string SwitcherIgnoreHoverSelection = "switcherIgnoreHoverSelection";
+    public const string SwitcherScreenPlacement = "switcherScreenPlacement";
+    public const string SwitcherMaxColumns = "switcherMaxColumns";
+    public const string SwitcherPreviewSize = "switcherPreviewSize";
+    public const string SwitcherPreviewExcludedApps = "switcherPreviewExcludedApps";
+    public const string WindowLayoutHiddenActions = "windowLayoutHiddenActions";
+    public const string WindowLayoutWindowGap = "windowLayoutWindowGap";
+    public const string WindowLayoutScreenGap = "windowLayoutScreenGap";
+    public const string WindowLayoutMarginPercent = "windowLayoutMarginPercent";
+    public const string WindowLayoutSideRepeatCyclesThirds = "windowLayoutSideRepeatCyclesThirds";
+    public const string WindowLayoutIgnoredApps = "windowLayoutIgnoredApps";
+    public const string WindowDirectionalShortcut = "windowDirectionalShortcut";
+    public const string PointerDisplayShortcut = "pointerDisplayShortcut";
+    public const string WindowEdgeSnapDisabledZones = "windowEdgeSnapDisabledZones";
+    public const string WindowEdgeSnapZoneActions = "windowEdgeSnapZoneActions";
+    public const string WindowEdgeSnapRestoreOnDrag = "windowEdgeSnapRestoreOnDrag";
+    public const string WindowGestureModifiers = "windowGestureModifiers";
+    public const string WindowGestureRaiseWindow = "windowGestureRaiseWindow";
+    public const string ScrollInverterExceptions = "scrollInverterExceptions";
+    public const string ScrollHorizontalModifier = "scrollHorizontalModifier";
+    public const string PinchZoomModifier = "pinchZoomModifier";
+    public const string LinearScrollLines = "linearScrollLines";
+    public const string LinearScrollExceptions = "linearScrollExceptions";
+    public const string ScrollSpeedModifier = "scrollSpeedModifier";
+    public const string ScrollSpeedMultiplier = "scrollSpeedMultiplier";
+    public const string ScrollSpeedExceptions = "scrollSpeedExceptions";
+    public const string SmoothScrollStep = "smoothScrollStep";
+    public const string SmoothScrollResponse = "smoothScrollResponse";
+    public const string SmoothScrollCoast = "smoothScrollCoast";
+    public const string SmoothScrollExceptions = "smoothScrollExceptions";
+    public const string MouseButtonShortcuts = "mouseButtonShortcuts";
+    public const string MouseButtonExceptions = "mouseButtonExceptions";
+    public const string MouseSpacesGestureButton = "mouseSpacesGestureButton";
+    public const string MouseSpacesGestureFollowsDrag = "mouseSpacesGestureFollowsDrag";
+    public const string MouseClickDebounceWindowMs = "mouseClickDebounceWindowMs";
+    public const string KeyboardDebounceWindowMs = "keyboardDebounceWindowMs";
+    public const string KeyboardDebounceKeyWindows = "keyboardDebounceKeyWindows";
+    public const string SuperKeySource = "superKeySource";
+    public const string SuperKeyModifiers = "superKeyModifiers";
+    public const string SuperKeySoloAction = "superKeySoloAction";
+    public const string SuperKeyExceptions = "superKeyExceptions";
+    public const string SuperKeyOfficeMask = "superKeyOfficeMask";
+    public const string TextSnippets = "textSnippets";
+    public const string SnippetLibraryShortcut = "snippetLibraryShortcut";
+    public const string QuitProtectionQuitMode = "quitProtectionQuitMode";
+    public const string QuitProtectionQuitHoldDurationMs = "quitProtectionQuitHoldDurationMs";
+    public const string QuitProtectionQuitDoubleIntervalMs = "quitProtectionQuitDoubleIntervalMs";
+    public const string QuitProtectionQuitExtraModifier = "quitProtectionQuitExtraModifier";
+    public const string QuitProtectionQuitScope = "quitProtectionQuitScope";
+    public const string QuitProtectionQuitExceptions = "quitProtectionQuitExceptions";
+    public const string QuitProtectionQuitShowFeedback = "quitProtectionQuitShowFeedback";
+    public const string QuitProtectionCloseMode = "quitProtectionCloseMode";
+    public const string QuitProtectionCloseHoldDurationMs = "quitProtectionCloseHoldDurationMs";
+    public const string QuitProtectionCloseDoubleIntervalMs = "quitProtectionCloseDoubleIntervalMs";
+    public const string QuitProtectionCloseExtraModifier = "quitProtectionCloseExtraModifier";
+    public const string QuitProtectionCloseScope = "quitProtectionCloseScope";
+    public const string QuitProtectionCloseExceptions = "quitProtectionCloseExceptions";
+    public const string QuitProtectionCloseShowFeedback = "quitProtectionCloseShowFeedback";
+
+    // MARK: Clipboard and files (M8). Upstream spellings; the shortcuts are Windows chords.
+    public const string ClipboardHistoryLimit = "clipboardHistoryLimit";
+    public const string ClipboardHistoryRetentionDays = "clipboardHistoryRetentionDays";
+    public const string ClipboardHistoryFilterSensitiveText = "clipboardHistoryFilterSensitiveText";
+    public const string ClipboardHistoryIncludeImagesFiles = "clipboardHistoryIncludeImagesFiles";
+    public const string ClipboardHistoryIgnoredApps = "clipboardHistoryIgnoredApps";
+    public const string ClipboardHistoryQuickPreview = "clipboardHistoryQuickPreview";
+    public const string ClipboardHistoryShowSourceAppIcons = "clipboardHistoryShowSourceAppIcons";
+    public const string ClipboardHistoryLayout = "clipboardHistoryLayout";
+    public const string ClipboardHistoryShortcutEnabled = "clipboardHistoryShortcutEnabled";
+    public const string ClipboardHistoryShortcut = "clipboardHistoryShortcut";
+    public const string ClipboardHistoryWindowWidth = "clipboardHistoryWindowWidth";
+    public const string ClipboardHistoryWindowHeight = "clipboardHistoryWindowHeight";
+    public const string NotchClipboard = "notchClipboard";
+    public const string NotchClipboardWindow = "notchClipboardWindow";
+    public const string NotchClipboardCardSize = "notchClipboardCardSize";
+    public const string ClipboardAutoClearOnDelay = "clipboardAutoClearOnDelay";
+    public const string ClipboardAutoClearDelaySeconds = "clipboardAutoClearDelaySeconds";
+    public const string ClipboardAutoClearOnSleep = "clipboardAutoClearOnSleep";
+    public const string ClipboardAutoClearOnDisplaySleep = "clipboardAutoClearOnDisplaySleep";
+    public const string ClipboardAutoClearOnScreenLock = "clipboardAutoClearOnScreenLock";
+    public const string PastePlainShortcut = "pastePlainShortcut";
+    public const string UrlCleanerCustomParameters = "urlCleanerCustomParameters";
+    public const string UrlCleanerSiteParameters = "urlCleanerSiteParameters";
+    public const string UrlCleanerDisabledParameters = "urlCleanerDisabledParameters";
+    public const string ShelfShortcutEnabled = "shelfShortcutEnabled";
+    public const string ShelfShortcut = "shelfShortcut";
+    public const string ShelfShakeToOpen = "shelfShakeToOpen";
+    public const string ShelfDropZoneEnabled = "shelfDropZoneEnabled";
+    public const string ShelfDockPlacement = "shelfDockPlacement";
+    public const string ShelfEdgeDragEnabled = "shelfEdgeDragEnabled";
+    public const string ShelfClearOnClose = "shelfClearOnClose";
+    public const string ShelfShortcutAddsSelection = "shelfShortcutAddsFinderSelection";
+    public const string ShelfAutomaticExclusions = "shelfAutomaticExclusions";
+    public const string ColorPickerShortcutEnabled = "colorPickerShortcutEnabled";
+    public const string ColorPickerShortcut = "colorPickerShortcut";
+    public const string ColorPickerFormat = "colorPickerFormat";
+    public const string ColorPickerBareHex = "colorPickerBareHex";
+    public const string ScreenOcrShortcutEnabled = "screenOCRShortcutEnabled";
+    public const string ScreenOcrShortcut = "screenOCRShortcut";
+    public const string ScreenOcrRemoveLineBreaks = "screenOCRRemoveLineBreaks";
+    public const string ScreenOcrDetectQrCodes = "screenOCRDetectQRCodes";
+    public const string CleaningModeKeepScreenVisible = "cleaningModeKeepScreenVisible";
+    public const string CameraPreviewShortcutEnabled = "cameraPreviewShortcutEnabled";
+    public const string CameraPreviewShortcut = "cameraPreviewShortcut";
+    public const string CameraPreviewDeviceId = "cameraPreviewDeviceId";
+    public const string ScratchpadShortcutEnabled = "scratchpadShortcutEnabled";
+    public const string ScratchpadShortcut = "scratchpadShortcut";
+    public const string ScratchpadRetention = "scratchpadRetention";
+    public const string ScratchpadCloseOnClickOutside = "scratchpadCloseOnClickOutside";
+    public const string ScratchpadBackgroundOpacity = "scratchpadBackgroundOpacity";
+    public const string ScratchpadTextSize = "scratchpadTextSize";
+    public const string ScratchpadWindowOrigin = "scratchpadWindowOrigin";
+    public const string WallpaperApplyAllDisplays = "wallpaperApplyAllDisplays";
+    public const string WallpaperFilter = "wallpaperFilter";
+    public const string WallpaperOwnPaths = "wallpaperOwnPaths";
+    public const string WallpaperExcludedOwnPaths = "wallpaperExcludedOwnPaths";
+    public const string CommandBarShortcutEnabled = "commandBarShortcutEnabled";
+    public const string CommandBarShortcut = "commandBarShortcut";
+    public const string CommandBarCompactMode = "commandBarCompactMode";
+    public const string CommandBarDisabledSources = "commandBarDisabledSources";
+    public const string CommandBarAliases = "commandBarAliases";
+    public const string CommandBarPins = "commandBarPins";
+    public const string CommandBarHidden = "commandBarHidden";
+    public const string CommandBarFileScopes = "commandBarFileScopes";
+    public const string CommandBarFileIgnores = "commandBarFileIgnores";
+    public const string CommandBarPositionOffset = "commandBarPositionOffset";
+    public const string CommandBarEmojiSkinTone = "commandBarEmojiSkinTone";
+    public const string CommandBarLinks = "commandBarLinks";
+    public const string CommandBarRowShortcuts = "commandBarRowShortcuts";
+    public const string CommandBarUsage = "commandBarUsage";
+    public const string CommandBarQueryHabits = "commandBarQueryHabits";
+    public const string CommandBarQueryHabitKey = "commandBarQueryHabitKey";
 }

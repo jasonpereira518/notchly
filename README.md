@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M4 (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; and sound: mixer, output switcher, device priority, microphone mute) and M4 (sound: mixer, output switcher, device priority, microphone mute). See
+Status: milestones M0–M9b (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; and the command bar). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -60,12 +60,16 @@ for the porting plan.
     minimized or locked pauses watching, and closing it ends the watch. Text comes from Windows' own recognition on
     this PC; only the chosen area is read, in memory, and nothing is saved or sent.
   - **Companion** (opt in): a little friend who rests in the closed island's wing beside the camera when nothing else
-    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, follows the pointer
-    with its eyes, answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
+    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, watches your cursor
+    wherever it is on the screen (turning its eyes and leaning its head, then looking ahead again once the cursor
+    keeps still), answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
     through the island, and it hides in the island after half a minute of quiet. It comes out to react to music
-    starting, timers, downloads, the microphone, unlocking the PC, agents finishing, events starting, the charger,
-    Watch and files dropped in, standing in for the notice's icon when the notice brings the news. With Windows'
-    animation effects off it only changes face, and Battery Saver keeps it at rest.
+    starting, pausing and skipping, timers, downloads, notifications, the microphone, the volume reaching the top, the
+    screen going full bright or nearly dark, headphones going on and off, unlocking the PC, agents finishing, events
+    starting, the charger, Watch and files dropped in, standing in for the notice's icon when the notice brings the
+    news. Each reaction has its own motion and a small prop beside it (hearts, sparkles, notes, a "!", a "?", a
+    "z" and more), and Settings can play every one. With Windows' animation effects off it only changes face, and
+    Battery Saver keeps it at rest and reads the cursor less often.
   - **Sound** (M4): a **Volume mixer** page on the island and a section in the panel list every app that uses audio, with
     its icon, a level slider with a live meter, mute, reset, pinning, order, and (through Windows' own per-app output)
     the speaker or headphones it plays to; call apps, Zoom and music-production apps keep their own volume. Windows plays
@@ -74,6 +78,52 @@ for the porting plan.
     go; **lower volume when headphones disconnect** drops the speakers to a level you pick and restores it when the
     headphones return; **mute microphone** (Ctrl+Alt+Win+M, the tray menu or Settings → Sound) mutes every microphone and
     gives each back exactly what it had, with a badge on the tray icon.
+  - **System monitor** (M5): a **System** page on the island (press `I`) with cards for the processor, graphics, memory,
+    battery, network, disk, power and connected devices, balanced across the island's width with a meter each; a card opens its
+    graph, detail rows, each core (performance and efficiency cores marked), the top apps and, for Network, a speed test. The
+    panel has System, Network, Disk and Power sections with usage bars, history graphs and expandable top apps. Optional alerts
+    (sustained high processor use, critical memory, a nearly full disk, a low battery) and optional tray readouts (one small
+    icon per metric, values or bars) are off until you turn them on in Settings → System monitor. Readings are taken only while
+    something shows them. Windows reports no temperatures, fan speeds, system or adapter power, or per-app network use to apps,
+    so those wait for the elevated helper (M12).
+  - **Energy** (M6): **Keep awake** holds Windows awake for a length you pick, until a time, or until you stop it, with extend buttons,
+    a battery limit, pause while locked, a pointer nudge, rules (an external display, mains power, certain apps), a countdown on
+    the island and in the tray menu, and closed-lid mode that changes Windows' lid action for the session and always puts it
+    back. **Displays** has a brightness slider per display in the panel and on the island (the built-in panel, external monitors
+    over DDC/CI, and a software dim for the rest), shortcuts, and dimming below the panel's minimum. **Bluetooth on sleep** turns
+    the radio off as the PC sleeps and back on at wake. Settings → Energy has the options.
+  - **Quick tools** (M6): **Quick toggles** in the panel (dark mode, microphone, Recycle Bin, quit apps, eject drives, hidden files,
+    desktop icons, lock, display off, screen saver, refresh rate, Wi-Fi, Bluetooth), hidden and reordered in Settings → Tools.
+    **Quit apps** lists open apps and asks each to close (two shortcuts, kept apps). **Kill process** and the **port manager**
+    are in Settings → Processes and ports: every kill is confirmed and checked against the process's start time, and a process
+    Notchly may not stop gets one administrator prompt. **Focus follows mouse** and **pointer acceleration** (Settings → Mouse)
+    flip Windows' own settings and give yours back. **Start with administrator rights** (Settings → General) starts Notchly
+    elevated at sign-in through a scheduled task, so its shortcuts reach administrator windows.
+  - **Windows and input** (M7, all off until you turn them on in Settings → Windows, Mouse and Keyboard): an **app switcher** that
+    replaces Alt+Tab with live window previews (recent order, search, W to close, Q to quit, the wheel and the mouse); **window
+    layout** by shortcut (halves, thirds, quarters, sixths, corners, maximize, display moves, restore), by dragging with a
+    modifier held, by dragging a title bar to a screen edge, or by holding a chord and moving the pointer; **scroll** options
+    for the mouse wheel only (reverse, sideways, zoom, one notch at a time, faster with a key, smooth); **mouse button shortcuts**
+    and a desktop drag; **bounce filters** for a worn mouse button or key; a **super key** (Caps Lock as Ctrl+Alt+Shift+Win);
+    **text snippets** with variables and a searchable library; and **quit and close protection** for Alt+F4, Ctrl+Q and Ctrl+W.
+    They step aside in full-screen games, and cannot reach apps running as administrator unless Notchly does too.
+  - **Clipboard and files** (M8, in Settings → Clipboard and files; history, paste as plain text, the link cleaner and Explorer image
+    paste start switched off): a **clipboard history** of text, images and files with search, pins, a limit and an age (a page on the
+    island, and a window on Ctrl+Alt+Win+V; it skips what password managers and other apps ask not to be recorded), **clearing the
+    clipboard by itself** after a delay or on sleep, display off or lock, **paste as plain text** (Ctrl+Alt+Shift+V; the clipboard is
+    put back as it was), a **link cleaner** that takes tracking parameters out of copied links, **image paste** (Ctrl+V with a copied
+    picture in a folder makes a PNG file there), and a floating **Shelf** card (shortcut, shake while dragging, a drop zone above the
+    tray, a peek from the screen edge) that shares its items with the island's Files page.
+  - **Small tools** (M9a, in Settings → Tools; every shortcut starts switched off): a **color picker** (a frozen screen and a magnifier;
+    HEX, RGB, HSL or SwiftUI), **copy text from screen** (drag over text and it is read on this PC; a QR code opens its own panel),
+    **cleaning mode** (locks the keyboard and the wheel until five Escapes; Ctrl+Alt+Delete cannot be blocked), a floating **camera
+    mirror**, a **scratchpad** (tabs, Markdown with a preview and tick boxes, kept in %APPDATA%\Notchly) and a **wallpaper** gallery
+    (Windows' own pictures and yours, on every display or one).
+  - **Command bar** (M9b, in Settings → Tools; the shortcut, Alt+Space, starts switched off): one field that finds and runs what Notchly
+    does: apps, open windows, Windows settings pages, folders, emoji (`:fire`), files in folders you name (through Windows Search),
+    menu items of the app you came from, what you copied, what you had selected (copy, UPPER, lower, Title Case, count), and your own
+    links. It answers sums, unit conversions, dates and colors as you type (`2+3*4`, `100 km to mi`, `in 3 weeks`, `#00bc7d to rgb`),
+    learns what you run, and lets you pin rows, give them your own names (Ctrl+K) and hide them. Nothing you type is saved.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

@@ -103,14 +103,13 @@ public static class FeatureCatalog
                  bool byDefault, WindowsStatus status, string milestone, string? note = null, string? uri = null) =>
             list.Add(new FeatureInfo(f, Id(f), g, title, summary, glyph, keys, byDefault, status, milestone, note, uri));
 
-        const WindowsStatus P = WindowsStatus.Planned, T = WindowsStatus.NativeToggle,
-                            N = WindowsStatus.Native, D = WindowsStatus.Dropped;
+        const WindowsStatus P = WindowsStatus.Planned, N = WindowsStatus.Native, D = WindowsStatus.Dropped;
         string[] none = [];
 
         // Windows and Dock
         var g = FeatureGroup.WindowsDock;
         Add(AppFeature.Switcher, g, "App switcher", "Switch apps and windows with live previews and search.", Glyph.Apps,
-            [DefaultsKey.SwitcherEnabled], true, P, "M7", "Alt+Tab replacement using live DWM thumbnails.");
+            [DefaultsKey.SwitcherEnabled], true, WindowsStatus.Ported, "M7", "Replaces Alt+Tab with live window previews; off until you turn it on.");
         Add(AppFeature.DockPreview, g, "Dock preview", "Hover Dock icons to preview windows.", Glyph.Window,
             [DefaultsKey.DockPreviewEnabled], true, N, "-", "Windows taskbar already previews windows on hover.", "ms-settings:taskbar");
         Add(AppFeature.DockClick, g, "Dock clicks", "Click an active app's icon to minimize or cycle windows.", Glyph.Window,
@@ -119,7 +118,7 @@ public static class FeatureCatalog
         Add(AppFeature.WindowMaximizer, g, "Maximize windows", "Fill the screen without a new Space.", Glyph.Window,
             [DefaultsKey.WindowMaximizeEnabled], true, D, "-", "Windows' maximize button already does this.");
         Add(AppFeature.WindowLayout, g, "Window layout", "Snap windows, move them between displays and restore them.", Glyph.Snap,
-            none, true, P, "M7", "Shortcuts and modifier-drag on top of Windows Snap.", "ms-settings:multitasking");
+            none, true, WindowsStatus.Ported, "M7", "Shortcuts, dragging with a modifier and edge snap on top of Windows Snap; off until you turn it on.", "ms-settings:multitasking");
         Add(AppFeature.AutoQuit, g, "Quit on close", "Quit selected apps when their last window closes.", Glyph.Close,
             [DefaultsKey.AutoQuitEnabled], true, D, "-", "Windows apps already exit with their last window.");
         Add(AppFeature.SpacesOrder, g, "Fixed Space order", "Keep Spaces in the order you set.", Glyph.Order,
@@ -128,52 +127,52 @@ public static class FeatureCatalog
         // Mouse and keyboard
         g = FeatureGroup.MouseKeyboard;
         Add(AppFeature.ScrollInverter, g, "Scroll direction", "Invert mouse scrolling independently of the touchpad.", Glyph.Scroll,
-            [DefaultsKey.ScrollInverterEnabled, DefaultsKey.ScrollInverterHorizontalEnabled], true, P, "M7");
+            [DefaultsKey.ScrollInverterEnabled, DefaultsKey.ScrollInverterHorizontalEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollHorizontal, g, "Scroll sideways", "Hold a key to turn the wheel into horizontal scrolling.", Glyph.Scroll,
-            [DefaultsKey.ScrollHorizontalEnabled], false, P, "M7");
+            [DefaultsKey.ScrollHorizontalEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollZoom, g, "Scroll zoom", "Zoom with a modifier and the wheel.", Glyph.Zoom,
-            [DefaultsKey.PinchZoomEnabled], false, P, "M7", "Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps.");
+            [DefaultsKey.PinchZoomEnabled], false, WindowsStatus.Ported, "M7", "Check upstream behaviour when porting; Ctrl+wheel already zooms in most apps.");
         Add(AppFeature.FocusFollowsMouse, g, "Focus follows mouse", "Bring the window under the pointer forward after a pause.", Glyph.Mouse,
-            [DefaultsKey.FocusFollowsMouseEnabled], false, T, "M6", "Flips Windows' own 'activate window on hover' setting.");
+            [DefaultsKey.FocusFollowsMouseEnabled], false, WindowsStatus.Ported, "M6", "Turns on Windows' own 'activate window on hover' setting, and puts yours back when you turn it off.");
         Add(AppFeature.SmoothScroll, g, "Smooth scrolling", "Give the mouse wheel a fluid glide.", Glyph.Scroll,
-            [DefaultsKey.SmoothScrollEnabled], true, P, "M7");
+            [DefaultsKey.SmoothScrollEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.LinearScroll, g, "Linear scrolling", "Every wheel notch scrolls the same distance.", Glyph.Scroll,
-            [DefaultsKey.LinearScrollEnabled], false, P, "M7");
+            [DefaultsKey.LinearScrollEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.ScrollSpeed, g, "Scroll speed", "Adjust how far each wheel notch scrolls.", Glyph.Scroll,
-            [DefaultsKey.ScrollSpeedEnabled], false, P, "M7");
+            [DefaultsKey.ScrollSpeedEnabled], false, WindowsStatus.Ported, "M7");
         Add(AppFeature.MouseAcceleration, g, "Pointer acceleration", "Turn mouse acceleration off and restore it later.", Glyph.Mouse,
-            [DefaultsKey.MouseAccelerationDisabled], true, T, "M6", "Flips 'Enhance pointer precision'.", "ms-settings:mousetouchpad");
+            [DefaultsKey.MouseAccelerationDisabled], true, WindowsStatus.Ported, "M6", "Turns off 'Enhance pointer precision', and puts yours back when you turn it off.", "ms-settings:mousetouchpad");
         Add(AppFeature.MouseNavigation, g, "Side buttons", "Mouse Back and Forward buttons in more apps.", Glyph.Mouse,
             [DefaultsKey.MouseNavigationEnabled], true, N, "-", "Windows apps handle side buttons natively.");
         Add(AppFeature.MouseButtonShortcuts, g, "Mouse button shortcuts", "Assign keys to extra mouse buttons.", Glyph.Mouse,
-            [DefaultsKey.MouseButtonShortcutsEnabled, DefaultsKey.MouseSpacesGestureEnabled], true, P, "M7");
+            [DefaultsKey.MouseButtonShortcutsEnabled, DefaultsKey.MouseSpacesGestureEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.MiddleClick, g, "Middle click", "Three-finger touchpad press as middle click.", Glyph.Mouse,
             [DefaultsKey.MiddleClickEnabled], true, N, "-", "Built into Precision Touchpad settings (three-finger tap).", "ms-settings:devices-touchpad");
         Add(AppFeature.MouseClickDebounce, g, "Extra click filter", "Ignore accidental double clicks from a worn button.", Glyph.Mouse,
-            [DefaultsKey.MouseClickDebounceEnabled], true, P, "M7");
+            [DefaultsKey.MouseClickDebounceEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.KeyboardDebounce, g, "Key debounce", "Filter repeated letters from a worn keyboard.", Glyph.Keyboard,
-            [DefaultsKey.KeyboardDebounceEnabled], true, P, "M7");
+            [DefaultsKey.KeyboardDebounceEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.TextSnippets, g, "Text snippets", "Expand short triggers into text with variables.", Glyph.Text,
-            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, P, "M7");
+            [DefaultsKey.TextSnippetsEnabled, DefaultsKey.SnippetLibraryEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.SuperKey, g, "Super key", "Use Caps Lock as a Hyper key with its own tap action.", Glyph.Keyboard,
-            [DefaultsKey.SuperKeyEnabled], true, P, "M7");
+            [DefaultsKey.SuperKeyEnabled], true, WindowsStatus.Ported, "M7");
         Add(AppFeature.QuitWindowProtection, g, "Quit and close protection", "Guard Alt+F4, Ctrl+W and Ctrl+Q with a hold or double press.", Glyph.Shield,
-            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, P, "M7");
+            [DefaultsKey.QuitProtectionQuitEnabled, DefaultsKey.QuitProtectionCloseEnabled], true, WindowsStatus.Ported, "M7");
 
         // Clipboard and files
         g = FeatureGroup.ClipboardFiles;
         Add(AppFeature.ClipboardHistory, g, "Clipboard history", "Search text, image and file history; pin favorites.", Glyph.Clipboard,
-            [DefaultsKey.ClipboardHistoryEnabled], true, P, "M8");
+            [DefaultsKey.ClipboardHistoryEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.PastePlain, g, "Paste as plain text", "Paste without formatting.", Glyph.Paste,
-            [DefaultsKey.PastePlainEnabled], true, P, "M8");
+            [DefaultsKey.PastePlainEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.FinderCutPaste, g, "Explorer image paste", "Paste a copied image into Explorer as a PNG file.", Glyph.Cut,
-            [DefaultsKey.FinderCutPasteEnabled, DefaultsKey.FinderPasteImageAsFile], true, P, "M8", "Cut/paste of files is built into Explorer.");
+            [DefaultsKey.FinderPasteImageAsFile], true, WindowsStatus.Ported, "M8", "Cut and paste of files is built into Explorer; this adds pasting a copied image as a PNG file.");
         Add(AppFeature.FinderRename, g, "Rename with F2", "Rename files with F2.", Glyph.Rename,
             [DefaultsKey.FinderRenameEnabled], true, N, "-", "Explorer already renames with F2.");
         Add(AppFeature.Shelf, g, "Shelf", "Park files, text and links while dragging.", Glyph.Tray,
-            [DefaultsKey.ShelfEnabled], true, WindowsStatus.Ported, "M3", "Files page on the island; the floating shelf window comes in M8.");
+            [DefaultsKey.ShelfEnabled], true, WindowsStatus.Ported, "M3", "Files page on the island, and a floating card with a shortcut, shake, drop zone and edge peek (M8).");
         Add(AppFeature.UrlCleaner, g, "Clean URL", "Remove tracking parameters from links.", Glyph.Link,
-            [DefaultsKey.UrlCleanerEnabled], true, P, "M8");
+            [DefaultsKey.UrlCleanerEnabled], true, WindowsStatus.Ported, "M8");
         Add(AppFeature.DiskImageInstaller, g, "Disk image installer", "Install apps from mounted disk images.", Glyph.Disk,
             none, false, D, "-", "macOS disk images have no Windows equivalent.");
 
@@ -194,22 +193,25 @@ public static class FeatureCatalog
         // Energy and display
         g = FeatureGroup.EnergyDisplay;
         Add(AppFeature.KeepAwake, g, "Keep awake", "Keep the PC awake on a timer, lid closed or by rules.", Glyph.Moon,
-            none, true, P, "M6");
+            none, true, WindowsStatus.Ported, "M6");
         Add(AppFeature.Brightness, g, "Displays", "Brightness for the built-in panel and DDC/CI monitors, software dimming.", Glyph.Brightness,
-            [DefaultsKey.BrightnessControlEnabled], true, P, "M6");
+            [DefaultsKey.BrightnessControlEnabled], true, WindowsStatus.Ported, "M6");
         Add(AppFeature.ExtraBrightness, g, "Extra brightness", "Use HDR headroom beyond normal maximum brightness.", Glyph.Sun,
             [DefaultsKey.ExtraBrightnessEnabled], true, D, "-", "Needs an XDR/HDR panel.");
         Add(AppFeature.BluetoothSleep, g, "Bluetooth on sleep", "Turn Bluetooth off during sleep and back on at wake.", Glyph.Bluetooth,
-            [DefaultsKey.BluetoothSleepEnabled], true, P, "M6");
+            [DefaultsKey.BluetoothSleepEnabled], true, WindowsStatus.Ported, "M6");
 
         // Tools
         g = FeatureGroup.Tools;
         Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, P, "M9");
-        Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, P, "M6");
-        Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, P, "M6");
-        Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, P, "M9");
-        Add(AppFeature.ScreenOCR, g, "Copy text from screen", "Recognize text or read a QR code from any area.", Glyph.Scan, none, true, P, "M9");
-        Add(AppFeature.CleaningMode, g, "Cleaning mode", "Lock keyboard input while cleaning.", Glyph.Sparkle, none, true, P, "M9");
+        Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, WindowsStatus.Ported, "M6");
+        Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, WindowsStatus.Ported, "M6");
+        Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, WindowsStatus.Ported, "M9",
+            "A frozen screen with a magnifier; HEX, RGB, HSL or SwiftUI. Upstream's system sampler fallback and loupe zoom options are not built.");
+        Add(AppFeature.ScreenOCR, g, "Copy text from screen", "Recognize text or read a QR code from any area.", Glyph.Scan, none, true, WindowsStatus.Ported, "M9",
+            "Text is read by Windows' own engine and codes by ZXing.Net, all on this PC. No second recognition pass and no micro QR.");
+        Add(AppFeature.CleaningMode, g, "Cleaning mode", "Lock keyboard input while cleaning.", Glyph.Sparkle, none, true, WindowsStatus.Ported, "M9",
+            "Ctrl+Alt+Delete cannot be blocked from a program, so it still works while the keyboard is locked.");
         Add(AppFeature.MediaTools, g, "Media tools", "Compress video, convert images, make GIFs.", Glyph.Photo, none, true, P, "M10");
         Add(AppFeature.Cleaner, g, "Cleaner", "Remove caches, logs and leftovers on a schedule.", Glyph.Broom, none, true, P, "M11");
         Add(AppFeature.Uninstaller, g, "Uninstaller", "Remove apps and review their leftovers.", Glyph.Trash, none, true, P, "M11");
@@ -218,15 +220,18 @@ public static class FeatureCatalog
         Add(AppFeature.AppUpdates, g, "App updates", "Check winget and Store apps for updates in one list.", Glyph.Update, none, true, P, "M11");
         Add(AppFeature.Screenshot, g, "Screenshot", "Capture, annotate, pin and share screenshots.", Glyph.Screenshot, none, true, P, "M10");
         Add(AppFeature.CameraPreview, g, "Camera preview", "Check your camera in a floating mirror or the island.", Glyph.Camera, none, true, WindowsStatus.Ported, "M3",
-            "Floating mirror window comes with the tools in M9.");
+            "The floating mirror opens from a shortcut or Settings; the island page is the same camera.");
         Add(AppFeature.RadialMenu, g, "Radial menu", "A wheel of apps, files and tools around the pointer.", Glyph.Wheel,
             [DefaultsKey.RadialMenuEnabled], true, P, "M9");
-        Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, P, "M9");
-        Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, P, "M9");
+        Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, WindowsStatus.Ported, "M9",
+            "The floating pad. The island's Scratchpad page comes with the launcher.");
+        Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, WindowsStatus.Ported, "M9",
+            "Alt+Space by default, off until turned on. Apps, windows, files, emoji, menu items, selected text, settings pages and your links; sums, units, dates and colors. No scripts, no droplet animation.");
         Add(AppFeature.ScreenRecorder, g, "Screen recording", "Record with system audio and microphone, then trim and export.", Glyph.Record, none, true, P, "M10");
-        Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, P, "M9");
-        Add(AppFeature.KillProcess, g, "Kill process", "Find and stop misbehaving processes.", Glyph.Stop, none, false, P, "M6");
-        Add(AppFeature.PortManager, g, "Port manager", "Find processes listening on ports and stop them.", Glyph.Network, none, false, P, "M6");
+        Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, WindowsStatus.Ported, "M9",
+            "Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog.");
+        Add(AppFeature.KillProcess, g, "Kill process", "Find and stop misbehaving processes.", Glyph.Stop, none, false, WindowsStatus.Ported, "M6");
+        Add(AppFeature.PortManager, g, "Port manager", "Find processes listening on ports and stop them.", Glyph.Network, none, false, WindowsStatus.Ported, "M6");
 
         // Dynamic Island
         g = FeatureGroup.DynamicIsland;
@@ -267,13 +272,13 @@ public static class FeatureCatalog
 
         // System monitor
         g = FeatureGroup.Monitor;
-        Add(AppFeature.MonitorCPU, g, "Processor", "CPU load per core, temperature and top processes.", Glyph.Cpu, none, true, P, "M5");
-        Add(AppFeature.MonitorGPU, g, "Graphics", "GPU load for the Intel and NVIDIA GPUs.", Glyph.Gpu, none, true, P, "M5");
-        Add(AppFeature.MonitorMemory, g, "Memory", "Memory use and pressure.", Glyph.Memory, none, true, P, "M5");
-        Add(AppFeature.MonitorNetwork, g, "Network", "Live traffic, totals, local IP and speed test.", Glyph.Network, none, true, P, "M5");
-        Add(AppFeature.MonitorDisk, g, "Disk", "Disk space and activity.", Glyph.Disk2, none, true, P, "M5");
-        Add(AppFeature.MonitorPower, g, "Power", "Battery health, charge rate and power use.", Glyph.Power, none, true, P, "M5");
-        Add(AppFeature.ConnectedDevices, g, "Connected devices", "USB devices and peripheral batteries.", Glyph.Usb, none, true, P, "M5");
+        Add(AppFeature.MonitorCPU, g, "Processor", "CPU load per core, temperature and top processes.", Glyph.Cpu, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorGPU, g, "Graphics", "GPU load for the Intel and NVIDIA GPUs.", Glyph.Gpu, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorMemory, g, "Memory", "Memory use and pressure.", Glyph.Memory, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorNetwork, g, "Network", "Live traffic, totals, local IP and speed test.", Glyph.Network, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorDisk, g, "Disk", "Disk space and activity.", Glyph.Disk2, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.MonitorPower, g, "Power", "Battery health, charge rate and power use.", Glyph.Power, none, true, WindowsStatus.Ported, "M5");
+        Add(AppFeature.ConnectedDevices, g, "Connected devices", "USB devices and peripheral batteries.", Glyph.Usb, none, true, WindowsStatus.Ported, "M5");
         Add(AppFeature.FanControl, g, "Fan control", "OMEN fan speeds and curves (beta, needs admin helper).", Glyph.Fan, none, false, P, "M12");
 
         return list;

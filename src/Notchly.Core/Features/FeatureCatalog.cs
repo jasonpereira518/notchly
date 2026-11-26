@@ -225,7 +225,8 @@ public static class FeatureCatalog
             [DefaultsKey.RadialMenuEnabled], true, P, "M9");
         Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, WindowsStatus.Ported, "M9",
             "The floating pad. The island's Scratchpad page comes with the launcher.");
-        Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, P, "M9");
+        Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, WindowsStatus.Ported, "M9",
+            "Alt+Space by default, off until turned on. Apps, windows, files, emoji, menu items, selected text, settings pages and your links; sums, units, dates and colors. No scripts, no droplet animation.");
         Add(AppFeature.ScreenRecorder, g, "Screen recording", "Record with system audio and microphone, then trim and export.", Glyph.Record, none, true, P, "M10");
         Add(AppFeature.Wallpaper, g, "Wallpaper", "Set wallpapers per display.", Glyph.Wallpaper, none, false, WindowsStatus.Ported, "M9",
             "Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog.");

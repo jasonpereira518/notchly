@@ -2,7 +2,7 @@
 
 Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate whenever a feature's status changes.
 
-**57 ported**, 11 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
+**58 ported**, 10 planned, 5 built into Windows, 7 not applicable — 80 upstream features.
 
 ## Windows & Taskbar
 
@@ -87,7 +87,7 @@ Generated from `src/Notchly.Core/Features/FeatureCatalog.cs`; regenerate wheneve
 | `cameraPreview` | Camera preview | ✅ Ported | M3 | The floating mirror opens from a shortcut or Settings; the island page is the same camera. |
 | `radialMenu` | Radial menu | 🛠️ Planned | M9 |  |
 | `scratchpad` | Scratchpad | ✅ Ported | M9 | The floating pad. The island's Scratchpad page comes with the launcher. |
-| `commandBar` | Command bar | 🛠️ Planned | M9 |  |
+| `commandBar` | Command bar | ✅ Ported | M9 | Alt+Space by default, off until turned on. Apps, windows, files, emoji, menu items, selected text, settings pages and your links; sums, units, dates and colors. No scripts, no droplet animation. |
 | `screenRecorder` | Screen recording | 🛠️ Planned | M10 |  |
 | `wallpaper` | Wallpaper | ✅ Ported | M9 | Windows' own pictures and your own images and folders, set through the wallpaper object. No Apple catalog. |
 | `killProcess` | Kill process | ✅ Ported | M6 |  |

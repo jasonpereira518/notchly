@@ -66,6 +66,7 @@ internal sealed class CommandBarWindow : FluentWindow
         _placeholder.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
 
         var glyph = new TextBlock { Text = "", FontFamily = (FontFamily)Application.Current.Resources["IconFont"], FontSize = 16, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0), ToolTip = "Drag to move · Double-click to recenter" };
+        glyph.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
         glyph.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) Recenter(); else DragWindow(); e.Handled = true; };
         var input = new Grid { Height = FieldHeight, Margin = new Thickness(18, 0, 18, 0) };
         input.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -313,7 +314,9 @@ internal sealed class CommandBarWindow : FluentWindow
         {
             case CommandBarIconKind.Glyph:
                 host.Background = Plate;
-                host.Child = new TextBlock { Text = icon.Value, FontFamily = (FontFamily)Application.Current.Resources["IconFont"], FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                var mark = new TextBlock { Text = icon.Value, FontFamily = (FontFamily)Application.Current.Resources["IconFont"], FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                mark.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
+                host.Child = mark;
                 break;
             case CommandBarIconKind.Color when icon.Color is { } color:
                 host.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round(color.Alpha * 255), (byte)Math.Round(color.Red * 255), (byte)Math.Round(color.Green * 255), (byte)Math.Round(color.Blue * 255)));

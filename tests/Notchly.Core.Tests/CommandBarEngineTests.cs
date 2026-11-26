@@ -197,4 +197,15 @@ public class CommandBarEngineTests
         var browse = CommandBarEngine.Browse([], "", catalog, catalog, [], CommandBarPreferenceSnapshot.Empty, Learning(), Now);
         Assert.All(browse.Rows.Where(r => r.Id == "action.a"), r => Assert.True(r.Subtitle is "" or "Tools"));
     }
+
+    [Fact]
+    public void TheDefaultShortcutIsAltSpaceAndItParses()
+    {
+        var stored = (string)Notchly.Core.Settings.Defaults.Registered.First(p => p.Key == Notchly.Core.Settings.DefaultsKey.CommandBarShortcut).Value!;
+        var shortcut = Notchly.Core.Shortcuts.Shortcut.Parse(stored);
+        Assert.NotNull(shortcut);
+        Assert.True(shortcut!.Value.IsValid);
+        Assert.Equal(0x20, shortcut.Value.VirtualKey);
+        Assert.Equal(Notchly.Core.Shortcuts.ShortcutModifiers.Alt, shortcut.Value.Modifiers);
+    }
 }

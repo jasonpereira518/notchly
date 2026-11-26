@@ -33,6 +33,8 @@ public static class SettingsBackup
         DefaultsKey.CameraPreviewDeviceId, DefaultsKey.ScratchpadWindowOrigin, DefaultsKey.WallpaperOwnPaths, DefaultsKey.WallpaperExcludedOwnPaths,
         // What the command bar learned, and the folders it searches, belong to this machine (the habit digests mean nothing without their key).
         DefaultsKey.CommandBarFileScopes, DefaultsKey.CommandBarPositionOffset, DefaultsKey.CommandBarUsage, DefaultsKey.CommandBarQueryHabits, DefaultsKey.CommandBarQueryHabitKey,
+        // Where the last screenshot area was, and the running file number, belong to this machine's displays and folders.
+        DefaultsKey.ScreenshotLastRegion, DefaultsKey.ScreenshotFileNumberNext, DefaultsKey.ScreenshotSaveFolder,
     };
 
     public static string Export(SettingsStore store)

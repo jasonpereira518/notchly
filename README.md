@@ -11,7 +11,7 @@ for the porting plan.
 ## What works now
 
 - **Tray icon and panel** — left click opens a flyout with island controls and quick timers; right click for a menu.
-- **Settings** — General (launch at sign-in, theme, export/import, dotfile), **Features hub** (install/uninstall per
+- **Settings** — a **search box** (Ctrl+F) that lists matching rows from every page, still live; General (launch at sign-in, theme, export/import, dotfile), **Features hub** (install/uninstall per
   feature, presets, status of all 80 upstream features), **Dynamic Island**, About.
 - **Dynamic Island**
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.

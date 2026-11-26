@@ -387,6 +387,7 @@ internal sealed class RadialMenuService : IFeatureService
         switch (id)
         {
             case "colorPicker": Service<ColorPickerService>(AppFeature.ColorPicker)?.Pick(); break;
+            case "screenshot": Service<Screenshots.ScreenshotService>(AppFeature.Screenshot)?.CaptureArea(); break;
             case "screenOCR": Service<ScreenTextService>(AppFeature.ScreenOCR)?.Capture(); break;
             case "micMute": Service<Sound.MicMuteService>(AppFeature.MicMute)?.Toggle(); break;
             case "clipboardHistory": _app.ShowClipboardWindow(); break;

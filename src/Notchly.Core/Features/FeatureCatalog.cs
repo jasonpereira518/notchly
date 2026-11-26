@@ -204,7 +204,7 @@ public static class FeatureCatalog
         // Tools
         g = FeatureGroup.Tools;
         Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, WindowsStatus.Ported, "M9",
-            "Ctrl+Win+V opens a grid of tools, or the island's Tools page. Tiles for features not built yet (Cleaner, Package manager, Media, Uninstaller, Screenshot, Recorder) stay hidden.");
+            "Ctrl+Win+V opens a grid of tools, or the island's Tools page. Tiles for features not built yet (Cleaner, Package manager, Media, Uninstaller, Recorder) stay hidden.");
         Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, WindowsStatus.Ported, "M6");
         Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, WindowsStatus.Ported, "M6");
         Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, WindowsStatus.Ported, "M9",
@@ -219,7 +219,8 @@ public static class FeatureCatalog
         Add(AppFeature.Homebrew, g, "Package manager", "Search, install and remove winget packages.", Glyph.Package, none, true, P, "M11",
             "Homebrew becomes winget on Windows.");
         Add(AppFeature.AppUpdates, g, "App updates", "Check winget and Store apps for updates in one list.", Glyph.Update, none, true, P, "M11");
-        Add(AppFeature.Screenshot, g, "Screenshot", "Capture, annotate, pin and share screenshots.", Glyph.Screenshot, none, true, P, "M10");
+        Add(AppFeature.Screenshot, g, "Screenshot", "Capture, annotate, pin and share screenshots.", Glyph.Screenshot, none, true, WindowsStatus.Ported, "M10",
+            "Area, window, full screen and scrolling capture with an editor, pin, history and backdrop. Off until you turn its shortcuts on (Ctrl+Alt+Win+4 area, 3 full screen). No upload links and no HEIC.");
         Add(AppFeature.CameraPreview, g, "Camera preview", "Check your camera in a floating mirror or the island.", Glyph.Camera, none, true, WindowsStatus.Ported, "M3",
             "The floating mirror opens from a shortcut or Settings; the island page is the same camera.");
         Add(AppFeature.RadialMenu, g, "Radial menu", "A wheel of apps, files and tools around the pointer.", Glyph.Wheel,

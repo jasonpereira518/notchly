@@ -5,6 +5,7 @@
 using System.Windows.Threading;
 using Notchly.App.Island;
 using Notchly.App.Platform.Windowing;
+using Notchly.App.Screenshots;
 using Notchly.App.Shell;
 using Notchly.App.Tools;
 using Notchly.Core.Camera;
@@ -24,7 +25,7 @@ internal sealed class QuickLauncherService : IFeatureService, IQuickLauncherHost
     [
         QuickLauncherItem.KeepAwake, QuickLauncherItem.Toggles, QuickLauncherItem.MicMute, QuickLauncherItem.ScreenOcr, QuickLauncherItem.ColorPicker,
         QuickLauncherItem.Clipboard, QuickLauncherItem.WindowLayout, QuickLauncherItem.Cleaning, QuickLauncherItem.UrlCleaner,
-        QuickLauncherItem.CameraPreview, QuickLauncherItem.Scratchpad,
+        QuickLauncherItem.CameraPreview, QuickLauncherItem.Scratchpad, QuickLauncherItem.Screenshot,
     ];
 
     private readonly App _app;
@@ -111,6 +112,7 @@ internal sealed class QuickLauncherService : IFeatureService, IQuickLauncherHost
             case QuickLauncherAction.KeepAwakeToggle: _app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake)?.Toggle(); return true;
             case QuickLauncherAction.MicMuteToggle: _app.Features.Get<Sound.MicMuteService>(AppFeature.MicMute)?.Toggle(); return true;
             case QuickLauncherAction.ScreenOcrCapture: _app.Features.Get<ScreenTextService>(AppFeature.ScreenOCR)?.Capture(); return true;
+            case QuickLauncherAction.ScreenshotCapture: _app.Features.Get<ScreenshotService>(AppFeature.Screenshot)?.CaptureArea(); return true;
             case QuickLauncherAction.ColorPickerPick: _app.Features.Get<ColorPickerService>(AppFeature.ColorPicker)?.Pick(); return true;
             case QuickLauncherAction.CameraShowInIsland:
                 // The camera goes into the island when that is enabled: no second window.

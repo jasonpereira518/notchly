@@ -619,3 +619,31 @@ public static class WatermarkPortability
         return ScreenshotPresets.EncodeWatermarks(text.TakeLast(Math.Max(0, ScreenshotPresets.Limit - pictures.Count)).Concat(pictures));
     }
 }
+
+/// <summary>The backdrop counterpart of <see cref="WatermarkPortability"/>: a picture backdrop is a private file, so a backup drops it.</summary>
+public static class BackdropPortability
+{
+    public static string PortableStyle(string? raw)
+    {
+        var style = BackdropStyle.Decoded(raw);
+        return (style.Kind == BackdropKind.Image ? new BackdropStyle() : style).Encoded();
+    }
+
+    public static string PortablePresets(string? raw) =>
+        ScreenshotPresets.EncodeBackdrops(ScreenshotPresets.DecodeBackdrops(raw).Where(style => style.Kind != BackdropKind.Image));
+
+    /// <summary>The restored look; a picture backdrop this PC already has stays as it is.</summary>
+    public static string RestoredStyle(string? restored, string? local)
+    {
+        var style = BackdropStyle.Decoded(restored);
+        return style.Kind == BackdropKind.Image ? BackdropStyle.Decoded(local).Encoded() : style.Encoded();
+    }
+
+    /// <summary>Presets from the backup, with this PC's picture presets kept first so a restore never evicts one.</summary>
+    public static string RestoredPresets(string? restored, string? local)
+    {
+        var pictures = ScreenshotPresets.DecodeBackdrops(local).Where(style => style.Kind == BackdropKind.Image).ToList();
+        var others = ScreenshotPresets.DecodeBackdrops(restored).Where(style => style.Kind != BackdropKind.Image).ToList();
+        return ScreenshotPresets.EncodeBackdrops(others.TakeLast(Math.Max(0, ScreenshotPresets.Limit - pictures.Count)).Concat(pictures));
+    }
+}

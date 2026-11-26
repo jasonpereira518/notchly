@@ -52,6 +52,7 @@ internal sealed partial class SettingsPages
         AddLauncherSection(page);
         AddCommandBarSection(page);
         AddRadialSection(page);
+        AddScreenshotSection(page);
         AddScreenToolSections(page);
         return page;
     }

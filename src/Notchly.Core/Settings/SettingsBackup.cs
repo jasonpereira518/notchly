@@ -29,6 +29,8 @@ public static class SettingsBackup
         DefaultsKey.FocusFollowsMouseOriginal, DefaultsKey.MouseAccelerationOriginal,
         // The task lives on this machine.
         DefaultsKey.RunElevatedAtLogin,
+        // A camera id, a window position and folders of pictures name things on this machine.
+        DefaultsKey.CameraPreviewDeviceId, DefaultsKey.ScratchpadWindowOrigin, DefaultsKey.WallpaperOwnPaths, DefaultsKey.WallpaperExcludedOwnPaths,
     };
 
     public static string Export(SettingsStore store)

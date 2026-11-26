@@ -81,8 +81,17 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(new Separator());
         menu.Items.Add(awake);
         menu.Items.Add(mic);
+        var cleaning = Item(Tools.CleaningModeService.StartNow, () => app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode)?.Start());
+        menu.Items.Add(cleaning);
+        var scratchpad = Item("Scratchpad", () => app.Features.Get<Tools.ScratchpadService>(AppFeature.Scratchpad)?.Toggle());
+        menu.Items.Add(scratchpad);
+        var wallpaper = Item("Wallpaper…", () => app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper)?.Open());
+        menu.Items.Add(wallpaper);
         menu.Opened += (_, _) =>
         {
+            scratchpad.Visibility = app.Features.Get<Tools.ScratchpadService>(AppFeature.Scratchpad) is null ? Visibility.Collapsed : Visibility.Visible;
+            wallpaper.Visibility = app.Features.Get<Tools.WallpaperService>(AppFeature.Wallpaper) is null ? Visibility.Collapsed : Visibility.Visible;
+            cleaning.Visibility = app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode) is null ? Visibility.Collapsed : Visibility.Visible;
             var keep = app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake);
             awake.Visibility = keep is null ? Visibility.Collapsed : Visibility.Visible;
             awake.IsChecked = keep?.Active == true;

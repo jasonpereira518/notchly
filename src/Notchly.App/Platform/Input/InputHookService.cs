@@ -38,6 +38,7 @@ public sealed class InputHookService : IDisposable
     /// <summary>The order of the built-in subscribers: transformers first, observers after.</summary>
     public static class Priority
     {
+        public const int Lock = 200;        // cleaning mode: nothing may reach an app while the keyboard is locked
         public const int Protect = 100;     // quit protection, the switcher's own keys
         public const int Filter = 80;       // debounce: drops events before anything acts on them
         public const int Transform = 60;    // super key, scroll features, button shortcuts

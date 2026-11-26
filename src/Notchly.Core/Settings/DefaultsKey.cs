@@ -500,4 +500,27 @@ public static class DefaultsKey
     public const string ShelfClearOnClose = "shelfClearOnClose";
     public const string ShelfShortcutAddsSelection = "shelfShortcutAddsFinderSelection";
     public const string ShelfAutomaticExclusions = "shelfAutomaticExclusions";
+    public const string ColorPickerShortcutEnabled = "colorPickerShortcutEnabled";
+    public const string ColorPickerShortcut = "colorPickerShortcut";
+    public const string ColorPickerFormat = "colorPickerFormat";
+    public const string ColorPickerBareHex = "colorPickerBareHex";
+    public const string ScreenOcrShortcutEnabled = "screenOCRShortcutEnabled";
+    public const string ScreenOcrShortcut = "screenOCRShortcut";
+    public const string ScreenOcrRemoveLineBreaks = "screenOCRRemoveLineBreaks";
+    public const string ScreenOcrDetectQrCodes = "screenOCRDetectQRCodes";
+    public const string CleaningModeKeepScreenVisible = "cleaningModeKeepScreenVisible";
+    public const string CameraPreviewShortcutEnabled = "cameraPreviewShortcutEnabled";
+    public const string CameraPreviewShortcut = "cameraPreviewShortcut";
+    public const string CameraPreviewDeviceId = "cameraPreviewDeviceId";
+    public const string ScratchpadShortcutEnabled = "scratchpadShortcutEnabled";
+    public const string ScratchpadShortcut = "scratchpadShortcut";
+    public const string ScratchpadRetention = "scratchpadRetention";
+    public const string ScratchpadCloseOnClickOutside = "scratchpadCloseOnClickOutside";
+    public const string ScratchpadBackgroundOpacity = "scratchpadBackgroundOpacity";
+    public const string ScratchpadTextSize = "scratchpadTextSize";
+    public const string ScratchpadWindowOrigin = "scratchpadWindowOrigin";
+    public const string WallpaperApplyAllDisplays = "wallpaperApplyAllDisplays";
+    public const string WallpaperFilter = "wallpaperFilter";
+    public const string WallpaperOwnPaths = "wallpaperOwnPaths";
+    public const string WallpaperExcludedOwnPaths = "wallpaperExcludedOwnPaths";
 }

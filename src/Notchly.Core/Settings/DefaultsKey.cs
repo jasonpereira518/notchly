@@ -500,4 +500,12 @@ public static class DefaultsKey
     public const string ShelfClearOnClose = "shelfClearOnClose";
     public const string ShelfShortcutAddsSelection = "shelfShortcutAddsFinderSelection";
     public const string ShelfAutomaticExclusions = "shelfAutomaticExclusions";
+    public const string ColorPickerShortcutEnabled = "colorPickerShortcutEnabled";
+    public const string ColorPickerShortcut = "colorPickerShortcut";
+    public const string ColorPickerFormat = "colorPickerFormat";
+    public const string ColorPickerBareHex = "colorPickerBareHex";
+    public const string ScreenOcrShortcutEnabled = "screenOCRShortcutEnabled";
+    public const string ScreenOcrShortcut = "screenOCRShortcut";
+    public const string ScreenOcrRemoveLineBreaks = "screenOCRRemoveLineBreaks";
+    public const string ScreenOcrDetectQrCodes = "screenOCRDetectQRCodes";
 }

@@ -454,5 +454,13 @@ public static class Defaults
         [DefaultsKey.ShelfClearOnClose] = false,
         [DefaultsKey.ShelfShortcutAddsSelection] = false,
         [DefaultsKey.ShelfAutomaticExclusions] = "",
+        [DefaultsKey.ColorPickerShortcutEnabled] = false,
+        [DefaultsKey.ColorPickerShortcut] = "control+alt+win:67",
+        [DefaultsKey.ColorPickerFormat] = "hex",
+        [DefaultsKey.ColorPickerBareHex] = false,
+        [DefaultsKey.ScreenOcrShortcutEnabled] = false,
+        [DefaultsKey.ScreenOcrShortcut] = "control+alt+win:84",
+        [DefaultsKey.ScreenOcrRemoveLineBreaks] = false,
+        [DefaultsKey.ScreenOcrDetectQrCodes] = true,
     };
 }

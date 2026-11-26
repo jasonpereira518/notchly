@@ -2573,7 +2573,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 NotchModule.Music => ("", "Music"),
                 NotchModule.Files => ("\uE8B7", "Files"),
                 NotchModule.Clipboard => ("\uE77F", "Clipboard"),
-                NotchModule.Tools => ("\uE90F", "Tools"),
+                NotchModule.Tools => ("\uE713", "Tools"),
                 NotchModule.Downloads => ("\uE896", "Downloads"),
                 NotchModule.Calendar => ("\uE787", "Calendar"),
                 NotchModule.Agents => ("\uE99A", "AI agents"),

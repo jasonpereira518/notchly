@@ -275,19 +275,5 @@ public sealed class MenuBarController : IDisposable
         return item;
     }
 
-    private async void Run(MenuCommand command, ForegroundApp app)
-    {
-        // Let the menu close and the app's window take its keys back first.
-        await Task.Delay(60);
-        try
-        {
-            switch (command)
-            {
-                case MenuCommand.SendKeys keys: await KeySender.SendAsync(app.Window, keys.Chord); break;
-                case MenuCommand.Window window: WindowActions.Perform(window.Action, app); break;
-                case MenuCommand.NativeItem native: AppMenus.Choose(app.Window, native.Id); break;
-            }
-        }
-        catch (Exception e) { Log.Warning(e, "Menu command failed"); }
-    }
+    private static async void Run(MenuCommand command, ForegroundApp app) => await MenuCommands.RunAsync(command, app);
 }

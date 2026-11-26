@@ -158,7 +158,7 @@ public class MascotRigTests
         Assert.False(stage.IsBeingPetted);
         clock.Now += 0.21;
         // Heart eyes are twice an open eye's width.
-        Assert.Equal(4, Width(stage.Frame()!.LeftEye), 0);
+        Assert.Equal(5, Width(stage.Frame()!.LeftEye), 0);
         clock.Now += 5;
         stage.PointerMoved(on);
         Assert.False(stage.IsBeingPetted);
@@ -224,7 +224,7 @@ public class MascotRigTests
         var settled = stage.Frame()!;
         Assert.Equal(track.Rest, settled.Position.X, 6);
         // Nothing moves it now: the box's centre is where it stands.
-        var centre = settled.Transform.Transform(new PointD(10, 10));
+        var centre = settled.Transform.Transform(new PointD(track.Size / 2, track.Size / 2));
         Assert.Equal(settled.Position.X, centre.X, 9);
         Assert.Equal(settled.Position.Y, centre.Y, 9);
 

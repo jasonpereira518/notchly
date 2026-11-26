@@ -132,6 +132,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     private int? _brightness;
     /// <summary>The battery's watts and capacities, read while the home page shows them.</summary>
     private BatteryReading? _batteryReading;
+    private ChipPower? _chipPower;
+    private Notchly.App.Platform.Monitor.ChipPowerSampler? _chipSampler;
     private bool _batteryPanelOpen;
     private DispatcherTimer? _batteryTimer;
     private ForegroundWatcher? _foreground;
@@ -2573,6 +2575,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
                 NotchModule.Notifications => ("\uEA8F", "Notifications"),
                 NotchModule.Camera => ("\uE8B8", "Camera"),
                 NotchModule.Watch => (WatchPage.EyeGlyph, "Watch"),
+                NotchModule.System => ("", "System"),
                 NotchModule.Mixer => ("", "Volume mixer"),
                 NotchModule.Timer => ("", "Timer"),
                 _ => ("", "Home"),
@@ -2784,9 +2787,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (!reading)
         {
             _batteryTimer.Stop();
+            _chipSampler?.Dispose();
+            _chipSampler = null;
+            _chipPower = null;
             return;
         }
         _batteryReading = _power!.Report();
+        // The processor's power is read only while the panel that shows it is open.
+        if (_batteryPanelOpen) _chipPower = (_chipSampler ??= new Notchly.App.Platform.Monitor.ChipPowerSampler()).Read() ?? _chipPower;
+        else if (_chipSampler is not null) { _chipSampler.Dispose(); _chipSampler = null; _chipPower = null; }
         if (!_batteryTimer.IsEnabled) _batteryTimer.Start();
         UpdateBatteryControls();
     }
@@ -2801,7 +2810,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         w.HomeBatteryIcon.Text = BatteryGlyph(battery);
         w.HomeBatteryChip.IsHitTestVisible = battery.HasBattery;
         if (!_batteryPanelOpen) return;
-        var rows = BatteryDetails.Rows(_batteryReading ?? new BatteryReading(battery.Percent, battery.PluggedIn, battery.Charging));
+        var rows = BatteryDetails.Rows(_batteryReading ?? new BatteryReading(battery.Percent, battery.PluggedIn, battery.Charging), _chipPower);
         var grid = w.HomeBatteryRows;
         grid.Children.Clear();
         grid.RowDefinitions.Clear();

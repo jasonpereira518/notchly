@@ -127,6 +127,27 @@ public class ShellTests
     }
 
     [Fact]
+    public void TheCompanionSwitchInstallsItsExtensionWhenTurnedOn()
+    {
+        var store = NewStore();
+        store.Set(DefaultsKey.NotchMascotEnabled, true);
+        Assert.True(store.InstallForSwitch(DefaultsKey.NotchMascotEnabled));
+        Assert.True(store.IsAvailable(AppFeature.NotchMascot));
+    }
+
+    [Fact]
+    public void ACompanionSwitchLeftOnBeforeItInstalledIsHonouredAfterTheFirstRepair()
+    {
+        var store = NewStore();
+        store.Set(DefaultsKey.IslandSwitchesInstalled, true);
+        store.Set(DefaultsKey.NotchMascotEnabled, true);
+        store.Set(DefaultsKey.NotchAgentsEnabled, true);
+        Assert.Equal(new[] { AppFeature.NotchMascot }, store.InstallSwitchedOnExtensions());
+        Assert.False(store.IsAvailable(AppFeature.NotchAgents));
+        Assert.Empty(store.InstallSwitchedOnExtensions());
+    }
+
+    [Fact]
     public void StoreReadsDefaultsUntilAValueIsSavedAndReportsChanges()
     {
         var store = NewStore();

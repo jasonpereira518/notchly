@@ -34,9 +34,28 @@ public class HomeControlsTests
         Assert.Null(BatteryDetails.ShortFlow(r));
         Assert.Null(BatteryDetails.TimeLeft(r));
         Assert.Equal(71, BatteryDetails.HealthPercent(r));
-        Assert.Equal(["Power", "Charge", "Health"], BatteryDetails.Rows(r).Select(row => row.Label));
+        Assert.Equal(["Wall", "Battery", "Charge", "Health"], BatteryDetails.Rows(r).Select(row => row.Label));
         Assert.Equal("59.3 of 59.3 Wh", BatteryDetails.Charge(r));
         Assert.Equal("71% of new (83 Wh)", BatteryDetails.Health(r));
+    }
+
+    [Fact]
+    public void OnTheBatteryWhatLeavesItIsTheSystemsDraw()
+    {
+        var r = new BatteryReading(80, false, false, RateMilliwatts: -12_400);
+        var rows = BatteryDetails.Rows(r, new ChipPower(7_300, 5_100, 50));
+        Assert.Equal([("Wall", "Unplugged"), ("Battery", "12.4 W out"), ("System", "12.4 W"), ("Chip", "7.3 W · cores 5.1 W")], rows);
+    }
+
+    [Fact]
+    public void OnTheChargerTheWallAndSystemAreNotGuessed()
+    {
+        var r = new BatteryReading(60, true, true, RateMilliwatts: 45_000);
+        var rows = BatteryDetails.Rows(r, new ChipPower(31_555, 20_766, 57));
+        Assert.Equal(("Wall", "Not reported by Windows"), rows[0]);
+        Assert.Equal(("Battery", "45 W in"), rows[1]);
+        Assert.DoesNotContain(rows, row => row.Label == "System");
+        Assert.Equal("32 W · cores 21 W", BatteryDetails.Chip(new ChipPower(31_555, 20_766, 57)));
     }
 
     [Fact]
@@ -44,7 +63,7 @@ public class HomeControlsTests
     {
         var r = new BatteryReading(55, false, false);
         Assert.Equal("On battery", BatteryDetails.Flow(r));
-        Assert.Equal([("Power", "On battery")], BatteryDetails.Rows(r));
+        Assert.Equal([("Wall", "Unplugged"), ("Battery", "Idle")], BatteryDetails.Rows(r));
     }
 
     [Fact]

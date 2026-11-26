@@ -90,8 +90,8 @@ public static class Defaults
         [DefaultsKey.NotchMascotShape] = "ball",
         [DefaultsKey.NotchMascotPalette] = "pearl",
         [DefaultsKey.NotchMascotSide] = "left",
-        [DefaultsKey.NotchMascotVisitFrequency] = "normal",
-        [DefaultsKey.NotchMascotHidesWhenIdle] = true,
+        [DefaultsKey.NotchMascotVisitFrequency] = "frequent",
+        [DefaultsKey.NotchMascotHidesWhenIdle] = false,
 
         // Sound (upstream defaults; lists and maps are JSON, shortcuts use Windows modifiers: Win in place of Command).
         [DefaultsKey.AppVolumes] = new Dictionary<string, double>(),

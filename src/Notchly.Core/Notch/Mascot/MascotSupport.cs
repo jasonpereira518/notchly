@@ -132,7 +132,7 @@ public static class MascotSupport
     /// <summary>The companion's square in a closed strip of <paramref name="stripHeight"/>, with or without a
     /// capsule's margins around its body.</summary>
     public static double Size(double stripHeight, bool floats) =>
-        floats ? Math.Max(10, Math.Min(18, stripHeight - 6)) : Math.Max(12, Math.Min(20, stripHeight - 12));
+        floats ? Math.Max(12, Math.Min(22, stripHeight - 4)) : Math.Max(16, Math.Min(26, stripHeight - 4));
 
     /// <summary>
     /// Where it rests in a strip with a camera: inside a wing, a little way from the camera, so it sits beside it

@@ -18,6 +18,7 @@ internal sealed partial class SettingsPages
     private const string CleaningNote = "Locks the keyboard so you can clean safely: every key, the volume and media keys and the wheel do nothing. Press Escape five times, or click Unlock, to give it back. Windows keeps Ctrl+Alt+Delete for itself, so that one cannot be blocked.";
     private const string CameraNote = "Opens a floating mirror with your camera, to check how you look before a call. Esc, a click elsewhere, or another app coming forward closes it, and the camera turns off with it. Nothing is recorded.";
     private const string WallpaperNote = "Pick a still wallpaper without opening Windows Settings. Add your own pictures or folders; a picture is applied to every display or only the one with the pointer.";
+    private const string ScratchpadNote = "Floating pads for short-lived notes, in tabs, with Markdown. They save by themselves.";
     private const string ShortcutNote = "Click, then press the keys. Backspace clears it.";
 
     private void AddScreenToolSections(StackPanel page)
@@ -55,6 +56,18 @@ internal sealed partial class SettingsPages
         if (!settings.IsAvailable(AppFeature.CleaningMode)) page.Children.Add(Caption("Install Cleaning mode in Features to use it."));
         page.Children.Add(Toggle("Keep screen visible", "Shows a discreet indicator in the corner of the screen instead of blacking out content.", DefaultsKey.CleaningModeKeepScreenVisible, ""));
         page.Children.Add(ActionButton(CleaningModeService.StartNow, () => app.Features.Get<CleaningModeService>(AppFeature.CleaningMode)?.Start()));
+
+        page.Children.Add(Section("Scratchpad"));
+        page.Children.Add(Caption(ScratchpadNote));
+        if (!settings.IsAvailable(AppFeature.Scratchpad)) page.Children.Add(Caption("Install Scratchpad in Features to use it."));
+        page.Children.Add(Toggle("Open it with a shortcut", null, DefaultsKey.ScratchpadShortcutEnabled, ""));
+        page.Children.Add(Card("Shortcut", ShortcutNote, "", new ShortcutRecorder(settings, DefaultsKey.ScratchpadShortcut)));
+        page.Children.Add(Choice("Clear on its own", "The pad empties itself once the text goes that long without edits.", DefaultsKey.ScratchpadRetention,
+            [("never", "Never"), ("day", "After a day unused"), ("week", "After a week unused"), ("month", "After a month unused")]));
+        page.Children.Add(Toggle("Close when I click outside", "Off keeps it open until you press Esc or close it.", DefaultsKey.ScratchpadCloseOnClickOutside, ""));
+        page.Children.Add(SliderRow("Pad background", "From translucent to opaque.", DefaultsKey.ScratchpadBackgroundOpacity, 0, 1, 0.05, "{0:0.00}", ""));
+        page.Children.Add(SliderRow("Text size", null, DefaultsKey.ScratchpadTextSize, 10, 22, 1, "{0:0} pt", ""));
+        page.Children.Add(ActionButton("Open scratchpad", () => app.Features.Get<ScratchpadService>(AppFeature.Scratchpad)?.Toggle()));
 
         page.Children.Add(Section("Wallpaper"));
         page.Children.Add(Caption(WallpaperNote));

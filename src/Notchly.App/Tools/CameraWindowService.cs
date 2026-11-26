@@ -110,9 +110,9 @@ internal sealed class CameraWindow : Window
                 Orientation = Orientation.Horizontal,
                 Children =
                 {
-                    new TextBlock { Text = "", FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 12, Foreground = Brushes.White, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center },
+                    new TextBlock { Text = "\uE722", FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 12, Foreground = Brushes.White, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center },
                     _pickerLabel,
-                    new TextBlock { Text = "", FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 9, Foreground = Soft, Margin = new Thickness(8, 1, 0, 0), VerticalAlignment = VerticalAlignment.Center },
+                    new TextBlock { Text = "\uE70D", FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 9, Foreground = Soft, Margin = new Thickness(8, 1, 0, 0), VerticalAlignment = VerticalAlignment.Center },
                 },
             },
         };

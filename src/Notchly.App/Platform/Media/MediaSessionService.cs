@@ -6,8 +6,10 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Notchly.Core.Notch.Music;
 using Serilog;
 using Windows.Media.Control;
+using AutoRepeat = Windows.Media.MediaPlaybackAutoRepeatMode;
 using WinRT;
 
 namespace Notchly.App.Platform.Media;
@@ -27,7 +29,11 @@ public sealed record NowPlaying(
     bool CanGoPrevious,
     bool CanSeek,
     BitmapSource? Artwork,
-    Color? ArtworkTint)
+    Color? ArtworkTint,
+    bool IsShuffle = false,
+    NotchRepeatMode Repeat = NotchRepeatMode.Off,
+    bool CanShuffle = false,
+    bool CanRepeat = false)
 {
     /// <summary>The position now, extrapolated from the last timeline report while playing.</summary>
     public TimeSpan CurrentPosition
@@ -220,7 +226,11 @@ public sealed class MediaSessionService : IDisposable
                 (controls?.IsPlaybackPositionEnabled ?? false)
                     || (timeline is { } span && span.MaxSeekTime > span.MinSeekTime && span.EndTime > span.StartTime),
                 _artwork,
-                _tint));
+                _tint,
+                playback?.IsShuffleActive ?? false,
+                playback?.AutoRepeatMode is { } repeat ? FromWindows(repeat) : NotchRepeatMode.Off,
+                controls?.IsShuffleEnabled ?? false,
+                controls?.IsRepeatEnabled ?? false));
         }
         catch (Exception e)
         {
@@ -317,6 +327,35 @@ public sealed class MediaSessionService : IDisposable
     public async void TogglePlayPause() { if (_session is { } s) await s.TryTogglePlayPauseAsync(); }
     public async void Next() { if (_session is { } s) await s.TrySkipNextAsync(); }
     public async void Previous() { if (_session is { } s) await s.TrySkipPreviousAsync(); }
+    /// <summary>Turns shuffle on or off in the player. Players that cannot shuffle refuse, and nothing changes.</summary>
+    public async void SetShuffle(bool on)
+    {
+        if (_session is not { } s) return;
+        try { await s.TryChangeShuffleActiveAsync(on); }
+        catch (Exception e) { Log.Debug(e, "Shuffle failed"); }
+    }
+
+    public async void SetRepeat(NotchRepeatMode mode)
+    {
+        if (_session is not { } s) return;
+        try { await s.TryChangeAutoRepeatModeAsync(ToWindows(mode)); }
+        catch (Exception e) { Log.Debug(e, "Loop failed"); }
+    }
+
+    private static NotchRepeatMode FromWindows(AutoRepeat mode) => mode switch
+    {
+        AutoRepeat.List => NotchRepeatMode.All,
+        AutoRepeat.Track => NotchRepeatMode.One,
+        _ => NotchRepeatMode.Off,
+    };
+
+    private static AutoRepeat ToWindows(NotchRepeatMode mode) => mode switch
+    {
+        NotchRepeatMode.All => AutoRepeat.List,
+        NotchRepeatMode.One => AutoRepeat.Track,
+        _ => AutoRepeat.None,
+    };
+
     public async void Seek(TimeSpan position)
     {
         if (_session is not { } s) return;

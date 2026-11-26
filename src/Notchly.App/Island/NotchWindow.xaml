@@ -415,6 +415,8 @@
                     <Grid Grid.Row="0">
                         <StackPanel x:Name="Tabs" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <ToggleButton x:Name="QueueButton" Style="{StaticResource LyricsToggle}" Content="&#xE8FD;" ToolTip="Up next"
+                                          Visibility="Collapsed" Margin="0,0,2,0" />
                             <ToggleButton x:Name="LyricsButton" Style="{StaticResource LyricsToggle}" Content="&#xE8BD;" ToolTip="Lyrics"
                                           Visibility="Collapsed" Margin="0,0,2,0" />
                             <Button x:Name="NotificationsClear" Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Clear All"
@@ -575,7 +577,9 @@
                                         </Border.Background>
                                     </Border>
                                 </Border>
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <Button x:Name="MusicStar" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE734;" FontSize="16"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Star" Panel.ZIndex="1" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,34,0">
                                     <TextBlock x:Name="MusicTitle" FontSize="17" FontWeight="SemiBold" Text="Nothing playing" />
                                     <TextBlock x:Name="MusicArtist" FontSize="13" Foreground="{StaticResource Dim}" Margin="0,3,0,0" />
                                     <TextBlock x:Name="MusicSource" FontSize="11" Foreground="{StaticResource Dim}" Margin="0,8,0,0" />
@@ -586,10 +590,36 @@
                                 <TextBlock x:Name="MusicElapsed" FontSize="11" Foreground="{StaticResource Dim}" HorizontalAlignment="Left" />
                                 <TextBlock x:Name="MusicRemaining" FontSize="11" Foreground="{StaticResource Dim}" HorizontalAlignment="Right" />
                             </Grid>
-                            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center">
+                            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button x:Name="MusicShuffle" Style="{StaticResource IconButton}" Content="&#xE8B1;" FontSize="16" Width="40" Height="40" ToolTip="Shuffle" Margin="0,0,6,0" />
                                 <Button x:Name="MusicPrevious" Style="{StaticResource IconButton}" Content="&#xE892;" FontSize="18" Width="44" Height="44" />
                                 <Button x:Name="MusicPlayPause" Style="{StaticResource IconButton}" Content="&#xE768;" FontSize="24" Width="56" Height="56" Margin="12,0" />
                                 <Button x:Name="MusicNext" Style="{StaticResource IconButton}" Content="&#xE893;" FontSize="18" Width="44" Height="44" />
+                                <Button x:Name="MusicRepeat" Style="{StaticResource IconButton}" Content="&#xE8EE;" FontSize="16" Width="40" Height="40" ToolTip="Loop" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Nothing playing: the user's Spotify playlists, to start one (a Windows addition). -->
+                        <Grid x:Name="MusicIdle" Grid.Row="0" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="MusicIdleStatus" FontSize="12" Foreground="{StaticResource Dim}" Margin="2,0,0,8" TextWrapping="Wrap"
+                                       TextTrimming="None" Text="Nothing playing" />
+                            <ScrollViewer x:Name="MusicIdleScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled"
+                                          Focusable="False" CanContentScroll="False">
+                                <StackPanel x:Name="MusicIdleList" />
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- Up next (Spotify): the songs queued after this one, sharing the lyrics' slot. -->
+                        <Grid x:Name="QueuePanel" Grid.Row="1" Margin="0,12,0,0" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="Up next" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Dim}" Margin="2,0,0,6" />
+                                <StackPanel x:Name="QueueRows" />
+                                <TextBlock x:Name="QueueMessage" FontSize="12" Foreground="{StaticResource Dim}" Margin="2,6,0,0" TextWrapping="Wrap"
+                                           TextTrimming="None" Visibility="Collapsed" />
                             </StackPanel>
                         </Grid>
 

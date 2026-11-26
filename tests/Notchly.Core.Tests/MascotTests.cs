@@ -716,7 +716,8 @@ public class MascotTests
         Assert.Equal(new PointD(0, 0), MascotSupport.PointerGaze(center, center, 20));
         var right = MascotSupport.PointerGaze(center, new PointD(400, 16), 20);
         var left = MascotSupport.PointerGaze(center, new PointD(0, 30), 20);
-        Assert.True(right.X > 0 && Math.Abs(right.X) <= 0.08 && left.X < 0 && left.Y > 0 && Math.Abs(left.Y) <= 0.05);
+        Assert.True(right.X > 0 && Math.Abs(right.X) <= MascotSupport.GazeAcross && left.X < 0 && left.Y > 0
+                    && Math.Abs(left.Y) <= MascotSupport.GazeDown);
         Assert.True(MascotSupport.IsPetting(center, new PointD(26 + 13, 16), 20));
         Assert.False(MascotSupport.IsPetting(center, new PointD(26 + 13.5, 16), 20));
     }

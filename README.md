@@ -11,12 +11,12 @@ for the porting plan.
 ## What works now
 
 - **Tray icon and panel** — left click opens a flyout with island controls and quick timers; right click for a menu.
-- **Settings** — General (launch at sign-in, theme, export/import, dotfile), **Features hub** (install/uninstall per
+- **Settings** — a **search box** (Ctrl+F) that lists matching rows from every page, still live; General (launch at sign-in, theme, export/import, dotfile), **Features hub** (install/uninstall per
   feature, presets, status of all 80 upstream features), **Dynamic Island**, About.
 - **Dynamic Island**
   - A notch (or capsule) 135×24 DIP centred under the webcam; transparent areas pass clicks through.
   - Hover grows it slightly; click opens it (or enable *Open on hover*). Click elsewhere, Esc, or the chevron closes it.
-  - Pages: **Home** (now playing + transport; volume and built-in screen brightness side by side; a speaker menu to switch the output for every app; a battery chip that opens its watts in or out, time left, charge and health), **Music** (art, seekable timeline),
+  - Pages: **Home** (now playing + transport; volume and built-in screen brightness side by side; a speaker menu to switch the output for every app; a battery chip that opens its watts in or out, time left, charge and health), **Music** (art, seekable timeline, shuffle, loop, star; with Spotify connected, the next songs, Liked Songs and a playlist picker),
     **Files**, **Downloads**, **Calendar**, **AI agents**, **Notifications**, **Camera**, **Watch**, **Timer** (timer, Pomodoro, stopwatch).
   - **Lyrics** on the Music page: synced verses that light up with the song, a ±0.25 s timing row, `.lrc`
     import, and opt-in online lookup from lrclib.net (with musicbrainz.org alias checks as a last resort).
@@ -60,12 +60,16 @@ for the porting plan.
     minimized or locked pauses watching, and closing it ends the watch. Text comes from Windows' own recognition on
     this PC; only the chosen area is read, in memory, and nothing is saved or sent.
   - **Companion** (opt in): a little friend who rests in the closed island's wing beside the camera when nothing else
-    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, follows the pointer
-    with its eyes, answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
+    shows, in one of two styles (minimal, four shapes, or a robot) and seven colours. It blinks, watches your cursor
+    wherever it is on the screen (turning its eyes and leaning its head, then looking ahead again once the cursor
+    keeps still), answers a resting pointer with heart eyes and dozes off when left alone; now and then it strolls
     through the island, and it hides in the island after half a minute of quiet. It comes out to react to music
-    starting, timers, downloads, the microphone, unlocking the PC, agents finishing, events starting, the charger,
-    Watch and files dropped in, standing in for the notice's icon when the notice brings the news. With Windows'
-    animation effects off it only changes face, and Battery Saver keeps it at rest.
+    starting, pausing and skipping, timers, downloads, notifications, the microphone, the volume reaching the top, the
+    screen going full bright or nearly dark, headphones going on and off, unlocking the PC, agents finishing, events
+    starting, the charger, Watch and files dropped in, standing in for the notice's icon when the notice brings the
+    news. Each reaction has its own motion and a small prop beside it (hearts, sparkles, notes, a "!", a "?", a
+    "z" and more), and Settings can play every one. With Windows' animation effects off it only changes face, and
+    Battery Saver keeps it at rest and reads the cursor less often.
   - **Sound** (M4): a **Volume mixer** page on the island and a section in the panel list every app that uses audio, with
     its icon, a level slider with a live meter, mute, reset, pinning, order, and (through Windows' own per-app output)
     the speaker or headphones it plays to; call apps, Zoom and music-production apps keep their own volume. Windows plays

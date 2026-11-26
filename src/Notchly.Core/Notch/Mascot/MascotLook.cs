@@ -18,6 +18,8 @@ public enum MascotMood
     Idle, Happy, Wink, Love, Sleepy, Determined, Surprised, Searching, Thinking, Confused,
     /// <summary>Wide awake, while Keep Awake holds the PC up.</summary>
     Alert,
+    /// <summary>Eyes squeezed against something too loud or too bright. A Windows addition.</summary>
+    Wince,
 }
 
 /// <summary>Which side of the camera the companion rests on.</summary>
@@ -53,6 +55,23 @@ public enum MascotReaction
     Ready,
     /// <summary>Music started: smiling eyes and a bob to the beat.</summary>
     Groove,
+    // Windows additions, for what upstream's island does not see.
+    /// <summary>The music stopped: it sags, eyes heavy.</summary>
+    MusicPaused,
+    /// <summary>A song skipped: a quick flick of the head after it.</summary>
+    MusicSkipped,
+    /// <summary>A notification arrived: a glance and a perk-up.</summary>
+    Notify,
+    /// <summary>The volume went to the top: a flinch.</summary>
+    Loud,
+    /// <summary>The screen went to full brightness: it squints.</summary>
+    Bright,
+    /// <summary>The screen went nearly dark: a slow, sleepy blink.</summary>
+    Dim,
+    /// <summary>Headphones plugged in: a happy bob with the band over its head.</summary>
+    HeadphonesIn,
+    /// <summary>Headphones unplugged: a puzzled shrug.</summary>
+    HeadphonesOut,
 }
 
 /// <summary>What the Settings preview can act out: a visit, and the moments the island reacts to.</summary>
@@ -60,6 +79,7 @@ public enum MascotMoment
 {
     Visit, TimerStarted, TimeIsUp, Music, Agents, EventStarts, DownloadFinished, DownloadFailed, Screenshot,
     MicMuted, KeepAwake, Charging, LowBattery, Unlocked,
+    MusicPaused, MusicSkipped, Notification, LoudVolume, BrightScreen, DimScreen, HeadphonesIn, HeadphonesOut,
 }
 
 /// <summary>sRGB components in shares of 1, so the model needs no WPF.</summary>
@@ -172,6 +192,7 @@ public static class MascotLookExtensions
         MascotMood.Thinking => new(MascotEye.Squint, MascotEye.Open, new(0.06, -0.06), -0.1),
         MascotMood.Confused => new(MascotEye.Open, MascotEye.Squint, new(-0.03, 0.01), 0.14),
         MascotMood.Alert => new(MascotEye.Wide, MascotEye.Wide),
+        MascotMood.Wince => new(MascotEye.Squint, MascotEye.Squint, new(0, 0.02), -0.04),
         _ => new(MascotEye.Open, MascotEye.Open),
     };
 
@@ -197,6 +218,14 @@ public static class MascotLookExtensions
         MascotReaction.Bounce => 1.0,
         MascotReaction.Hush => 1.0,
         MascotReaction.Ready => 1.0,
+        MascotReaction.MusicPaused => 1.1,
+        MascotReaction.MusicSkipped => 0.6,
+        MascotReaction.Notify => 0.9,
+        MascotReaction.Loud => 1.0,
+        MascotReaction.Bright => 1.1,
+        MascotReaction.Dim => 0.9,
+        MascotReaction.HeadphonesIn => 1.4,
+        MascotReaction.HeadphonesOut => 1.0,
         _ => 1.6, // Groove
     };
 
@@ -216,6 +245,14 @@ public static class MascotLookExtensions
         MascotMoment.KeepAwake => MascotReaction.Perk,
         MascotMoment.Charging => MascotReaction.Love,
         MascotMoment.LowBattery => MascotReaction.Yawn,
+        MascotMoment.MusicPaused => MascotReaction.MusicPaused,
+        MascotMoment.MusicSkipped => MascotReaction.MusicSkipped,
+        MascotMoment.Notification => MascotReaction.Notify,
+        MascotMoment.LoudVolume => MascotReaction.Loud,
+        MascotMoment.BrightScreen => MascotReaction.Bright,
+        MascotMoment.DimScreen => MascotReaction.Dim,
+        MascotMoment.HeadphonesIn => MascotReaction.HeadphonesIn,
+        MascotMoment.HeadphonesOut => MascotReaction.HeadphonesOut,
         _ => MascotReaction.WakeUp, // Unlocked
     };
 

@@ -31,6 +31,8 @@ public static class SettingsBackup
         DefaultsKey.RunElevatedAtLogin,
         // A camera id, a window position and folders of pictures name things on this machine.
         DefaultsKey.CameraPreviewDeviceId, DefaultsKey.ScratchpadWindowOrigin, DefaultsKey.WallpaperOwnPaths, DefaultsKey.WallpaperExcludedOwnPaths,
+        // What the command bar learned, and the folders it searches, belong to this machine (the habit digests mean nothing without their key).
+        DefaultsKey.CommandBarFileScopes, DefaultsKey.CommandBarPositionOffset, DefaultsKey.CommandBarUsage, DefaultsKey.CommandBarQueryHabits, DefaultsKey.CommandBarQueryHabitKey,
     };
 
     public static string Export(SettingsStore store)

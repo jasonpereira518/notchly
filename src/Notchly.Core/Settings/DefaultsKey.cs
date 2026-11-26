@@ -523,4 +523,20 @@ public static class DefaultsKey
     public const string WallpaperFilter = "wallpaperFilter";
     public const string WallpaperOwnPaths = "wallpaperOwnPaths";
     public const string WallpaperExcludedOwnPaths = "wallpaperExcludedOwnPaths";
+    public const string CommandBarShortcutEnabled = "commandBarShortcutEnabled";
+    public const string CommandBarShortcut = "commandBarShortcut";
+    public const string CommandBarCompactMode = "commandBarCompactMode";
+    public const string CommandBarDisabledSources = "commandBarDisabledSources";
+    public const string CommandBarAliases = "commandBarAliases";
+    public const string CommandBarPins = "commandBarPins";
+    public const string CommandBarHidden = "commandBarHidden";
+    public const string CommandBarFileScopes = "commandBarFileScopes";
+    public const string CommandBarFileIgnores = "commandBarFileIgnores";
+    public const string CommandBarPositionOffset = "commandBarPositionOffset";
+    public const string CommandBarEmojiSkinTone = "commandBarEmojiSkinTone";
+    public const string CommandBarLinks = "commandBarLinks";
+    public const string CommandBarRowShortcuts = "commandBarRowShortcuts";
+    public const string CommandBarUsage = "commandBarUsage";
+    public const string CommandBarQueryHabits = "commandBarQueryHabits";
+    public const string CommandBarQueryHabitKey = "commandBarQueryHabitKey";
 }

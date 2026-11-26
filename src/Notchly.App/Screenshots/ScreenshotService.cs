@@ -64,6 +64,7 @@ internal sealed class ScreenshotService : IFeatureService
     }
 
     public CaptureHistory History { get; }
+    internal SettingsStore Settings => _settings;
     /// <summary>Whether a shortcut is wanted but another app owns it (by the settings page's order of roles).</summary>
     public bool ShortcutUnavailable(int role) => _registered.TryGetValue((Role)role, out var r) && r.Value.Length > 0 && r.Handle is null;
 

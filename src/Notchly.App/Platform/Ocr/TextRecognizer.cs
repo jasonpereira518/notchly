@@ -7,6 +7,7 @@ using Windows.Globalization;
 using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Notchly.App.Platform.Capture;
+using Notchly.Core.Capture;
 using Notchly.Core.Notch;
 using Notchly.Core.Tools;
 using Serilog;
@@ -85,5 +86,30 @@ public static class TextRecognizer
         using var bitmap = SoftwareBitmap.CreateCopyFromBuffer(packed.Pixels.AsBuffer(), BitmapPixelFormat.Bgra8,
                                                                packed.Width, packed.Height, BitmapAlphaMode.Premultiplied);
         return await engine.RecognizeAsync(bitmap);
+    }
+
+    /// <summary>
+    /// The words of one band of a capture with their boxes in the capture's pixels (the band starts at <paramref name="offsetX"/>,
+    /// <paramref name="offsetY"/>), grouped by line, for the editor's selectable text and text-only blur. Null when the engine cannot read it.
+    /// </summary>
+    public static async Task<IReadOnlyList<BandWord>?> ReadWordsAsync(CapturedImage band, double offsetX, double offsetY)
+    {
+        var result = await RecognizeAsync(band);
+        if (result is null) return Engine.Value is null ? null : [];
+        var scale = RecognitionScale(band.Width, band.Height);
+        var words = new List<BandWord>();
+        var lineIndex = 0;
+        foreach (var line in result.Lines)
+        {
+            var rects = line.Words.Select(w => new RectD(offsetX + w.BoundingRect.X / scale, offsetY + w.BoundingRect.Y / scale,
+                                                         w.BoundingRect.Width / scale, w.BoundingRect.Height / scale)).ToList();
+            if (rects.Count == 0) continue;
+            var left = rects.Min(r => r.X);
+            var top = rects.Min(r => r.Y);
+            var box = new RectD(left, top, rects.Max(r => r.Right) - left, rects.Max(r => r.Bottom) - top);
+            for (var i = 0; i < rects.Count; i++) words.Add(new BandWord(line.Words[i].Text, rects[i], box, lineIndex));
+            lineIndex++;
+        }
+        return words;
     }
 }

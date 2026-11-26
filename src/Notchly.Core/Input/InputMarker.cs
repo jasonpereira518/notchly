@@ -19,6 +19,7 @@ public enum InputSource : uint
     Other = 9,
     Clipboard = 10,
     CommandBar = 11,
+    Radial = 12,
 }
 
 public static class InputMarker

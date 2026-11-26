@@ -98,13 +98,26 @@ public static class MascotSupport
     /// at night.</summary>
     public static int BlinksBeforeSleep(int hour) => hour >= 22 || hour < 6 ? 12 : 36;
 
-    /// <summary>Where its eyes go for a pointer at <paramref name="pointer"/>, with its centre at
-    /// <paramref name="center"/>: toward it, more the farther it is, within its face.</summary>
+    /// <summary>The most its eyes shift for a pointer far away, across and up or down, in shares of its size. A
+    /// Windows addition: upstream's was 0.08 and 0.05, for a pointer over the island only.</summary>
+    public const double GazeAcross = 0.15, GazeDown = 0.10;
+    /// <summary>A still pointer for this long has it lose interest and look ahead again.</summary>
+    public const double GazeStill = 8;
+    /// <summary>The cursor must move this far (screen pixels) to count as moving.</summary>
+    public const double GazeMoveThreshold = 2;
+    /// <summary>The cursor is read this often while the companion rests in view, and this often on Battery Saver.</summary>
+    public const double GazePollInterval = 1.0 / 30, GazePollIntervalLowPower = 0.1;
+
+    /// <summary>
+    /// Where its eyes go for a pointer at <paramref name="pointer"/>, with its centre at <paramref name="center"/>:
+    /// toward it, more the farther it is, within its face. Smooth, so a pointer anywhere on the screen has a gaze.
+    /// </summary>
     public static PointD PointerGaze(PointD center, PointD pointer, double size)
     {
         if (size <= 0) return new PointD(0, 0);
-        double dx = (pointer.X - center.X) / (size * 3), dy = (pointer.Y - center.Y) / (size * 2);
-        return new PointD(Math.Clamp(dx, -1, 1) * 0.08, Math.Clamp(dy, -1, 1) * 0.05);
+        var dx = Math.Tanh((pointer.X - center.X) / (size * 5));
+        var dy = Math.Tanh((pointer.Y - center.Y) / (size * 3));
+        return new PointD(dx * GazeAcross, dy * GazeDown);
     }
 
     /// <summary>Whether a pointer at <paramref name="pointer"/> is on the companion centred at
@@ -214,6 +227,55 @@ public static class MascotSupport
     public static readonly MascotReactionRequest FileDropped = new(MascotReaction.Celebrate, Patience: 30);
     /// <summary>A Bluetooth accessory connected.</summary>
     public static readonly MascotReactionRequest AccessoryConnected = new(MascotReaction.Perk);
+
+    // MARK: Windows additions: what else it notices
+
+    /// <summary>A reaction to the moment itself is of no use a few seconds later.</summary>
+    private const double MomentPatience = 2;
+    public static readonly MascotReactionRequest MusicPaused = new(MascotReaction.MusicPaused, MomentPatience);
+    public static readonly MascotReactionRequest MusicSkipped = new(MascotReaction.MusicSkipped, MomentPatience);
+    /// <summary>A notification arrived and the island showed it.</summary>
+    public static readonly MascotReactionRequest Notified = new(MascotReaction.Notify, MomentPatience);
+    public static readonly MascotReactionRequest HeadphonesIn = new(MascotReaction.HeadphonesIn, MomentPatience * 2);
+    public static readonly MascotReactionRequest HeadphonesOut = new(MascotReaction.HeadphonesOut, MomentPatience * 2);
+
+    /// <summary>The volume reaching this share, or higher, from below it, is too loud.</summary>
+    public const double LoudVolume = 0.9;
+    /// <summary>The screen reaching this brightness, from below it, is dazzling; at or under <see cref="DimBrightness"/>, from above it, nearly dark.</summary>
+    public const int BrightBrightness = 90, DimBrightness = 5;
+
+    /// <summary>Flinches as the volume crosses into the top tenth (muted, it hears nothing).</summary>
+    public static MascotReaction? VolumeReaction(double previous, double level, bool muted) =>
+        !muted && level >= LoudVolume && previous < LoudVolume ? MascotReaction.Loud : null;
+
+    /// <summary>Squints as the screen reaches full brightness, and blinks slowly as it goes nearly dark.</summary>
+    public static MascotReaction? BrightnessReaction(int previous, int level) =>
+        level >= BrightBrightness && previous < BrightBrightness ? MascotReaction.Bright
+        : level <= DimBrightness && previous > DimBrightness ? MascotReaction.Dim
+        : null;
+
+    /// <summary>
+    /// What the music doing something brings: sagging when what played stopped, a flick of the head when another song
+    /// followed one that was playing. Music beginning is <see cref="MusicStarted"/>'s. Null states are not known yet.
+    /// </summary>
+    public static MascotReactionRequest? MusicChange(bool? wasPlaying, bool isPlaying, string? wasTrack, string? track)
+    {
+        if (wasPlaying != true) return null;
+        if (!isPlaying) return MusicPaused;
+        return wasTrack is not null && track is not null && wasTrack != track ? MusicSkipped : null;
+    }
+
+    /// <summary>Headphones, as their own accessories rather than any other.</summary>
+    public static bool IsHeadphones(AccessoryKind kind) =>
+        kind is AccessoryKind.Headphones or AccessoryKind.AirPods or AccessoryKind.AirPodsPro or AccessoryKind.AirPodsMax;
+
+    /// <summary>Headphones coming on show a different face from any other accessory.</summary>
+    public static MascotReactionRequest AccessoryConnectedFor(AccessoryKind kind) =>
+        IsHeadphones(kind) ? HeadphonesIn : AccessoryConnected;
+
+    /// <summary>Headphones going are noticed; no other accessory leaving is.</summary>
+    public static MascotReactionRequest? AccessoryDisconnectedFor(AccessoryKind? kind) =>
+        kind is { } known && IsHeadphones(known) ? HeadphonesOut : null;
 
     /// <summary>
     /// Whether the event the island counted down to, as <paramref name="before"/>, began as the countdown became

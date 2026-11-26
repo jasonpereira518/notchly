@@ -113,6 +113,8 @@ public sealed class MascotStage
                             MascotReactionEvent? reaction, bool reduceMotion, bool awake = true)
     {
         ViewSize = new SizeD(track.Width, track.Height);
+        // Props and leans go to the side away from the camera: the right of a mirrored track, else the left.
+        Mascot.Outward = track.Mirrored ? 1 : -1;
         Configure(look, track.Size, awake ? mood : MascotMood.Sleepy, rests && awake, reduceMotion, animated: true);
         Place(new PointD(track.StandX(rests), track.Baseline), track.VisibleRects);
         FollowsPointer = rests && awake;
@@ -179,7 +181,8 @@ public sealed class MascotStage
     {
         if (!_followsPointer) return;
         _pettingDue = null;
-        Mascot.LookAhead(0.25);
+        // The cursor goes on being followed off the island when the island reads it everywhere.
+        if (!GlobalGaze) Mascot.LookAhead(0.25);
     }
 
     /// <summary>In the island's drop hint, its eyes follow a file dragged anywhere on screen.</summary>
@@ -189,7 +192,25 @@ public sealed class MascotStage
     private void Follow(PointD point)
     {
         if (Mascot.IsVisiting) return;
-        Mascot.Attend(MascotSupport.PointerGaze(Mascot.Position, point, Mascot.Size));
+        Mascot.Follow(MascotSupport.PointerGaze(Mascot.Position, point, Mascot.Size));
+    }
+
+    /// <summary>The island reads the cursor anywhere on the screen and tells it through <see cref="GazeAt"/>.</summary>
+    public bool GlobalGaze { get; set; }
+
+    /// <summary>The cursor, at <paramref name="point"/> in this view's points, wherever it is on the screen. A
+    /// resting, awake companion looks at it; a sleeping one, or one on a stroll, does not.</summary>
+    public void GazeAt(PointD point)
+    {
+        if (!_followsPointer || Mascot.IsDozing) return;
+        Follow(point);
+    }
+
+    /// <summary>The cursor kept still: its eyes look ahead again.</summary>
+    public void GazeLost()
+    {
+        if (!_followsPointer) return;
+        Mascot.LookAhead(0.25);
     }
 
     /// <summary>A second of the pointer resting on it brings out the hearts, at most once in a while.</summary>

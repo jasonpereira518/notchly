@@ -93,7 +93,7 @@ public static class ScreenshotCoordinates
     /// </summary>
     public static CaptureDisplay? DisplayContaining(PointD globalPoint, IEnumerable<CaptureDisplay> displays)
     {
-        foreach (var display in displays) if (display.Frame.ContainsPoint(globalPoint)) return display;
+        foreach (var display in displays) if (display.Frame.CgContainsPoint(globalPoint)) return display;
         return null;
     }
 

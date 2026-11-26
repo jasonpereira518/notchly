@@ -13,8 +13,6 @@ using Notchly.Core.Notch;
 
 namespace Notchly.Core.Capture;
 
-public enum SelectionHandle { TopLeft, Top, TopRight, Right, BottomRight, Bottom, BottomLeft, Left }
-
 public static class ScreenshotSelection
 {
     public static readonly IReadOnlyList<SelectionHandle> Handles =
@@ -77,7 +75,7 @@ public static class ScreenshotSelection
     /// an existing crop replaces it as well.
     /// </summary>
     public static bool StartsNewCropSelection(PointD point, RectD draft, RectD within) =>
-        within.ContainsPoint(point) && (draft.Standardized() == within.Standardized() || !draft.ContainsPoint(point));
+        within.CgContainsPoint(point) && (draft.Standardized() == within.Standardized() || !draft.CgContainsPoint(point));
 
     public static bool IsClick(PointD origin, PointD end) =>
         Math.Abs(end.X - origin.X) < ClickDragThreshold && Math.Abs(end.Y - origin.Y) < ClickDragThreshold;
@@ -140,7 +138,7 @@ public static class ScreenshotSelection
     /// </summary>
     public static PickableWindow? WindowAt(PointD point, IReadOnlyList<PickableWindow> windows)
     {
-        foreach (var window in windows) if (window.Frame.ContainsPoint(point)) return window;
+        foreach (var window in windows) if (window.Frame.CgContainsPoint(point)) return window;
         return null;
     }
 
@@ -185,7 +183,7 @@ public static class ScreenshotSelection
         foreach (var entry in windows)
         {
             var frame = new RectD(entry.Frame.X - screenFrame.X, entry.Frame.Y - screenFrame.Y, entry.Frame.Width, entry.Frame.Height);
-            if (frame.Intersects(view)) result.Add(new PickableWindow(entry.Id, frame));
+            if (frame.CgIntersects(view)) result.Add(new PickableWindow(entry.Id, frame));
         }
         return result;
     }
@@ -343,12 +341,12 @@ public static class SelectionNudge
     /// </summary>
     public static PointD? Apply(PointD location, NudgeKey key, bool fast, IReadOnlyList<NudgeDisplay> displays)
     {
-        var current = displays.Cast<NudgeDisplay?>().FirstOrDefault(d => d!.Value.Frame.ContainsPoint(location));
+        var current = displays.Cast<NudgeDisplay?>().FirstOrDefault(d => d!.Value.Frame.CgContainsPoint(location));
         if (current is not { } display) return null;
         var direction = Direction(key);
         var delta = ScreenshotLoupe.Nudge(direction.X, direction.Y, fast, display.Scale);
         var target = new PointD(location.X + delta.X, location.Y + delta.Y);
-        if (displays.Any(d => d.Frame.ContainsPoint(target))) return target;
+        if (displays.Any(d => d.Frame.CgContainsPoint(target))) return target;
         var frame = display.Frame;
         var pixel = 1 / Math.Max(display.Scale, 1);
         return new PointD(Math.Min(Math.Max(target.X, frame.X), frame.Right - pixel),

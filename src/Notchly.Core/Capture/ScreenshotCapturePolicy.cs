@@ -136,9 +136,9 @@ public static class ScreenshotCapturePolicy
         if (bounds.IsEmpty()) return null;
         var hits = new List<int>();
         for (var i = 0; i < displays.Count; i++)
-            if (bounds.Intersection(frame(displays[i])) is { } overlap && !overlap.IsEmpty()) hits.Add(i);
+            if (bounds.CgIntersection(frame(displays[i])) is { } overlap && !overlap.IsEmpty()) hits.Add(i);
         if (hits.Count != 1) return null;
-        return frame(displays[hits[0]]).ContainsRect(bounds) ? hits[0] : null;
+        return frame(displays[hits[0]]).CgContainsRect(bounds) ? hits[0] : null;
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public static class ScreenshotCapturePolicy
             if (frontToBack[i].Id == target.Id) { position = i; break; }
         if (position < 0) return null;
         var attached = frontToBack.Take(position)
-            .Where(c => c.OwnerPid == target.OwnerPid && target.Frame.ContainsRect(c.Frame))
+            .Where(c => c.OwnerPid == target.OwnerPid && target.Frame.CgContainsRect(c.Frame))
             .ToList();
         if (attached.Count == 0) return null;
         // Back to front, so the clicked window is drawn first and what the app stacked on it lands on
@@ -237,7 +237,7 @@ public static class ScreenshotCapturePolicy
         /// <summary>Total alpha inside <paramref name="rect"/>, in image pixels from the top left.</summary>
         public int Sum(RectD rect)
         {
-            if (rect.Integral().Intersection(new RectD(0, 0, Width, Height)) is not { } area || area.IsEmpty()) return 0;
+            if (rect.Integral().CgIntersection(new RectD(0, 0, Width, Height)) is not { } area || area.IsEmpty()) return 0;
             var total = 0;
             for (var row = (int)area.Y; row < (int)area.Bottom; row++)
             {

@@ -28,7 +28,6 @@ public static class SelectionHandles
 }
 
 /// <summary>One word of recognized text, in image-pixel coordinates.</summary>
-public sealed record RecognizedWord(string Text, RectD Rect, int Line);
 
 /// <summary>Seeded wobble for one scribbly arrow: shaft and both wings of the head as polylines.</summary>
 public sealed class ScribblyArrowGeometry : IEquatable<ScribblyArrowGeometry>

@@ -204,7 +204,7 @@ public static class ScreenshotSupport
     public static RectD ScrollingControlsFrame(SizeD size, RectD visibleFrame, PointD? avoiding)
     {
         var frame = new RectD(visibleFrame.MidX - size.Width / 2, visibleFrame.Y + 24, size.Width, size.Height);
-        if (avoiding is { } point && frame.ContainsPoint(point))
+        if (avoiding is { } point && frame.CgContainsPoint(point))
             frame = frame with { Y = visibleFrame.Bottom - size.Height - 24 };
         return frame;
     }

@@ -19,24 +19,11 @@ public static class CaptureGeometry
 {
     public static readonly RectD Zero = new(0, 0, 0, 0);
 
-    public static double MidY(this RectD rect) => rect.Y + rect.Height / 2;
-
-    /// <summary>CGRect.isEmpty: no area (the null rectangle counts too).</summary>
-    public static bool IsEmpty(this RectD rect) => !(rect.Width > 0 && rect.Height > 0);
-
-    /// <summary>A rectangle with a negative size, flipped to a positive one (CGRect.standardized).</summary>
-    public static RectD Standardized(this RectD rect)
-    {
-        var x = rect.Width < 0 ? rect.X + rect.Width : rect.X;
-        var y = rect.Height < 0 ? rect.Y + rect.Height : rect.Y;
-        return new RectD(x, y, Math.Abs(rect.Width), Math.Abs(rect.Height));
-    }
-
     /// <summary>
     /// CGRect.intersection: null (the null rectangle) when the two do not meet, a zero-size
     /// rectangle when they only share an edge.
     /// </summary>
-    public static RectD? Intersection(this RectD a, RectD b)
+    public static RectD? CgIntersection(this RectD a, RectD b)
     {
         a = a.Standardized();
         b = b.Standardized();
@@ -49,15 +36,15 @@ public static class CaptureGeometry
     }
 
     /// <summary>CGRect.intersects: a real overlap, so rectangles that only share an edge do not.</summary>
-    public static bool Intersects(this RectD a, RectD b) =>
-        a.Intersection(b) is { } i && i.Width > 0 && i.Height > 0;
+    public static bool CgIntersects(this RectD a, RectD b) =>
+        a.CgIntersection(b) is { } i && i.Width > 0 && i.Height > 0;
 
     /// <summary>The overlapping area, 0 when disjoint or touching.</summary>
     public static double OverlapArea(this RectD a, RectD b) =>
-        a.Intersection(b) is { } i ? Math.Max(0, i.Width) * Math.Max(0, i.Height) : 0;
+        a.CgIntersection(b) is { } i ? Math.Max(0, i.Width) * Math.Max(0, i.Height) : 0;
 
     /// <summary>CGRect.contains(rect): every edge of <paramref name="inner"/> lies within or on this one.</summary>
-    public static bool ContainsRect(this RectD outer, RectD inner)
+    public static bool CgContainsRect(this RectD outer, RectD inner)
     {
         outer = outer.Standardized();
         inner = inner.Standardized();
@@ -68,24 +55,12 @@ public static class CaptureGeometry
     /// CGRect.contains(point): the top and left edges count, the bottom and right ones do not, so
     /// neighbouring windows never both claim one point.
     /// </summary>
-    public static bool ContainsPoint(this RectD rect, PointD point)
+    public static bool CgContainsPoint(this RectD rect, PointD point)
     {
         rect = rect.Standardized();
         return point.X >= rect.X && point.X < rect.Right && point.Y >= rect.Y && point.Y < rect.Bottom;
     }
 
-    public static RectD InsetBy(this RectD rect, double dx, double dy) =>
-        new(rect.X + dx, rect.Y + dy, rect.Width - dx * 2, rect.Height - dy * 2);
-
-    /// <summary>CGRect.integral: the smallest whole-number rectangle that contains this one.</summary>
-    public static RectD Integral(this RectD rect)
-    {
-        rect = rect.Standardized();
-        var x = Math.Floor(rect.X);
-        var y = Math.Floor(rect.Y);
-        return new RectD(x, y, Math.Ceiling(rect.Right) - x, Math.Ceiling(rect.Bottom) - y);
-    }
-
     /// <summary>The rectangle limited to <paramref name="bounds"/>; the zero rectangle when they do not meet.</summary>
-    public static RectD Clamp(this RectD rect, RectD bounds) => rect.Intersection(bounds) ?? Zero;
+    public static RectD Clamp(this RectD rect, RectD bounds) => rect.CgIntersection(bounds) ?? Zero;
 }

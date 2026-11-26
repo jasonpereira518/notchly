@@ -32,8 +32,8 @@ public static class ScreenshotPreviewPlacement
             var area = anchor.OverlapArea(screen.Frame);
             var winsTie = area == selectedArea
                 && area > 0
-                && screen.Frame.ContainsPoint(pointer)
-                && !(selected is { } current && current.Frame.ContainsPoint(pointer));
+                && screen.Frame.CgContainsPoint(pointer)
+                && !(selected is { } current && current.Frame.CgContainsPoint(pointer));
             if (area > selectedArea || winsTie)
             {
                 selected = screen;
@@ -41,7 +41,7 @@ public static class ScreenshotPreviewPlacement
             }
         }
         if (selected is { } chosen) return chosen.VisibleFrame;
-        foreach (var screen in screens) if (screen.Frame.ContainsPoint(pointer)) return screen.VisibleFrame;
+        foreach (var screen in screens) if (screen.Frame.CgContainsPoint(pointer)) return screen.VisibleFrame;
         return fallback;
     }
 

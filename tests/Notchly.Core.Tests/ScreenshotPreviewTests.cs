@@ -78,7 +78,7 @@ public class QuickPreviewPlacementTests
     {
         var visible = new RectD(0, 0, 1470, 956);
         var frame = ScreenshotPreviewPlacement.Frame(new SizeD(286, 210), new RectD(1100, 556, 300, 300), new PointD(1300, 736), visible);
-        Assert.True(new RectD(10, 10, 1450, 936).ContainsRect(frame));
+        Assert.True(new RectD(10, 10, 1450, 936).CgContainsRect(frame));
     }
 
     [Theory]
@@ -89,7 +89,7 @@ public class QuickPreviewPlacementTests
     public void AutomaticPlacementNeverLeavesTheUsableArea(double ax, double ay)
     {
         var frame = Auto(new SizeD(310, 210), new RectD(ax, ay, 200, 120), new PointD(ax + 50, ay + 40));
-        Assert.True(new RectD(10, 10, 1900, 1060).ContainsRect(frame), frame.ToString());
+        Assert.True(new RectD(10, 10, 1900, 1060).CgContainsRect(frame), frame.ToString());
     }
 
     // The three-display layout of upstream's visible-frame tests, mirrored to a top-left origin with the
@@ -809,8 +809,8 @@ public class UnifiedCapturePolicyTests
         Assert.Equal(new RectD(-560, 64, 320, 70), usual);
         var under = new PointD(usual.MidX, usual.MidY());
         var moved = ScreenshotSupport.ScrollingControlsFrame(size, screen, under);
-        Assert.True(screen.ContainsRect(moved));
-        Assert.False(moved.ContainsPoint(under));
+        Assert.True(screen.CgContainsRect(moved));
+        Assert.False(moved.CgContainsPoint(under));
         Assert.Equal(new RectD(-560, 546, 320, 70), moved);
         Assert.Equal(usual, ScreenshotSupport.ScrollingControlsFrame(size, screen, new PointD(0, 0)));
     }

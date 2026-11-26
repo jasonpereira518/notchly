@@ -65,11 +65,21 @@ public sealed record MascotFrame(MascotParts Parts, MascotMatrix Transform, doub
     public MascotMatrix StageTransform { get; init; } = MascotMatrix.Identity;
     /// <summary>Where it can be seen, in stage points; null everywhere. The camera range is left out.</summary>
     public IReadOnlyList<RectD>? VisibleRects { get; init; }
+    /// <summary>The props floating beside it, with their offsets from the figure's middle in stage points; draw them
+    /// over the figure, after its eyes. A Windows addition.</summary>
+    public IReadOnlyList<MascotPropFrame> Props { get; init; } = [];
+    /// <summary>The figure's middle in the stage, which the props' offsets are from.</summary>
+    public PointD FigureCenter { get; init; }
 }
 
 public sealed class MascotRig
 {
     private const double MorphDuration = 0.22;
+    /// <summary>A pointer's eye target within this many points of the last one is the same target.</summary>
+    private const double FollowThreshold = 0.2;
+    /// <summary>The head leans (radians per point of eye shift over the size) and the body moves (share of the eye
+    /// shift) a little toward what the eyes follow, so it looks turned and not only cross-eyed.</summary>
+    private const double LeanPerGaze = 0.3, BodyShiftShare = 0.2;
     private const double RestyleFade = 0.24;
     private static readonly MascotSpring GazeSpring = new(260, 16);
     private static readonly MascotSpring TiltSpring = new(200, 12);
@@ -91,6 +101,9 @@ public sealed class MascotRig
     private readonly MascotChannel<PointD> _rightScale = new(new PointD(1, 1));
     private readonly MascotChannel<double> _bulbLit = new(1);
     private readonly MascotChannel<double> _bulbGlow = new(0);
+    /// <summary>A sideways nudge in points, added to where it stands.</summary>
+    private readonly MascotChannel<double> _sway = new(0);
+    private readonly List<MascotProp> _props = [];
 
     private MascotParts? _parts;
     private MascotParts? _previousParts;
@@ -99,6 +112,8 @@ public sealed class MascotRig
     private bool _dozed;
     /// <summary>When its eyes last went after something: a pointer, a drag or typing.</summary>
     private double _attended = double.NegativeInfinity;
+    /// <summary>Where <see cref="Follow"/> last sent the eyes, in points.</summary>
+    private PointD? _following;
     /// <summary>When the visit it plays is over.</summary>
     private double _visitEnds;
     /// <summary>A blink is on its way and ends then; its end schedules the next one.</summary>
@@ -127,6 +142,11 @@ public sealed class MascotRig
     public bool ReduceMotion { get; set; }
     /// <summary>Battery Saver is on: it blinks half as often.</summary>
     public bool LowPower { get; set; }
+    /// <summary>-1 when the side away from the camera is the left, +1 when it is the right: where props appear, and
+    /// which way it leans toward or away from things. Set from its track.</summary>
+    public double Outward { get; set; } = -1;
+    /// <summary>The props on show or waiting, for tests and tools.</summary>
+    public IReadOnlyList<MascotProp> Props => _props;
     /// <summary>Where its box's centre stands in its stage while nothing moves it.</summary>
     public PointD Position { get => _position.Model; set => _position.Model = value; }
     /// <summary>It grew sleepy on its own after a long rest.</summary>
@@ -257,8 +277,10 @@ public sealed class MascotRig
         StopBlinking();
         _position.RemoveAll(); _opacity.RemoveAll(); _hop.RemoveAll(); _squash.RemoveAll(); _tilt.RemoveAll();
         _attention.RemoveAll(); _face.RemoveAll(); _leftEye.RemoveAll(); _rightEye.RemoveAll();
-        _leftScale.RemoveAll(); _rightScale.RemoveAll();
+        _leftScale.RemoveAll(); _rightScale.RemoveAll(); _sway.RemoveAll();
+        _props.Clear();
         _attention.Model = new PointD(0, 0);
+        _following = null;
         Mood = mood;
         _blinks = 0;
         _dozed = false;
@@ -334,10 +356,29 @@ public sealed class MascotRig
         _attention.Model = hold is null ? to : zero;
     }
 
+    /// <summary>
+    /// Keeps its eyes on a pointer that moves about, as the cursor does across the screen: like <see cref="Attend"/>,
+    /// but a target within a fraction of a point of the last one changes nothing, so a still pointer sets no
+    /// animation going and the view can rest.
+    /// </summary>
+    public void Follow(PointD target)
+    {
+        if (Size <= 0 || ReduceMotion) return;
+        var to = new PointD(target.X * Size, target.Y * Size);
+        if (_following is { } last && Math.Abs(last.X - to.X) < FollowThreshold && Math.Abs(last.Y - to.Y) < FollowThreshold)
+        {
+            _attended = Now();
+            return;
+        }
+        _following = to;
+        Attend(target);
+    }
+
     /// <summary>Its eyes come back to the face it keeps, after <paramref name="delay"/>.</summary>
     public void LookAhead(double delay = 0)
     {
         if (Size <= 0) return;
+        _following = null;
         var now = Now();
         var from = _attention.Value(now);
         var zero = new PointD(0, 0);
@@ -454,22 +495,42 @@ public sealed class MascotRig
                 case MascotReaction.Perk or MascotReaction.Bounce: FlashFace(MascotMood.Alert, 1); break;
                 case MascotReaction.Ready: FlashFace(MascotMood.Determined, 1); break;
                 case MascotReaction.Groove: FlashFace(MascotMood.Happy, 1.4); break;
+                case MascotReaction.MusicPaused or MascotReaction.Dim: FlashFace(MascotMood.Sleepy, 1.1); break;
+                case MascotReaction.MusicSkipped or MascotReaction.Notify: FlashFace(MascotMood.Alert, 0.8); break;
+                case MascotReaction.Loud: FlashFace(MascotMood.Surprised, 0.9); break;
+                case MascotReaction.Bright: FlashFace(MascotMood.Wince, 1.1); break;
+                case MascotReaction.HeadphonesIn: FlashFace(MascotMood.Happy, 1.2); break;
+                case MascotReaction.HeadphonesOut: FlashFace(MascotMood.Searching, 1); break;
             }
             return;
         }
         switch (reaction)
         {
             case MascotReaction.Celebrate:
+                // A big hop with a full turn in the air, and sparkles thrown off.
                 Hop(lift);
                 FlashFace(MascotMood.Happy, 1);
+                _tilt.Add("spin", Additive(now + 0.05, 0.62, [0, Math.Tau], [0, 1], overall: MascotTiming.EaseInEaseOut));
+                AddProp(MascotPropKind.Spark, now + 0.10, 0.8, (0.55, -0.1), (0.9, -0.38), 0.4, 1.2, 0.5);
+                AddProp(MascotPropKind.Spark, now + 0.22, 0.75, (0.7, 0.12), (1.05, 0.05), 0.3, 1.2, -0.5);
+                AddProp(MascotPropKind.Spark, now + 0.34, 0.64, (0.5, -0.3), (0.65, -0.58), 0.25, 1.2, 0.8);
                 break;
             case MascotReaction.Love:
+                // A slow heartbeat, swaying side to side as hearts float up.
                 FlashFace(MascotMood.Love, 1.4);
                 Heartbeat(now + 0.22);
+                Sway(now, 1.4, [0, 0.07, -0.07, 0.06, -0.06, 0], [0, 0.2, 0.4, 0.6, 0.8, 1]);
+                AddProp(MascotPropKind.Heart, now + 0.2, 1.2, (0.6, -0.05), (0.78, -0.5), 0.4);
+                AddProp(MascotPropKind.Heart, now + 0.5, 0.9, (0.78, 0.1), (0.98, -0.4), 0.3);
+                AddProp(MascotPropKind.Heart, now + 0.8, 0.6, (0.55, -0.1), (0.62, -0.5), 0.25);
                 break;
             case MascotReaction.Surprised:
+                // Jumps back, stretched tall and leaning away, with an exclamation mark.
                 FlashFace(MascotMood.Surprised, 0.9);
-                Hop(lift * 0.7);
+                Hop(lift * 0.9);
+                _squash.Add("startle", Scalar(now, 0.5, [0, -0.25, -0.1, 0.06, 0], [0, 0.18, 0.45, 0.7, 1]));
+                Lean("startle", now, 0.9, [0, -0.3, -0.3, -0.05, 0], [0, 0.12, 0.5, 0.8, 1], -Outward);
+                AddProp(MascotPropKind.Bang, now + 0.05, 0.85, (0.72, -0.2), (0.72, -0.28), 0.5);
                 break;
             case MascotReaction.Flash:
                 // Squeezed shut, then wide open, as a camera's flash goes off.
@@ -479,8 +540,10 @@ public sealed class MascotRig
                 PauseBlinking(0.5, null);
                 break;
             case MascotReaction.Confused:
+                // A puzzled head-shake, "no", with a question mark rising.
                 FlashFace(MascotMood.Confused, 1.2);
-                Wobble();
+                Lean("shake", now, 1.1, [0, 0.22, -0.22, 0.18, -0.18, 0.1, 0], [0, 0.16, 0.34, 0.52, 0.7, 0.86, 1], 1);
+                AddProp(MascotPropKind.Question, now + 0.1, 1.1, (0.68, -0.2), (0.82, -0.5), 0.5);
                 break;
             case MascotReaction.WakeUp:
                 // Heavy eyes, a stretch, and a glad face. A robot's bulb lights up again as it stretches.
@@ -492,14 +555,24 @@ public sealed class MascotRig
                 FlashFace(MascotMood.Sleepy, 0.7);
                 Stretch(now + 0.35, 0.6);
                 FlashFace(MascotMood.Happy, 0.9, now + 0.7, "flashAfter");
+                AddProp(MascotPropKind.Spark, now + 0.75, 0.7, (0.6, -0.15), (0.8, -0.4), 0.3, 1, 0.4);
+                AddProp(MascotPropKind.Spark, now + 0.9, 0.6, (0.75, 0.05), (0.95, -0.05), 0.22, 1, -0.4);
+                // The sun is up.
+                AddProp(MascotPropKind.Rays, now + 0.7, 0.8, (0.55, -0.3), (0.6, -0.34), 0.45, 1.1, 0.2);
                 break;
             case MascotReaction.Yawn:
+                // A slow stretch, eyes heavy, and a "z" drifting up.
                 FlashFace(MascotMood.Sleepy, 1.2);
                 Stretch(now + 0.1, 0.9);
+                AddProp(MascotPropKind.Zee, now + 0.3, 0.9, (0.6, -0.1), (0.8, -0.45), 0.34);
+                AddProp(MascotPropKind.Zee, now + 0.6, 0.6, (0.75, -0.2), (0.95, -0.6), 0.26);
                 break;
             case MascotReaction.Perk:
+                // Ears up: a quick stretch tall, a small hop, and a ring spreading out.
                 FlashFace(MascotMood.Alert, 1);
-                Hop(lift * 0.55);
+                Hop(lift * 0.4);
+                _squash.Add("perk", Scalar(now, 0.5, [0, -0.28, -0.05, 0.06, 0], [0, 0.18, 0.45, 0.7, 1]));
+                AddProp(MascotPropKind.Ring, now, 0.6, (0, 0), (0, 0), 0.7, 1.6);
                 break;
             case MascotReaction.Bounce:
             {
@@ -511,6 +584,8 @@ public sealed class MascotRig
                                          [0, 0.14, 0.32, 0.46, 0.63, 0.75, 0.88], Alternating(6)));
                 _squash.Add("squash", Scalar(now, 0.95, [0, -0.12, 0, 0.14, -0.1, 0, 0.12, 0, 0.04, 0],
                                              [0, 0.04, 0.14, 0.32, 0.36, 0.46, 0.63, 0.7, 0.8, 0.88]));
+                // A clock face ticks beside it: time to go.
+                AddProp(MascotPropKind.Clock, now, 0.95, (0.7, -0.15), (0.7, -0.22), 0.5, 1, 0.6);
                 break;
             }
             case MascotReaction.Hush:
@@ -519,11 +594,15 @@ public sealed class MascotRig
                     scale.Add("hush", Scale(now, 0.95, [1, 0.1, 0.1, 1], [0, 0.22, 0.78, 1]));
                 _squash.Add("duck", Scalar(now, 0.95, [0, 0.1, 0.1, -0.03, 0], [0, 0.25, 0.7, 0.88, 1]));
                 PauseBlinking(1, null);
+                AddProp(MascotPropKind.Dots, now + 0.1, 0.9, (0.7, -0.2), (0.7, -0.2), 0.45);
                 break;
             case MascotReaction.Ready:
                 FlashFace(MascotMood.Determined, 1);
-                // A nod: down a little, up past where it was, and settled.
+                // A nod: down a little, up past where it was, and settled, leaning into it, with go-lines behind.
                 _squash.Add("nod", Scalar(now + 0.12, 0.5, [0, 0.1, -0.06, 0], [0, 0.3, 0.65, 1]));
+                Lean("lean", now + 0.05, 0.6, [0, 0.14, 0.14, 0], [0, 0.3, 0.7, 1], Outward);
+                Sway(now + 0.05, 0.6, [0, 0.08, 0.08, 0], [0, 0.3, 0.7, 1]);
+                AddProp(MascotPropKind.Lines, now + 0.15, 0.6, (0.5, 0.05), (0.75, 0.05), 0.4);
                 break;
             case MascotReaction.Groove:
             {
@@ -548,10 +627,89 @@ public sealed class MascotRig
                 _hop.Add("hop", Additive(now, length, heights, times, Alternating(beats * 2)));
                 _tilt.Add("wobble", Additive(now, length, leans, times, overall: MascotTiming.EaseInEaseOut));
                 _squash.Add("squash", Scalar(now, length, squashes, times));
+                // Notes float off to the beat.
+                AddProp(MascotPropKind.Note, now + 0.1, 0.9, (0.6, -0.05), (0.8, -0.5), 0.4, 1, 0.2);
+                AddProp(MascotPropKind.Note, now + 0.5, 0.9, (0.75, 0.1), (0.95, -0.35), 0.32, 1, -0.2);
+                AddProp(MascotPropKind.Note, now + 0.9, 0.7, (0.55, -0.1), (0.7, -0.55), 0.28, 1, 0.2);
                 break;
             }
+            case MascotReaction.MusicPaused:
+                // The music stops: it sags, eyes heavy, with a pause mark.
+                FlashFace(MascotMood.Sleepy, 1.1);
+                _squash.Add("sag", Scalar(now, 1.1, [0, 0.14, 0.14, 0], [0, 0.3, 0.75, 1]));
+                Lean("droop", now, 1.1, [0, 0.1, 0.1, 0], [0, 0.3, 0.75, 1], -Outward);
+                AddProp(MascotPropKind.Pause, now + 0.1, 1.0, (0.68, -0.15), (0.68, -0.15), 0.42);
+                break;
+            case MascotReaction.MusicSkipped:
+                // A quick flick of the head the way the song went, with speed lines.
+                FlashFace(MascotMood.Searching, 0.5);
+                Sway(now, 0.45, [0, 0.14, 0], [0, 0.3, 1], MascotTiming.EaseOut);
+                Lean("flick", now, 0.45, [0, 0.25, 0], [0, 0.3, 1], Outward);
+                AddProp(MascotPropKind.Skip, now, 0.55, (0.6, -0.05), (1.0, -0.05), 0.42);
+                break;
+            case MascotReaction.Notify:
+                // A glance toward the notice and a perk-up, with a badge popping on.
+                Play(new MascotCue.Glance());
+                FlashFace(MascotMood.Alert, 0.9);
+                Hop(lift * 0.35);
+                AddProp(MascotPropKind.Badge, now + 0.1, 0.8, (0.55, -0.3), (0.55, -0.3), 0.3, 1.15);
+                break;
+            case MascotReaction.Loud:
+                // Too loud: it flinches away, squashed, eyes squeezed, sound arcs washing over it.
+                FlashFace(MascotMood.Wince, 1.0);
+                _squash.Add("flinch", Scalar(now, 1.0, [0, 0.2, 0.2, 0.05, 0], [0, 0.12, 0.5, 0.8, 1]));
+                Lean("flinch", now, 1.0, [0, -0.25, -0.25, -0.05, 0], [0, 0.12, 0.5, 0.8, 1], -Outward);
+                Sway(now, 1.0, [0, -0.1, -0.1, -0.02, 0], [0, 0.12, 0.5, 0.8, 1]);
+                AddProp(MascotPropKind.Arcs, now, 0.8, (0.62, 0), (0.78, 0), 0.55, 1.3);
+                break;
+            case MascotReaction.Bright:
+                // Too bright: it squints and draws back, with glare rays.
+                FlashFace(MascotMood.Wince, 1.1);
+                _squash.Add("glare", Scalar(now, 1.1, [0, 0.1, 0.1, 0], [0, 0.2, 0.7, 1]));
+                Lean("glare", now, 1.1, [0, 0.12, 0.12, 0], [0, 0.2, 0.7, 1], Outward);
+                AddProp(MascotPropKind.Rays, now, 1.0, (0.55, -0.3), (0.6, -0.34), 0.5, 1.1, 0.3);
+                break;
+            case MascotReaction.Dim:
+                // Nearly dark: one slow, sleepy blink and a gentle settle.
+                FlashFace(MascotMood.Sleepy, 0.9);
+                foreach (var scale in new[] { _leftScale, _rightScale })
+                    scale.Add("dim", Scale(now, 0.9, [1, 0.12, 0.12, 1], [0, 0.35, 0.65, 1]));
+                _squash.Add("settle", Scalar(now, 0.9, [0, 0.06, 0.06, 0], [0, 0.35, 0.65, 1]));
+                PauseBlinking(0.9, null);
+                break;
+            case MascotReaction.HeadphonesIn:
+                // Headphones on: two happy bobs, with the band over its head.
+                FlashFace(MascotMood.Happy, 1.2);
+                var bob = Math.Max(1, lift * 0.3);
+                _hop.Add("hop", Additive(now, 1.2, [0, -bob, 0, -bob, 0], [0, 0.25, 0.5, 0.75, 1], Alternating(4)));
+                Lean("bob", now, 1.2, [0, 0.1, -0.1, 0.1, 0], [0, 0.25, 0.5, 0.75, 1], 1);
+                AddProp(MascotPropKind.Band, now + 0.1, 1.3, (0, -0.1), (0, -0.1), 1.1);
+                break;
+            case MascotReaction.HeadphonesOut:
+                // Headphones off: a puzzled shrug and a bead of sweat.
+                FlashFace(MascotMood.Searching, 1.0);
+                _squash.Add("shrug", Scalar(now, 1.0, [0, -0.1, 0.1, -0.1, 0], [0, 0.2, 0.45, 0.7, 1]));
+                Lean("shrug", now, 1.0, [0, 0.1, -0.1, 0], [0, 0.3, 0.65, 1], 1);
+                AddProp(MascotPropKind.Drop, now + 0.1, 0.9, (0.62, -0.35), (0.62, 0.05), 0.35);
+                break;
         }
     }
+
+    // MARK: Motion helpers for reactions
+
+    /// <summary>A nudge sideways of the given shares of its size (positive away from the camera), additive.</summary>
+    private void Sway(double begin, double duration, IReadOnlyList<double> shares, IReadOnlyList<double> keyTimes,
+                      MascotTiming? overall = null) =>
+        _sway.Add("sway", Additive(begin, duration, shares.Select(share => share * Size * Outward).ToArray(), keyTimes, overall: overall));
+
+    /// <summary>A lean of the given radians (positive clockwise) times <paramref name="direction"/>, additive.</summary>
+    private void Lean(string key, double begin, double duration, IReadOnlyList<double> radians, IReadOnlyList<double> keyTimes,
+                      double direction) =>
+        _tilt.Add(key, Additive(begin, duration, radians.Select(value => value * direction).ToArray(), keyTimes));
+
+    private void AddProp(MascotPropKind kind, double begin, double duration, (double X, double Y) from, (double X, double Y) to,
+                         double size, double growTo = 1, double spin = 0) =>
+        _props.Add(new MascotProp(kind, begin, duration, new PointD(from.X, from.Y), new PointD(to.X, to.Y), size, growTo, spin));
 
     private static MascotTiming[] Alternating(int count) =>
         Enumerable.Range(0, count).Select(i => i % 2 == 0 ? MascotTiming.EaseOut : MascotTiming.EaseIn).ToArray();
@@ -739,9 +897,21 @@ public sealed class MascotRig
                      _position.NextChange(now), _opacity.NextChange(now), _hop.NextChange(now), _squash.NextChange(now),
                      _tilt.NextChange(now), _attention.NextChange(now), _face.NextChange(now), _leftEye.NextChange(now),
                      _rightEye.NextChange(now), _leftScale.NextChange(now), _rightScale.NextChange(now),
-                     _bulbLit.NextChange(now), _bulbGlow.NextChange(now),
+                     _bulbLit.NextChange(now), _bulbGlow.NextChange(now), _sway.NextChange(now), PropsNextChange(now),
                  })
             next = MascotTime.Earliest(next, change);
+        return next;
+    }
+
+    /// <summary>Now while a prop shows, the start of the next one waiting, or null.</summary>
+    private double? PropsNextChange(double now)
+    {
+        double? next = null;
+        foreach (var prop in _props)
+        {
+            if (now >= prop.End) continue;
+            next = MascotTime.Earliest(next, Math.Max(now, prop.Begin));
+        }
         return next;
     }
 
@@ -754,21 +924,25 @@ public sealed class MascotRig
                  {
                      _position.Prune, _opacity.Prune, _hop.Prune, _squash.Prune, _tilt.Prune, _attention.Prune,
                      _face.Prune, _leftEye.Prune, _rightEye.Prune, _leftScale.Prune, _rightScale.Prune,
-                     _bulbLit.Prune, _bulbGlow.Prune,
+                     _bulbLit.Prune, _bulbGlow.Prune, _sway.Prune,
                  })
             prune(now);
+        _props.RemoveAll(prop => now >= prop.End);
         var size = Size;
         var center = new PointD(size / 2, size / 2);
         var position = _position.Value(now);
         var hop = _hop.Value(now);
         var squash = _squash.Value(now);
         var tilt = _tilt.Value(now);
-        var transform = MascotMatrix.About(center, MascotMatrix.Rotation(tilt))
-            .Then(Squashed(squash, size))
-            .Then(MascotMatrix.Translation(0, hop))
-            .Then(MascotMatrix.Translation(position.X - center.X, position.Y - center.Y));
         var face = _face.Value(now);
         var attention = _attention.Value(now);
+        // What the eyes follow turns the head and the body toward it a little.
+        var lean = attention.X / size * LeanPerGaze;
+        var transform = MascotMatrix.About(center, MascotMatrix.Rotation(tilt + lean))
+            .Then(Squashed(squash, size))
+            .Then(MascotMatrix.Translation(0, hop))
+            .Then(MascotMatrix.Translation(position.X - center.X + attention.X * BodyShiftShare + _sway.Value(now),
+                                           position.Y - center.Y + attention.Y * BodyShiftShare));
         var shift = new PointD(face.X + attention.X, face.Y + attention.Y);
         var layout = Look.Face;
         var leftScale = _leftScale.Value(now);
@@ -779,6 +953,10 @@ public sealed class MascotRig
         var palette = Look.Palette;
         var fade = _previousParts is null ? 1 : MascotTiming.EaseInEaseOut.Ease((now - _restyled) / RestyleFade);
         if (fade >= 1) _previousParts = null;
+        // The props float in the stage, from the figure's middle: not hopping or squashing with it.
+        var figureCenter = new PointD(position.X, position.Y + MascotGeometry.FigureOffset(Look) * size);
+        var props = ReduceMotion ? Array.Empty<MascotPropFrame>()
+            : _props.Select(prop => prop.Sample(now, size, Outward)).OfType<MascotPropFrame>().ToArray();
         return new MascotFrame(
             _parts, transform, _opacity.Value(now),
             Place(_leftEye.Value(now), layout.LeftEye, leftScale), Place(_rightEye.Value(now), layout.RightEye, rightScale),
@@ -788,7 +966,7 @@ public sealed class MascotRig
             _previousParts, fade)
         {
             Position = position, Hop = hop, Squash = squash, Tilt = tilt, EyeShift = shift,
-            LeftEyeScale = leftScale, RightEyeScale = rightScale,
+            LeftEyeScale = leftScale, RightEyeScale = rightScale, Props = props, FigureCenter = figureCenter,
         };
     }
 

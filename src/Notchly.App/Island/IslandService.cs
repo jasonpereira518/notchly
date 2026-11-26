@@ -320,6 +320,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _mascot?.Dispose(); _mascot = null;
         _mascotRefreshTimer?.Stop();
+        _gazeTimer?.Stop();
         _mascotView = null; _noticeMascot = null; _noticeMascotFor = null; _mascotLayer = null;
         _mascotAtRest = false; _wingOpacity = (1, 1);
         _volumeKeys?.Dispose(); _volumeKeys = null;
@@ -1164,9 +1165,15 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
     private bool Starting => Now - _startedAt < 2.5;
 
+    private double _lastVolume = double.NaN;
+
     private void OnVolumeChanged(double level, bool muted)
     {
         UpdateVolumeControls();
+        // Crossing into the top tenth makes the companion flinch, whether or not the island shows the level.
+        var before = double.IsNaN(_lastVolume) ? level : _lastVolume;
+        _lastVolume = level;
+        if (!Starting && MascotSupport.VolumeReaction(before, level, muted) is { } loud) _mascot?.React(MascotSupport.OnLevel(loud));
         if (!_settings.GetBool(DefaultsKey.NotchVolume) || Starting) return;
         var glyph = muted || level <= 0 ? "" : level < 0.34 ? "" : level < 0.67 ? "" : "";
         ShowNotice(new Notice(NoticeKind.Volume, glyph, muted ? 0 : level, null, null, 44, 108, 1.6));
@@ -1250,6 +1257,9 @@ public sealed class IslandService : IFeatureService, IMascotIsland
 
     private void OnBrightnessChanged(int level)
     {
+        // Full brightness makes the companion squint, and nearly dark has it blink slowly.
+        var before = _brightness ?? level;
+        if (!Starting && MascotSupport.BrightnessReaction(before, level) is { } dazzled) _mascot?.React(MascotSupport.OnLevel(dazzled));
         _brightness = level;
         UpdateBrightnessControl();
         if (!_settings.GetBool(DefaultsKey.NotchBrightness) || Starting) return;
@@ -1324,7 +1334,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         if (_notice is { Kind: NoticeKind.Track } notice && _media?.Current is { } current && !ReferenceEquals(notice.Art, current.Artwork))
             _notice = notice with { Art = current.Artwork };
         _lyrics?.PlaybackChanged(CurrentIdentity());
-        _mascot?.OnMusic(_media?.Current?.IsPlaying == true);
+        _mascot?.OnMusic(_media?.Current?.IsPlaying == true, _media?.Current is { } song ? song.Title + "\n" + song.Artist : null);
         UpdatePages();
         SyncLyrics();
         Refresh();
@@ -1831,6 +1841,8 @@ public sealed class IslandService : IFeatureService, IMascotIsland
             NotificationBanner.Seconds, Detail: content.CompactDetail, NotificationId: item.Id));
         // "Hide the system banner": once the island shows it, the original leaves Windows.
         if (_notice?.NotificationId == item.Id && notifications.HidesSystemBanner) notifications.HideOriginal(item.Id);
+        // The companion glances at it and perks up, when the banner is the notice on show.
+        if (_notice?.NotificationId == item.Id) _mascot?.React(MascotSupport.Notified);
     }
 
     /// <summary>The width a message takes once wrapped at <paramref name="room"/> (its widest line).</summary>
@@ -2020,12 +2032,19 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         var kind = NotchAccessorySupport.Kind(e.Name, e.MajorClass, e.MinorClass);
         EnqueueAccessory(AccessoryNotice(NotchAccessorySupport.Glyph(kind), NotchAccessorySupport.ConnectedText(e.Name, e.Percent), null),
                          e.Device, isLow: false);
-        _mascot?.React(MascotSupport.AccessoryConnected);
+        // Headphones go on with a bob and the band over its head; any other accessory is a perk-up.
+        _accessoryKinds[e.Device] = kind;
+        _mascot?.React(MascotSupport.AccessoryConnectedFor(kind));
     }
+
+    /// <summary>What each accessory connected was, so that headphones going are told from anything else going.</summary>
+    private readonly Dictionary<string, AccessoryKind> _accessoryKinds = new(StringComparer.Ordinal);
 
     private void OnAccessoryDisconnected(AccessoryEvent.Disconnected e)
     {
         if (_accessoriesOn) _accessoryNotices.RemoveDevice(e.Device);
+        AccessoryKind? kind = _accessoryKinds.Remove(e.Device, out var known) ? known : null;
+        if (_accessoriesOn && !Starting && MascotSupport.AccessoryDisconnectedFor(kind) is { } gone) _mascot?.React(gone);
     }
 
     /// <summary>A fresh reading: a measured recharge withdraws a waiting warning, and a new low episode warns once.</summary>
@@ -2208,6 +2227,65 @@ public sealed class IslandService : IFeatureService, IMascotIsland
     /// <summary>Settings asks it to say hello in the island now; false when the island has no room for it.</summary>
     public bool GreetMascot() => _mascot?.Greet() == true;
 
+    // MARK: The companion's eyes on the cursor (a Windows addition: upstream follows the pointer over the island only)
+
+    private DispatcherTimer? _gazeTimer;
+    private readonly MascotGazeTracker _gaze = new();
+
+    /// <summary>
+    /// Reads the cursor, a position only (it never moves or presses anything), while the companion rests awake in the
+    /// closed island on screen, and tells it where to look. Off in full screen, while hidden in the island, behind an
+    /// activity, in the open island and without Windows' animation effects, so nothing runs when nothing shows.
+    /// </summary>
+    private void SyncGaze()
+    {
+        var watching = _running && _mascotAtRest && !_expanded && !MascotService.ReduceMotion && ClosedVisible
+                       && _mascotView is { IsVisible: true };
+        if (!watching)
+        {
+            StopGaze();
+            return;
+        }
+        var interval = TimeSpan.FromSeconds(_mascot?.LowPower == true ? MascotSupport.GazePollIntervalLowPower : MascotSupport.GazePollInterval);
+        if (_gazeTimer is null)
+        {
+            _gazeTimer = new DispatcherTimer(DispatcherPriority.Input, _dispatcher);
+            _gazeTimer.Tick += (_, _) => OnGazeTick();
+        }
+        _gazeTimer.Interval = interval;
+        if (_gazeTimer.IsEnabled) return;
+        _gaze.Reset();
+        if (_mascotView is { } view) view.Stage.GlobalGaze = true;
+        _gazeTimer.Start();
+    }
+
+    private void StopGaze()
+    {
+        if (_gazeTimer is not { IsEnabled: true }) return;
+        _gazeTimer.Stop();
+        _gaze.Reset();
+        if (_mascotView is { } view) view.Stage.GlobalGaze = false;
+    }
+
+    private void OnGazeTick()
+    {
+        if (_mascotView is not { IsVisible: true } view || !_mascotAtRest || _expanded || !ClosedVisible) { StopGaze(); return; }
+        if (!Native.GetCursorPos(out var cursor)) return;
+        switch (_gaze.Update(new PointD(cursor.X, cursor.Y), Now))
+        {
+            case MascotGazeStep.Follow:
+                // Screen pixels to the view's points, through its own window's scale.
+                var local = view.PointFromScreen(new Point(cursor.X, cursor.Y));
+                view.Stage.GazeAt(new PointD(local.X, local.Y));
+                view.Wake();
+                break;
+            case MascotGazeStep.Lose:
+                view.Stage.GazeLost();
+                view.Wake();
+                break;
+        }
+    }
+
     bool IMascotIsland.Running => _running;
     bool IMascotIsland.Expanded => _expanded;
     bool IMascotIsland.PointerInside => _inside;
@@ -2292,6 +2370,7 @@ public sealed class IslandService : IFeatureService, IMascotIsland
         }
         else if (!yielding) view.Visibility = Visibility.Collapsed;
         _mascotAtRest = track is not null && content == ClosedContent.Bare && rests;
+        SyncGaze();
         PlaceMascots(_drawn == SizeD.Zero ? g.Collapsed : _drawn);
 
         // What a visit walks over steps aside: only the wing it stands in for a reaction or a countdown beside a

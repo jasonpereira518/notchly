@@ -130,7 +130,33 @@ public sealed class MascotView : FrameworkElement
             context.Pop();
         }
         else DrawFigure(context, frame.Parts, frame);
+        // The props float in the stage, so they leave the figure's own hop, squash and lean behind.
+        context.Pop();
+        pushes--;
+        DrawProps(context, frame);
         for (var i = 0; i < pushes; i++) context.Pop();
+    }
+
+    private static readonly Dictionary<MascotPropKind, Geometry> PropGeometries = [];
+
+    /// <summary>The props: each its unit outline scaled to its size, turned, and moved to the figure's middle plus its
+    /// offset, in the colour of its kind.</summary>
+    private static void DrawProps(DrawingContext context, MascotFrame frame)
+    {
+        foreach (var prop in frame.Props)
+        {
+            if (prop.Opacity <= 0.01 || prop.Size <= 0.1) continue;
+            if (!PropGeometries.TryGetValue(prop.Kind, out var geometry))
+                PropGeometries[prop.Kind] = geometry = ToGeometry(MascotPropShapes.Unit(prop.Kind));
+            var matrix = new Matrix(prop.Size, 0, 0, prop.Size, 0, 0);
+            matrix.Rotate(prop.Rotation * 180 / Math.PI);
+            matrix.Translate(frame.FigureCenter.X + prop.Offset.X, frame.FigureCenter.Y + prop.Offset.Y);
+            context.PushTransform(new MatrixTransform(matrix));
+            context.PushOpacity(Math.Clamp(prop.Opacity, 0, 1));
+            context.DrawGeometry(BrushFor(MascotPropShapes.Color(prop.Kind)), null, geometry);
+            context.Pop();
+            context.Pop();
+        }
     }
 
     private static void DrawFigure(DrawingContext context, MascotParts parts, MascotFrame frame)
@@ -255,7 +281,8 @@ public sealed class MascotView : FrameworkElement
         && a.Transform == b.Transform && a.StageTransform == b.StageTransform && a.Opacity == b.Opacity
         && a.EyeColor == b.EyeColor && a.BulbColor == b.BulbColor && a.BulbGlowOpacity == b.BulbGlowOpacity
         && a.EyeGlowOpacity == b.EyeGlowOpacity && a.LeftEye.AsSpan().SequenceEqual(b.LeftEye)
-        && a.RightEye.AsSpan().SequenceEqual(b.RightEye) && SameRects(a.VisibleRects, b.VisibleRects);
+        && a.RightEye.AsSpan().SequenceEqual(b.RightEye) && SameRects(a.VisibleRects, b.VisibleRects)
+        && a.Props.SequenceEqual(b.Props) && a.FigureCenter == b.FigureCenter;
 
     private static bool SameRects(IReadOnlyList<RectD>? a, IReadOnlyList<RectD>? b) =>
         a is null ? b is null : b is not null && a.SequenceEqual(b);

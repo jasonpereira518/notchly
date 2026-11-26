@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M9a (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; and the small tools). See
+Status: milestones M0–M9b (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; and the command bar). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -115,6 +115,11 @@ for the porting plan.
     **cleaning mode** (locks the keyboard and the wheel until five Escapes; Ctrl+Alt+Delete cannot be blocked), a floating **camera
     mirror**, a **scratchpad** (tabs, Markdown with a preview and tick boxes, kept in %APPDATA%\Notchly) and a **wallpaper** gallery
     (Windows' own pictures and yours, on every display or one).
+  - **Command bar** (M9b, in Settings → Tools; the shortcut, Alt+Space, starts switched off): one field that finds and runs what Notchly
+    does: apps, open windows, Windows settings pages, folders, emoji (`:fire`), files in folders you name (through Windows Search),
+    menu items of the app you came from, what you copied, what you had selected (copy, UPPER, lower, Title Case, count), and your own
+    links. It answers sums, unit conversions, dates and colors as you type (`2+3*4`, `100 km to mi`, `in 3 weeks`, `#00bc7d to rgb`),
+    learns what you run, and lets you pin rows, give them your own names (Ctrl+K) and hide them. Nothing you type is saved.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

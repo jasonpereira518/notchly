@@ -8,6 +8,7 @@ using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Notchly.App.Platform.Capture;
 using Notchly.Core.Notch;
+using Notchly.Core.Tools;
 using Serilog;
 
 namespace Notchly.App.Platform.Ocr;
@@ -50,13 +51,39 @@ public static class TextRecognizer
     /// <summary>The area's text, one recognised line per line, top to bottom; empty when it holds none.</summary>
     public static async Task<string> ReadAsync(CapturedImage area)
     {
-        if (Engine.Value is not { } engine) return "";
+        var result = await RecognizeAsync(area);
+        return result is null ? "" : string.Join("\n", result.Lines.Select(l => l.Text.Trim()).Where(t => t.Length > 0));
+    }
+
+    /// <summary>
+    /// The area's lines with where each starts, as fractions of the area (0 = left / top), so they can be joined in reading order
+    /// (Notchly.Core.Tools.ScreenTextSupport). Empty when the area holds no text.
+    /// </summary>
+    public static async Task<IReadOnlyList<RecognizedLine>> ReadLinesAsync(CapturedImage area)
+    {
+        var result = await RecognizeAsync(area);
+        if (result is null) return [];
+        var lines = new List<RecognizedLine>();
+        foreach (var line in result.Lines)
+        {
+            var first = line.Words.FirstOrDefault();
+            if (first is null || string.IsNullOrWhiteSpace(line.Text)) continue;
+            var scale = RecognitionScale(area.Width, area.Height);
+            var width = Math.Max(1, Math.Round(area.Width * scale));
+            var height = Math.Max(1, Math.Round(area.Height * scale));
+            lines.Add(new RecognizedLine(line.Text.Trim(), first.BoundingRect.X / width, first.BoundingRect.Y / height));
+        }
+        return lines;
+    }
+
+    private static async Task<OcrResult?> RecognizeAsync(CapturedImage area)
+    {
+        if (Engine.Value is not { } engine) return null;
         var source = area.Scaled(RecognitionScale(area.Width, area.Height));
-        if (source.Width > OcrEngine.MaxImageDimension || source.Height > OcrEngine.MaxImageDimension) return "";
+        if (source.Width > OcrEngine.MaxImageDimension || source.Height > OcrEngine.MaxImageDimension) return null;
         var packed = source.Stride == source.Width * 4 && source.Offset == 0 ? source : source.Crop(new RectD(0, 0, source.Width, source.Height));
         using var bitmap = SoftwareBitmap.CreateCopyFromBuffer(packed.Pixels.AsBuffer(), BitmapPixelFormat.Bgra8,
                                                                packed.Width, packed.Height, BitmapAlphaMode.Premultiplied);
-        var result = await engine.RecognizeAsync(bitmap);
-        return string.Join("\n", result.Lines.Select(l => l.Text.Trim()).Where(t => t.Length > 0));
+        return await engine.RecognizeAsync(bitmap);
     }
 }

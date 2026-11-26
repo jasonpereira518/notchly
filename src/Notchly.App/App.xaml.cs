@@ -126,6 +126,8 @@ public partial class App : Application
         Features.Bind(AppFeature.FinderCutPaste, () => new Pasteboard.ExplorerImagePasteService(this));
         Features.Bind(AppFeature.Shelf, () => new ShelfCard.ShelfSummonService(this));
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
+        Features.Bind(AppFeature.ColorPicker, () => new Tools.ColorPickerService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.ScreenOCR, () => new Tools.ScreenTextService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.QuickToggles, () => new Tools.QuickTogglesService(this, Settings, Dispatcher));
         Features.Bind(AppFeature.QuitApps, () => new Tools.QuitAppsService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.KillProcess, () => new Tools.KillProcessService(Settings));

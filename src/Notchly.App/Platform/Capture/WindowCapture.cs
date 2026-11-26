@@ -283,10 +283,13 @@ public sealed class WindowCapture : IDisposable
     }
 }
 
-/// <summary>A fixed part of the display, read as a plain GDI copy (layered windows such as the island stay out).</summary>
+/// <summary>
+/// A fixed part of the display, read as a plain GDI copy. Layered windows such as the island stay out of it, unless
+/// <c>includeLayered</c> asks for what is really on the screen (the colour picker and screen text want exactly that).
+/// </summary>
 public static class ScreenRegion
 {
-    public static CapturedImage? Read(RECT area)
+    public static CapturedImage? Read(RECT area, bool includeLayered = false)
     {
         var width = area.Width;
         var height = area.Height;
@@ -304,7 +307,7 @@ public static class ScreenRegion
         {
             if (memory == IntPtr.Zero || bitmap == IntPtr.Zero) return null;
             var previous = SelectObject(memory, bitmap);
-            var copied = BitBlt(memory, 0, 0, width, height, screen, area.Left, area.Top, SRCCOPY);
+            var copied = BitBlt(memory, 0, 0, width, height, screen, area.Left, area.Top, includeLayered ? SRCCOPY | CAPTUREBLT : SRCCOPY);
             SelectObject(memory, previous);
             if (!copied) return null;
             var pixels = new byte[width * height * 4];

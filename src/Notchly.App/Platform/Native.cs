@@ -131,6 +131,7 @@ public static class Native
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT point);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
     [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFOEX info);
@@ -303,7 +304,7 @@ public static class Native
     // MARK: Watch (Windows.Graphics.Capture's Direct3D device and window item, and a plain screen copy)
 
     public const uint D3D_DRIVER_TYPE_HARDWARE = 1, D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20, D3D11_SDK_VERSION = 7;
-    public const int SRCCOPY = 0x00CC0020;
+    public const int SRCCOPY = 0x00CC0020, CAPTUREBLT = 0x40000000;
 
     [DllImport("d3d11.dll", ExactSpelling = true)]
     public static extern int D3D11CreateDevice(IntPtr adapter, uint driverType, IntPtr software, uint flags, IntPtr featureLevels,

@@ -187,9 +187,11 @@ public partial class NotchWindow : Window
             : new CombinedGeometry(GeometryCombineMode.Intersect, outline, new RectangleGeometry(new Rect(0, 1.5, size.Width, size.Height)));
 
         // The strip keeps the camera's width in the middle; wings take what is left on each side.
+        // A lopsided notice shifts the island so the camera stays over the real one: the wings are then
+        // unequal by twice the shift, the camera column keeping the screen's centre.
         var wing = Math.Max(0, (size.Width - cameraWidth) / 2);
-        LeftWingColumn.Width = new GridLength(wing);
-        RightWingColumn.Width = new GridLength(wing);
+        LeftWingColumn.Width = new GridLength(Math.Max(0, wing - shift));
+        RightWingColumn.Width = new GridLength(Math.Max(0, wing + shift));
         Strip.Margin = new Thickness(0, geometry.FloatingGap ?? 0, 0, 0);
         Strip.Height = geometry.StripBodyHeight;
     }

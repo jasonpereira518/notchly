@@ -95,7 +95,7 @@ internal sealed partial class SettingsPages
 
     private CardControl TextRow(string title, string? description, string key)
     {
-        var box = new TextBox { Width = 260, Text = app.Settings.GetString(key), VerticalAlignment = VerticalAlignment.Center };
+        var box = new TextBox { Width = 200, Text = app.Settings.GetString(key), VerticalAlignment = VerticalAlignment.Center };
         box.LostFocus += (_, _) => app.Settings.Set(key, box.Text.Trim());
         return Card(title, description, "", box);
     }

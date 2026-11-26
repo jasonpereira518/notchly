@@ -50,6 +50,11 @@ public sealed class CaptureHistory : IRecentCaptureStorage
     {
         try
         {
+            // Read the index before any file is written: a folder holding captures but no index refuses to load, and this capture's own files would count.
+            lock (_gate)
+            {
+                if (!_store.LoadIfNeeded()) { Log.Warning("The capture history could not be read, so this capture is not added to it"); return null; }
+            }
             Directory.CreateDirectory(Folder);
             var id = Guid.NewGuid();
             var shotName = RecentCapturePolicy.ScreenshotFileName(id);

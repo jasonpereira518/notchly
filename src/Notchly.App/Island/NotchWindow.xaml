@@ -664,6 +664,9 @@
                         <!-- Tools (the quick launcher at island size): built in code by ToolsPage. -->
                         <Grid x:Name="ToolsPage" Visibility="Collapsed" />
 
+                        <!-- Captures (upstream NotchCapturesView): built in code by CapturesPage. -->
+                        <Grid x:Name="CapturesPage" Visibility="Collapsed" />
+
                         <!-- Clipboard history (upstream NotchClipboardView): built in code by ClipboardPage. -->
                         <Grid x:Name="ClipboardPage" Visibility="Collapsed" />
 

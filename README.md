@@ -4,7 +4,7 @@ A Windows 11 port of [vorssaint-utils](https://github.com/vorssaint/vorssaint-ut
 toolkit, built for an HP OMEN 16 with no physical notch. It starts with the **Dynamic Island**: a notch drawn under the
 webcam at the top centre of the screen, with music, volume/brightness/battery notices and timers.
 
-Status: milestones M0–M9c (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; the command bar; and the quick panel and radial menu). See
+Status: milestones M0–M10a (setup, shell, island core, the island extensions: lyrics, live equalizer, files, downloads, calendar, AI agents, notifications, camera, accessories, Watch and the companion; sound: mixer, output switcher, device priority, microphone mute; the system monitor; energy and quick tools; windows and input; clipboard and files; the small tools; the command bar; the quick panel and radial menu; and screenshots). See
 [docs/PARITY.md](docs/PARITY.md) for every upstream feature and where it stands, and [docs/ROADMAP.md](docs/ROADMAP.md)
 for the porting plan.
 
@@ -127,6 +127,13 @@ for the porting plan.
     combinations, tools, toggles, window layouts, media keys, one submenu level) at the pointer: hold the Forward mouse button or
     Ctrl+Alt+Win+Space, move toward a slice and let go to run it. Several wheels, each with its own color, shortcut and button; an editor
     with a live preview, an icon grid, your own images and site icons for links.
+  - **Screenshots** (M10a, in Settings → Tools; every shortcut starts off): **Ctrl+Alt+Win+4** chooses an area (drag it, or click a
+    window; R repeats the last area, L shows a loupe, C copies the color under it, 1 to 5 switch between screenshot, copy text, color and
+    scrolling), **+3** the whole screen, **Shift+4** a scrolling capture (it can scroll the page for you), **+E** the last capture,
+    **+H** the recent ones, **+P** a picture from the clipboard. A small preview offers Edit, Pin, Copy, Save and Share; the editor has arrow,
+    box, oval, line, pen, marker, text, counters, stickers, blur (pixelate, soft or erase, optionally only on text), redact, spotlight,
+    crop, canvas expansion and pictures, selectable text from the capture, a backdrop and a watermark, undo, and save names with
+    patterns (`%year %mo %d %#`). The island has a **Captures** page. No upload links, and no HEIC.
   - Live activities in the closed island: music (cover + bars), timer countdown, a watched area, downloads, event countdown, working agents.
   - Notices: volume (optionally owns the volume keys — no Windows flyout), brightness, mic mute, charger and low
     battery, track changes.

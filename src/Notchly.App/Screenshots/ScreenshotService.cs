@@ -262,6 +262,7 @@ internal sealed class ScreenshotService : IFeatureService
         if (plan.Saves) savedPath = SaveToFolder(image, scale);
         var entry = History.Add(image, scale, area);
         var historyPath = entry is null ? null : History.PathOf(entry);
+        _app.Features.Get<Island.IslandService>(AppFeature.Notch)?.ReactTo(Notchly.Core.Notch.Mascot.MascotMoment.Screenshot);
         var shelfOn = _settings.IsAvailable(AppFeature.Shelf);
         if (plan.OffersShelf && ScreenshotSupport.AddsCapturesToShelf(_settings.GetBool(DefaultsKey.ScreenshotAddToShelf), shelfOn, shelfOn)
             && (savedPath ?? historyPath) is { } shelfFile)

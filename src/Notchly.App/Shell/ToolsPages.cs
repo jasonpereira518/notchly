@@ -49,7 +49,9 @@ internal sealed partial class SettingsPages
         page.Children.Add(Toggle("Open it with a second shortcut, resting on \"except the front app\"", null, DefaultsKey.QuitAppsExceptFrontShortcutEnabled, ""));
         page.Children.Add(Card("Quit all except the front app", "Click, then press the keys. Backspace clears it.", "", new ShortcutRecorder(settings, DefaultsKey.QuitAppsExceptFrontShortcut)));
         page.Children.Add(Card("Kept apps", "Program names \"Quit all\" leaves open, separated by commas. Explorer is always kept.", "", KeptAppsBox()));
+        AddLauncherSection(page);
         AddCommandBarSection(page);
+        AddRadialSection(page);
         AddScreenToolSections(page);
         return page;
     }

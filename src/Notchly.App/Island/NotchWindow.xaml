@@ -661,6 +661,9 @@
                             </Grid>
                         </Grid>
 
+                        <!-- Tools (the quick launcher at island size): built in code by ToolsPage. -->
+                        <Grid x:Name="ToolsPage" Visibility="Collapsed" />
+
                         <!-- Clipboard history (upstream NotchClipboardView): built in code by ClipboardPage. -->
                         <Grid x:Name="ClipboardPage" Visibility="Collapsed" />
 

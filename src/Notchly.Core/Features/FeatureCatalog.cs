@@ -203,7 +203,8 @@ public static class FeatureCatalog
 
         // Tools
         g = FeatureGroup.Tools;
-        Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, P, "M9");
+        Add(AppFeature.QuickLauncher, g, "Quick panel", "A floating palette of favorite tools.", Glyph.Launch, none, true, WindowsStatus.Ported, "M9",
+            "Ctrl+Win+V opens a grid of tools, or the island's Tools page. Tiles for features not built yet (Cleaner, Package manager, Media, Uninstaller, Screenshot, Recorder) stay hidden.");
         Add(AppFeature.QuickToggles, g, "Quick toggles", "Dark mode, hide desktop icons, refresh rate, lock and more.", Glyph.Toggles, none, true, WindowsStatus.Ported, "M6");
         Add(AppFeature.QuitApps, g, "Quit apps", "See every open app and quit them one by one or all at once.", Glyph.Close, none, false, WindowsStatus.Ported, "M6");
         Add(AppFeature.ColorPicker, g, "Color picker", "Copy a screen color as HEX, RGB or HSL.", Glyph.Eyedropper, none, true, WindowsStatus.Ported, "M9",
@@ -222,7 +223,8 @@ public static class FeatureCatalog
         Add(AppFeature.CameraPreview, g, "Camera preview", "Check your camera in a floating mirror or the island.", Glyph.Camera, none, true, WindowsStatus.Ported, "M3",
             "The floating mirror opens from a shortcut or Settings; the island page is the same camera.");
         Add(AppFeature.RadialMenu, g, "Radial menu", "A wheel of apps, files and tools around the pointer.", Glyph.Wheel,
-            [DefaultsKey.RadialMenuEnabled], true, P, "M9");
+            [DefaultsKey.RadialMenuEnabled], true, WindowsStatus.Ported, "M9",
+            "Hold the Forward mouse button (or Ctrl+Alt+Win+Space), move toward a slice and let go. Off until turned on. No Now Playing slice, no trackpad tap.");
         Add(AppFeature.Scratchpad, g, "Scratchpad", "Autosaved notes in tabs with Markdown preview.", Glyph.Note, none, true, WindowsStatus.Ported, "M9",
             "The floating pad. The island's Scratchpad page comes with the launcher.");
         Add(AppFeature.CommandBar, g, "Command bar", "Search apps, windows, files and commands; calculate and convert.", Glyph.Command, none, true, WindowsStatus.Ported, "M9",

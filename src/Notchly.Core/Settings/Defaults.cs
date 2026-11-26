@@ -493,5 +493,16 @@ public static class Defaults
         [DefaultsKey.CommandBarUsage] = "{}",
         [DefaultsKey.CommandBarQueryHabits] = "{}",
         [DefaultsKey.CommandBarQueryHabitKey] = "",
+        [DefaultsKey.QuickLauncherShortcutEnabled] = true,
+        [DefaultsKey.QuickLauncherShortcut] = "control+win:86",
+        [DefaultsKey.QuickLauncherItemOrder] = "",
+        [DefaultsKey.QuickLauncherHiddenItems] = "",
+        [DefaultsKey.NotchQuickPanel] = true,
+        [DefaultsKey.RadialMenuShortcut] = "control+alt+win:32",
+        [DefaultsKey.RadialMenuAtPointer] = true,
+        [DefaultsKey.RadialMenuMouseButton] = "forward",
+        [DefaultsKey.RadialMenuActivationMode] = "pressOrHold",
+        [DefaultsKey.RadialMenuProfiles] = "",
+        [DefaultsKey.RadialMenuEnabled] = false,
     };
 }

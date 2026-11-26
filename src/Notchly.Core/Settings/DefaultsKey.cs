@@ -540,4 +540,14 @@ public static class DefaultsKey
     public const string CommandBarUsage = "commandBarUsage";
     public const string CommandBarQueryHabits = "commandBarQueryHabits";
     public const string CommandBarQueryHabitKey = "commandBarQueryHabitKey";
+    public const string QuickLauncherShortcutEnabled = "quickLauncherShortcutEnabled";
+    public const string QuickLauncherShortcut = "quickLauncherShortcut";
+    public const string QuickLauncherItemOrder = "quickLauncherItemOrder";
+    public const string QuickLauncherHiddenItems = "quickLauncherHiddenItems";
+    public const string NotchQuickPanel = "notchQuickPanel";
+    public const string RadialMenuShortcut = "radialMenuShortcut";
+    public const string RadialMenuAtPointer = "radialMenuAtPointer";
+    public const string RadialMenuMouseButton = "radialMenuMouseButton";
+    public const string RadialMenuActivationMode = "radialMenuActivationMode";
+    public const string RadialMenuProfiles = "radialMenuProfiles";
 }

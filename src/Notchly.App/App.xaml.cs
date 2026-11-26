@@ -43,6 +43,8 @@ public partial class App : Application
 
     private SingleInstance? _instance;
     private SettingsWindow? _settingsWindow;
+    /// <summary>The Settings window while it is open (dialogs such as the radial slice sheet are owned by it).</summary>
+    public Window? SettingsHost => _settingsWindow;
     private PanelWindow? _panel;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -128,6 +130,8 @@ public partial class App : Application
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.ColorPicker, () => new Tools.ColorPickerService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.ScreenOCR, () => new Tools.ScreenTextService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.RadialMenu, () => new Radial.RadialMenuService(this));
+        Features.Bind(AppFeature.QuickLauncher, () => new Launcher.QuickLauncherService(this));
         Features.Bind(AppFeature.CommandBar, () => new CommandBar.CommandBarService(this));
         Features.Bind(AppFeature.Scratchpad, () => new Tools.ScratchpadService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.Wallpaper, () => new Tools.WallpaperService(Settings));

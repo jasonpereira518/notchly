@@ -128,6 +128,7 @@ public partial class App : Application
         Features.Bind(AppFeature.UrlCleaner, () => new Pasteboard.UrlCleanerService(Settings, ClipboardWatch));
         Features.Bind(AppFeature.ColorPicker, () => new Tools.ColorPickerService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.ScreenOCR, () => new Tools.ScreenTextService(Settings, Hotkeys, Dispatcher));
+        Features.Bind(AppFeature.CommandBar, () => new CommandBar.CommandBarService(this));
         Features.Bind(AppFeature.Scratchpad, () => new Tools.ScratchpadService(Settings, Hotkeys, Dispatcher));
         Features.Bind(AppFeature.Wallpaper, () => new Tools.WallpaperService(Settings));
         Features.Bind(AppFeature.CameraPreview, () => new Tools.CameraWindowService(Settings, Hotkeys, Dispatcher));

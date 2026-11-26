@@ -23,9 +23,9 @@ public sealed record CommandBarPreferenceSnapshot(
 /// <summary>What the bar learned: how often rows were run, which row answered which letters, and what this session chose.</summary>
 public sealed class CommandBarLearningContext
 {
-    public IReadOnlyDictionary<string, CommandBarUse> Usage { get; init; } = new Dictionary<string, CommandBarUse>();
+    public IReadOnlyDictionary<string, CommandBarUse> Usage { get; set; } = new Dictionary<string, CommandBarUse>();
     public CommandBarQueryHabitStoreCache Habits { get; init; } = new();
-    public byte[]? HabitKey { get; init; }
+    public byte[]? HabitKey { get; set; }
     public CommandBarQueryHabits.PreparationCache Preparation { get; } = new();
     public CommandBarQueryMemory Memory { get; init; } = new();
 }

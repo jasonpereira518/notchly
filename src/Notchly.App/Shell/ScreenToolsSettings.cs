@@ -15,6 +15,7 @@ internal sealed partial class SettingsPages
 {
     private const string ColorNote = "Grab the color of any pixel on screen and copy it in your favorite format. While picking, C copies and keeps going.";
     private const string TextNote = "Select an area of the screen and the recognized text is copied, ready to paste.";
+    private const string CleaningNote = "Locks the keyboard so you can clean safely: every key, the volume and media keys and the wheel do nothing. Press Escape five times, or click Unlock, to give it back. Windows keeps Ctrl+Alt+Delete for itself, so that one cannot be blocked.";
     private const string ShortcutNote = "Click, then press the keys. Backspace clears it.";
 
     private void AddScreenToolSections(StackPanel page)
@@ -39,5 +40,11 @@ internal sealed partial class SettingsPages
         page.Children.Add(Toggle("Remove line breaks", "Removes line breaks so copied text pastes as one paragraph.", DefaultsKey.ScreenOcrRemoveLineBreaks, ""));
         page.Children.Add(Toggle("Read QR codes", "If the area has a QR code, its content is shown to copy or open.", DefaultsKey.ScreenOcrDetectQrCodes, ""));
         page.Children.Add(ActionButton("Copy text from screen", () => app.Features.Get<ScreenTextService>(AppFeature.ScreenOCR)?.Capture()));
+
+        page.Children.Add(Section("Cleaning mode"));
+        page.Children.Add(Caption(CleaningNote));
+        if (!settings.IsAvailable(AppFeature.CleaningMode)) page.Children.Add(Caption("Install Cleaning mode in Features to use it."));
+        page.Children.Add(Toggle("Keep screen visible", "Shows a discreet indicator in the corner of the screen instead of blacking out content.", DefaultsKey.CleaningModeKeepScreenVisible, ""));
+        page.Children.Add(ActionButton(CleaningModeService.StartNow, () => app.Features.Get<CleaningModeService>(AppFeature.CleaningMode)?.Start()));
     }
 }

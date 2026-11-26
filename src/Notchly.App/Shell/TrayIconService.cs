@@ -81,8 +81,11 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(new Separator());
         menu.Items.Add(awake);
         menu.Items.Add(mic);
+        var cleaning = Item(Tools.CleaningModeService.StartNow, () => app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode)?.Start());
+        menu.Items.Add(cleaning);
         menu.Opened += (_, _) =>
         {
+            cleaning.Visibility = app.Features.Get<Tools.CleaningModeService>(AppFeature.CleaningMode) is null ? Visibility.Collapsed : Visibility.Visible;
             var keep = app.Features.Get<Energy.KeepAwakeService>(AppFeature.KeepAwake);
             awake.Visibility = keep is null ? Visibility.Collapsed : Visibility.Visible;
             awake.IsChecked = keep?.Active == true;

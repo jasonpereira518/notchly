@@ -13,6 +13,7 @@ public static class DefaultsKey
     public const string PanelCollapsedSections = "panelCollapsedSections";
     public const string LaunchAtLogin = "launchAtLogin";                 // Windows-only (HKCU Run value)
     public const string AppTheme = "appTheme";                           // Windows-only: system|light|dark
+    public const string IslandSwitchesHandled = "islandSwitchesHandled";  // Windows-only: island switches whose earlier "on" has been checked against their extension
     public const string IslandSwitchesInstalled = "islandSwitchesInstalled";  // Windows-only: island switches turned on before they installed their extension were honoured
     public const string PortedFeaturesSeen = "portedFeaturesSeen";       // Windows-only: features known to be installable
 
